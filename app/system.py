@@ -107,16 +107,18 @@ class ImpatientQueueSystem:
         logger.info("Матрицы L для системы уравнений сгенерированы.")
         return l_matrices
 
-    def p_values_calculation(self, coefficients_matrix: NDArray[np.float64]) -> dict:
+    def p_values_calculation(self, coefficients_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Вычисление значений P для каждого собственного значения g.
 
         :param coefficients_matrix: матрица коэффициентов A для системы уравнений
         :return: словарь значений P
         """
-        P_values = {}
         eigenvalues = self._find_eigenvalues_of_coefficients_matrix(coefficients_matrix)
         logger.info("Начало вычисления значений P для каждого g.")
+
+        # Создаем массив для хранения значений P
+        P_values = np.empty((self.max_customers - 1, self.max_customers), dtype=np.float64)
 
         for g_value_index, g_value in enumerate(eigenvalues):
             logger.debug(f"Обработка собственного значения g[{g_value_index + 1}] = {g_value}.")
@@ -129,9 +131,8 @@ class ImpatientQueueSystem:
             # Вычисление значений P для оставшихся матриц L
             for matrix_index, L_matrix in enumerate(L_matrices[1:]):
                 calc = linalg.det(L_matrix) / L_det
-                P_key = f"P{matrix_index + 2}_{g_value_index + 1}"
-                P_values[P_key] = calc
-                logger.debug(f"Вычислено значение {P_key} = {calc}.")
+                P_values[matrix_index, g_value_index] = calc
+                logger.debug(f"Вычислено значение P[{matrix_index + 2}, {g_value_index + 1}] = {calc}.")
 
         logger.info("Вычисление значений P завершено.")
         return P_values
