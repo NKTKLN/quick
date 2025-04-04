@@ -1,6 +1,7 @@
 import logging
 from .logger import setup_logger
 from .args_parser import parse_args
+from .plot import plot_probabilities
 from .system import ImpatientQueueSystem
 
 # Получаем экземпляр логгера
@@ -22,11 +23,20 @@ def main() -> None:
     coefficient_matrix = impatient_queue_system.generate_coefficient_matrix()
     print(coefficient_matrix)
 
-    p_values = impatient_queue_system.p_values_calculation(coefficient_matrix)
-    print(p_values)
+    eigenvalues = impatient_queue_system.find_eigenvalues_of_coefficients_matrix(coefficient_matrix)
 
-    d = impatient_queue_system.generate_aa_matrix(p_values)
-    print(d)
+    p_values = impatient_queue_system.p_values_calculation(coefficient_matrix, eigenvalues)
+
+    aa = impatient_queue_system.generate_aa_matrix(p_values)
+
+    import numpy as np
+    t = np.linspace(0, 0.001, 1000)
+
+    m = impatient_queue_system.generate_m_matrix(aa, p_values, t, eigenvalues, [1, 1, 1, 1])
+    
+    p = impatient_queue_system.generate_p_matrix(m, [1, 0, 0, 0])
+
+    plot_probabilities(p, t)
 
 
 if __name__ == "__main__":

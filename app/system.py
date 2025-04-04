@@ -72,7 +72,7 @@ class ImpatientQueueSystem:
         logger.info("Матрица коэффициентов A для системы уравнений сгенерирована.")
         return coefficients_marix
 
-    def _find_eigenvalues_of_coefficients_matrix(self, coefficients_marix: NDArray[np.float64]) -> NDArray[np.float64]:
+    def find_eigenvalues_of_coefficients_matrix(self, coefficients_marix: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Нахождение собственных значений матрицы коэффициентов.
 
@@ -107,14 +107,14 @@ class ImpatientQueueSystem:
         logger.info("Матрицы L для системы уравнений сгенерированы.")
         return l_matrices
 
-    def p_values_calculation(self, coefficients_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
+    def p_values_calculation(self, coefficients_matrix: NDArray[np.float64], eigenvalues: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Вычисление значений P для каждого собственного значения g.
 
         :param coefficients_matrix: матрица коэффициентов A для системы уравнений
+        :param eigenvalues: массив собственных значений матрицы A
         :return: словарь значений P
         """
-        eigenvalues = self._find_eigenvalues_of_coefficients_matrix(coefficients_matrix)
         logger.info("Начало вычисления значений P для каждого g.")
 
         # Создаем массив для хранения значений P
@@ -187,3 +187,49 @@ class ImpatientQueueSystem:
 
         logger.info("Генерация матрицы AA завершена.")
         return aa_matrix
+
+    def generate_m_matrix(self, aa_matrix: NDArray[np.float64], p_values_matrix: NDArray[np.float64], time_array: NDArray[np.float64], eigenvalues: NDArray[np.float64], initial_probabilities: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Генерация матрицы M на основе входных данных.
+
+        :param aa_matrix: матрица AA
+        :param p_values_matrix: матрица значений P
+        :param time_array: массив времени
+        :param eigenvalues: массив собственных значений
+        :param initial_probabilities: массив начальных вероятностей [P1_1, P1_2, P1_3, P1_4]
+        :return: матрица M с дополнительным измерением времени
+        """
+        logger.info("Начало генерации матрицы M.")
+
+        # Создание матрицы p
+        p_matrix = np.vstack([initial_probabilities, p_values_matrix])
+
+        # Предварительное вычисление экспонент для каждого собственного значения
+        exp_g_t = np.exp(np.outer(eigenvalues, time_array))
+
+        # Инициализация матрицы M
+        m_matrix = np.zeros((p_matrix.shape[0], aa_matrix.shape[1], len(time_array)), dtype=np.float64)  # Размерность (5, 4, T)
+
+        # Заполнение матрицы M
+        for i in range(p_matrix.shape[0]):
+            for j in range(aa_matrix.shape[1]):
+                m_matrix[i, j, :] = (p_matrix[i, :] * aa_matrix[:, j]) @ exp_g_t
+
+        logger.info("Генерация матрицы M завершена.")
+        return m_matrix
+        
+    def generate_p_matrix(self, m_matrix: NDArray[np.float64], initial_probabilities: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Вычисление матрицы вероятностей p на основе матрицы m и начальных вероятностей.
+
+        :param m_matrix: матрица m размерности (4x4xT), где T - количество временных точек
+        :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0]
+        :return: матрица p размерности (4xT), где каждая строка соответствует вероятностям p1, p2, p3, p4
+        """
+        logger.info("Начало вычисления матрицы p на основе матрицы m.")
+        
+        # Вычисление матрицы p
+        p_matrix = np.dot(initial_probabilities, m_matrix)
+
+        logger.info("Вычисление матрицы p завершено.")
+        return p_matrix
