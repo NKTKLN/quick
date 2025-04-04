@@ -118,7 +118,7 @@ class ImpatientQueueSystem:
         logger.info("Начало вычисления значений P для каждого g.")
 
         # Создаем массив для хранения значений P
-        P_values = np.empty((self.max_customers - 1, self.max_customers), dtype=np.float64)
+        P_values = np.zeros((self.max_customers - 1, self.max_customers), dtype=np.float64)
 
         for g_value_index, g_value in enumerate(eigenvalues):
             logger.debug(f"Обработка собственного значения g[{g_value_index + 1}] = {g_value}.")
@@ -136,3 +136,32 @@ class ImpatientQueueSystem:
 
         logger.info("Вычисление значений P завершено.")
         return P_values
+
+    def _calculate_a_p_values(self, p_values_matrix: NDArray[np.float64], shift: int = 0) -> NDArray[np.float64]:
+        """
+        Вычисление значений для A_P на основе матрицы значений P.
+
+        :param p_values_matrix: матрица значений P
+        :param shift: сдвиг для модификации матрицы
+        :return: массив значений A_P
+        """
+        logger.info("Начало вычисления значений A_P.")
+        
+        # Создание базовой матрицы xsi
+        xsi_matrix = np.ones((self.max_customers, self.max_customers), dtype=np.float64)
+        xsi_matrix[1:, :] = p_values_matrix
+        xsi_matrix_det = linalg.det(xsi_matrix)
+        logger.debug(f"Определитель базовой матрицы xsi: {xsi_matrix_det}.")
+
+        # Вычисление значений A_P
+        a_p_values = np.zeros(self.max_customers, dtype=np.float64)
+        for index in range(self.max_customers):
+            temp_xsi_matrix = xsi_matrix.copy()
+            temp_xsi_matrix[:, index] = 0
+            temp_xsi_matrix[shift, index] = 1
+            calc = linalg.det(temp_xsi_matrix) / xsi_matrix_det
+            a_p_values[index] = calc
+            logger.debug(f"Вычислено значение A_P[{index}] = {calc}.")
+
+        logger.info("Вычисление значений A_P завершено.")
+        return a_p_values
