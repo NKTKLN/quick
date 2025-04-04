@@ -4,9 +4,9 @@
 
 ## 📦 Зависимости
 
-- [Python](https://www.python.org/downloads/).
-- [Poetry](https://python-poetry.org/docs/#installation).
-- [Docker](https://docs.docker.com/get-docker/).
+- [Python](https://www.python.org/downloads/)
+- [Poetry](https://python-poetry.org/docs/#installation)
+- [Docker](https://docs.docker.com/get-docker/)
 
 ## 📂 Структура проекта
 
