@@ -25,6 +25,8 @@ def main() -> None:
     p_values = impatient_queue_system.p_values_calculation(coefficient_matrix)
     print(p_values)
 
+    d = impatient_queue_system._xsi_matrix_generator(p_values)
+    print(d)
 
 if __name__ == "__main__":
     main()
