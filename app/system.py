@@ -208,7 +208,7 @@ class ImpatientQueueSystem:
         exp_g_t = np.exp(np.outer(eigenvalues, time_array))
 
         # Инициализация матрицы M
-        m_matrix = np.zeros((p_matrix.shape[0], aa_matrix.shape[1], len(time_array)), dtype=np.float64)  # Размерность (5, 4, T)
+        m_matrix = np.zeros((p_matrix.shape[0], aa_matrix.shape[1], len(time_array)), dtype=np.float64)
 
         # Заполнение матрицы M
         for i in range(p_matrix.shape[0]):
