@@ -165,3 +165,25 @@ class ImpatientQueueSystem:
 
         logger.info("Вычисление значений A_P завершено.")
         return a_p_values
+
+    def generate_aa_matrix(self, p_values_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Генерация матрицы AA на основе матрицы значений P.
+
+        :param p_values_matrix: матрица значений P
+        :return: матрица AA
+        """
+        logger.info("Начало генерации матрицы AA.")
+        
+        # Инициализация матрицы AA
+        aa_matrix = np.empty((self.max_customers, self.max_customers), dtype=np.float64)
+        
+        # Заполнение матрицы AA
+        for index in range(self.max_customers):
+            logger.debug(f"Генерация столбца {index} для матрицы AA.")
+            a_p_values = self._calculate_a_p_values(p_values_matrix, index)
+            aa_matrix[:, index] = a_p_values.T
+            logger.debug(f"Столбец {index} для матрицы AA сгенерирован.")
+
+        logger.info("Генерация матрицы AA завершена.")
+        return aa_matrix
