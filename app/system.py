@@ -213,7 +213,7 @@ class ImpatientQueueSystem:
         # Заполнение матрицы M
         for i in range(p_matrix.shape[0]):
             for j in range(aa_matrix.shape[1]):
-                m_matrix[i, j, :] = (p_matrix[i, :] * aa_matrix[:, j]) @ exp_g_t
+                m_matrix[i, j, :] = np.real((p_matrix[i, :] * aa_matrix[:, j]) @ exp_g_t)
 
         logger.info("Генерация матрицы M завершена.")
         return m_matrix
