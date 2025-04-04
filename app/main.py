@@ -21,8 +21,9 @@ def main() -> None:
     impatient_queue_system = ImpatientQueueSystem(lam, muu, nuu, n)
     coefficient_matrix = impatient_queue_system.generate_coefficient_matrix()
     print(coefficient_matrix)
-    eigenvalues = impatient_queue_system.find_eigenvalues_of_coefficients_matrix(coefficient_matrix)
-    print(eigenvalues)
+
+    p_values = impatient_queue_system.p_values_calculation(coefficient_matrix)
+    print(p_values)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from typing import Any, List
+from typing import List
 from scipy import linalg
 from numpy.typing import NDArray
 
@@ -72,7 +72,7 @@ class ImpatientQueueSystem:
         logger.info("Матрица коэффициентов A для системы уравнений сгенерирована.")
         return coefficients_marix
 
-    def find_eigenvalues_of_coefficients_matrix(self, coefficients_marix: NDArray[np.float64]) -> Any:
+    def _find_eigenvalues_of_coefficients_matrix(self, coefficients_marix: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Нахождение собственных значений матрицы коэффициентов.
 
@@ -83,7 +83,7 @@ class ImpatientQueueSystem:
         logger.info("Собственные значения для матрицы A найдены.")
         return eigenvalues_of_coefficients_marix
 
-    def generate_L_matrix(self, coefficients_matrix: NDArray[np.float64], g: float) -> List[NDArray[np.float64]]:
+    def _generate_L_matrix(self, coefficients_matrix: NDArray[np.float64], g: float) -> List[NDArray[np.float64]]:
         """
         Генерация матриц L для системы уравнений.
 
@@ -106,3 +106,32 @@ class ImpatientQueueSystem:
         
         logger.info("Матрицы L для системы уравнений сгенерированы.")
         return l_matrices
+
+    def p_values_calculation(self, coefficients_matrix: NDArray[np.float64]) -> dict:
+        """
+        Вычисление значений P для каждого собственного значения g.
+
+        :param coefficients_matrix: матрица коэффициентов A для системы уравнений
+        :return: словарь значений P
+        """
+        P_values = {}
+        eigenvalues = self._find_eigenvalues_of_coefficients_matrix(coefficients_matrix)
+        logger.info("Начало вычисления значений P для каждого g.")
+
+        for g_value_index, g_value in enumerate(eigenvalues):
+            logger.debug(f"Обработка собственного значения g[{g_value_index + 1}] = {g_value}.")
+            L_matrices = self._generate_L_matrix(coefficients_matrix, g_value)
+
+            # Вычисление детерминанта первой матрицы L
+            L_det = linalg.det(L_matrices[0])
+            logger.debug(f"Детерминант L[0] для g[{g_value_index + 1}] = {L_det}.")
+
+            # Вычисление значений P для оставшихся матриц L
+            for matrix_index, L_matrix in enumerate(L_matrices[1:]):
+                calc = linalg.det(L_matrix) / L_det
+                P_key = f"P{matrix_index + 2}_{g_value_index + 1}"
+                P_values[P_key] = calc
+                logger.debug(f"Вычислено значение {P_key} = {calc}.")
+
+        logger.info("Вычисление значений P завершено.")
+        return P_values
