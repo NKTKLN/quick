@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 # Инициализация логгирования
 logger = logging.getLogger(__name__)
 
+
 class ImpatientQueueSystem:
     def __init__(self, lambda_rate: float, mu_rate: float, nu_rate: float, max_customers: int):
         """
@@ -64,7 +65,7 @@ class ImpatientQueueSystem:
         lambda_matrix *= self.lambda_rate
 
         p_n_coefficients = (nu_matrix_2 + mu_matrix_2 + lambda_matrix) * -1
-        p_n_coefficients[self.max_customers-1, self.max_customers-1] = -(self.mu_rate + 2 * self.nu_rate)
+        p_n_coefficients[self.max_customers-1, self.max_customers-1] = -(self.mu_rate + (self.max_customers - 1) * self.nu_rate)
         logger.info("Генерация коэффициентов для P_n(t) прошла успешно.")
 
         # Сложение матриц для финального результата
@@ -97,7 +98,7 @@ class ImpatientQueueSystem:
 
         # Генерация матриц L
         l_matrices = []
-        for index in range(4):
+        for index in range(self.max_customers):
             temp_matrix = modified_matrix.copy()
             temp_matrix[:, 0] *= -1
             temp_matrix[:, index] = temp_matrix[:, 0]
@@ -130,7 +131,7 @@ class ImpatientQueueSystem:
 
             # Вычисление значений P для оставшихся матриц L
             for matrix_index, L_matrix in enumerate(L_matrices[1:]):
-                calc = linalg.det(L_matrix) / L_det
+                calc = np.real(linalg.det(L_matrix) / L_det)
                 P_values[matrix_index, g_value_index] = calc
                 logger.debug(f"Вычислено значение P[{matrix_index + 2}, {g_value_index + 1}] = {calc}.")
 
@@ -196,7 +197,7 @@ class ImpatientQueueSystem:
         :param p_values_matrix: матрица значений P
         :param time_array: массив времени
         :param eigenvalues: массив собственных значений
-        :param initial_probabilities: массив начальных вероятностей [P1_1, P1_2, P1_3, P1_4]
+        :param initial_probabilities: массив начальных вероятностей [P1_1, P1_2, P1_3, P1_4, ...]
         :return: матрица M с дополнительным измерением времени
         """
         logger.info("Начало генерации матрицы M.")
@@ -222,9 +223,9 @@ class ImpatientQueueSystem:
         """
         Вычисление матрицы вероятностей p на основе матрицы m и начальных вероятностей.
 
-        :param m_matrix: матрица m размерности (4x4xT), где T - количество временных точек
-        :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0]
-        :return: матрица p размерности (4xT), где каждая строка соответствует вероятностям p1, p2, p3, p4
+        :param m_matrix: матрица m, где T - количество временных точек
+        :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0, ...]
+        :return: матрица p, где каждая строка соответствует вероятностям p1, p2, p3, p4, ...
         """
         logger.info("Начало вычисления матрицы p на основе матрицы m.")
         

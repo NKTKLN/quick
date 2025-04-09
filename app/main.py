@@ -22,7 +22,7 @@ def initialize_system(lam, muu, nuu, n):
 def calculate_probabilities(impatient_queue_system, aa, p_values, eigenvalues, t, initial_conditions):
     """Расчет матриц M и P."""
     m = impatient_queue_system.generate_m_matrix(aa, p_values, t, eigenvalues, initial_conditions)
-    p = impatient_queue_system.generate_p_matrix(m, [1, 0, 0, 0])
+    p = impatient_queue_system.generate_p_matrix(m, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     return p
 
 
@@ -34,16 +34,16 @@ def main() -> None:
     lam = 89479
     muu = 134218.5
     nuu = 12435
-    n = 4
+    n = 30
 
     # Инициализация системы
     impatient_queue_system, _, eigenvalues, p_values, aa = initialize_system(lam, muu, nuu, n)
 
     # Временной интервал
-    t = np.linspace(0, 0.001, 1000)
+    t = np.linspace(0, 0.0001, 1000)
 
     # Расчет вероятностей
-    p = calculate_probabilities(impatient_queue_system, aa, p_values, eigenvalues, t, [1, 1, 1, 1])
+    p = calculate_probabilities(impatient_queue_system, aa, p_values, eigenvalues, t, np.ones(30))
 
     # Построение графика
     plot_probabilities(p, t)
