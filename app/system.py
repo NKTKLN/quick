@@ -65,7 +65,7 @@ class ImpatientQueueSystem:
         lambda_matrix *= self.lambda_rate
 
         p_n_coefficients = (nu_matrix_2 + mu_matrix_2 + lambda_matrix) * -1
-        p_n_coefficients[self.max_customers-1, self.max_customers-1] = -(self.mu_rate + (self.max_customers - 1) * self.nu_rate)
+        p_n_coefficients[self.max_customers-1, self.max_customers-1] = -(self.mu_rate + (self.max_customers - 2) * self.nu_rate)
         logger.info("Генерация коэффициентов для P_n(t) прошла успешно.")
 
         # Сложение матриц для финального результата
