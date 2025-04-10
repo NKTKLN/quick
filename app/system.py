@@ -100,8 +100,7 @@ class ImpatientQueueSystem:
         l_matrices = []
         for index in range(self.max_customers):
             temp_matrix = modified_matrix.copy()
-            temp_matrix[:, 0] *= -1
-            temp_matrix[:, index] = temp_matrix[:, 0]
+            temp_matrix[:, index] = -temp_matrix[:, 0]
             l_matrices.append(temp_matrix[:-1, 1:])
             logger.debug(f"Матрица L с индексом {index} сгенерирована.")
         
@@ -145,8 +144,8 @@ class ImpatientQueueSystem:
         :return: массив значений A_P
         """
         # Создание базовой матрицы xsi
-        xsi_matrix = np.ones((self.max_customers, self.max_customers), dtype=np.float64)
-        xsi_matrix[1:, :] = p_values_matrix
+        ones_vector = np.ones(self.max_customers, dtype=np.float64)
+        xsi_matrix = np.vstack([ones_vector, p_values_matrix])
         xsi_matrix_det = linalg.det(xsi_matrix)
         logger.debug(f"Определитель базовой матрицы xsi: {xsi_matrix_det}.")
 
@@ -215,7 +214,7 @@ class ImpatientQueueSystem:
         """
         Вычисление матрицы вероятностей p на основе матрицы m и начальных вероятностей.
 
-        :param m_matrix: матрица m, где T - количество временных точек
+        :param m_matrix: матрица m
         :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0, ...]
         :return: матрица p, где каждая строка соответствует вероятностям p1, p2, p3, p4, ...
         """

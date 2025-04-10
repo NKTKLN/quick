@@ -15,7 +15,9 @@ def initialize_system(lam, muu, nuu, n):
     coefficient_matrix = impatient_queue_system.generate_coefficient_matrix()
     eigenvalues = impatient_queue_system.find_eigenvalues_of_coefficients_matrix(coefficient_matrix)
     p_values = impatient_queue_system.p_values_calculation(coefficient_matrix, eigenvalues)
+    print(p_values.max())
     aa = impatient_queue_system.generate_aa_matrix(p_values)
+    print(aa.max())
     return impatient_queue_system, coefficient_matrix, eigenvalues, p_values, aa
 
 
