@@ -35,7 +35,7 @@ class ImpatientQueueSystem:
         p_n_minus_1_coefficients = np.roll(eye_matrix, shift=1, axis=0)
         p_n_minus_1_coefficients[0, :] = 0
         p_n_minus_1_coefficients *= self.lambda_rate
-        logger.info("Генерация коэффициентов для P_{n-1}(t) прошла успешно.")
+        logger.debug("Генерация коэффициентов для P_{n-1}(t) прошла успешно.")
 
         # Генерация коэффициентов для P_{n+1}(t)
         diag_elements = np.arange(0, self.max_customers)
@@ -49,7 +49,7 @@ class ImpatientQueueSystem:
         mu_matrix *= self.mu_rate
 
         p_n_plus_1_coefficients = nu_matrix + mu_matrix
-        logger.info("Генерация коэффициентов для P_{n+1}(t) прошла успешно.")
+        logger.debug("Генерация коэффициентов для P_{n+1}(t) прошла успешно.")
 
         # Генерация коэффициентов для P_n(t)
         diag_elements_2 = np.arange(0, self.max_customers - 1)
@@ -66,7 +66,7 @@ class ImpatientQueueSystem:
 
         p_n_coefficients = (nu_matrix_2 + mu_matrix_2 + lambda_matrix) * -1
         p_n_coefficients[self.max_customers-1, self.max_customers-1] = -(self.mu_rate + (self.max_customers - 2) * self.nu_rate)
-        logger.info("Генерация коэффициентов для P_n(t) прошла успешно.")
+        logger.debug("Генерация коэффициентов для P_n(t) прошла успешно.")
 
         # Сложение матриц для финального результата
         coefficients_marix = p_n_minus_1_coefficients + p_n_coefficients + p_n_plus_1_coefficients
@@ -105,7 +105,7 @@ class ImpatientQueueSystem:
             l_matrices.append(temp_matrix[:-1, 1:])
             logger.debug(f"Матрица L с индексом {index} сгенерирована.")
         
-        logger.info("Матрицы L для системы уравнений сгенерированы.")
+        logger.debug("Матрицы L для системы уравнений сгенерированы.")
         return l_matrices
 
     def p_values_calculation(self, coefficients_matrix: NDArray[np.float64], eigenvalues: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -116,8 +116,6 @@ class ImpatientQueueSystem:
         :param eigenvalues: массив собственных значений матрицы A
         :return: словарь значений P
         """
-        logger.info("Начало вычисления значений P для каждого g.")
-
         # Создаем массив для хранения значений P
         P_values = np.zeros((self.max_customers - 1, self.max_customers), dtype=np.float64)
 
@@ -146,8 +144,6 @@ class ImpatientQueueSystem:
         :param shift: сдвиг для модификации матрицы
         :return: массив значений A_P
         """
-        logger.info("Начало вычисления значений A_P.")
-        
         # Создание базовой матрицы xsi
         xsi_matrix = np.ones((self.max_customers, self.max_customers), dtype=np.float64)
         xsi_matrix[1:, :] = p_values_matrix
@@ -164,7 +160,7 @@ class ImpatientQueueSystem:
             a_p_values[index] = calc
             logger.debug(f"Вычислено значение A_P[{index}] = {calc}.")
 
-        logger.info("Вычисление значений A_P завершено.")
+        logger.debug("Вычисление значений A_P завершено.")
         return a_p_values
 
     def generate_aa_matrix(self, p_values_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -174,8 +170,6 @@ class ImpatientQueueSystem:
         :param p_values_matrix: матрица значений P
         :return: матрица AA
         """
-        logger.info("Начало генерации матрицы AA.")
-        
         # Инициализация матрицы AA
         aa_matrix = np.empty((self.max_customers, self.max_customers), dtype=np.float64)
         
@@ -200,8 +194,6 @@ class ImpatientQueueSystem:
         :param initial_probabilities: массив начальных вероятностей [P1_1, P1_2, P1_3, P1_4, ...]
         :return: матрица M с дополнительным измерением времени
         """
-        logger.info("Начало генерации матрицы M.")
-
         # Создание матрицы p
         p_matrix = np.vstack([initial_probabilities, p_values_matrix])
 
@@ -227,8 +219,6 @@ class ImpatientQueueSystem:
         :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0, ...]
         :return: матрица p, где каждая строка соответствует вероятностям p1, p2, p3, p4, ...
         """
-        logger.info("Начало вычисления матрицы p на основе матрицы m.")
-        
         # Вычисление матрицы p
         p_matrix = np.dot(initial_probabilities, m_matrix)
 
