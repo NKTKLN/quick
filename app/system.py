@@ -151,7 +151,7 @@ class ImpatientQueueSystem:
         logger.info("Генерация матрицы AA завершена.")
         return aa_matrix
 
-    def generate_m_matrix(self, aa_matrix: NDArray[np.float64], p_values_matrix: NDArray[np.float64], time_array: NDArray[np.float64], eigenvalues: NDArray[np.float64], initial_probabilities: NDArray[np.float64]) -> NDArray[np.float64]:
+    def generate_m_matrix(self, aa_matrix: NDArray[np.float64], p_values_matrix: NDArray[np.float64], time_array: NDArray[np.float64], eigenvalues: NDArray[np.float64], state_variables: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Генерация матрицы M на основе входных данных.
 
@@ -159,14 +159,14 @@ class ImpatientQueueSystem:
         :param p_values_matrix: матрица значений P
         :param time_array: массив времени
         :param eigenvalues: массив собственных значений
-        :param initial_probabilities: массив начальных вероятностей [P1_1, P1_2, P1_3, P1_4, ...]
+        :param state_variables: массив переменных состояния
         :return: матрица M с дополнительным измерением времени
         """
-        if initial_probabilities.shape[0] != p_values_matrix.shape[1]:
-            raise ValueError("Размер initial_probabilities должен соответствовать p_values_matrix.shape[1].")
+        if state_variables.shape[0] != p_values_matrix.shape[1]:
+            raise ValueError("Размер state_variables должен соответствовать p_values_matrix.shape[1].")
         
         # Создание матрицы p
-        p_matrix = np.vstack([initial_probabilities, p_values_matrix])
+        p_matrix = np.vstack([state_variables, p_values_matrix])
 
         # Предварительное вычисление экспонент для каждого собственного значения
         exp_g_t = np.exp(np.outer(eigenvalues, time_array))
@@ -187,8 +187,8 @@ class ImpatientQueueSystem:
         Вычисление матрицы вероятностей p на основе матрицы m и начальных вероятностей.
 
         :param m_matrix: матрица m
-        :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0, ...]
-        :return: матрица p, где каждая строка соответствует вероятностям p1, p2, p3, p4, ...
+        :param initial_probabilities: массив начальных вероятностей
+        :return: матрица вероятностей P
         """
         if len(initial_probabilities) != m_matrix.shape[0]:
             raise ValueError("Размер initial_probabilities не соответствует размерности m_matrix.")
@@ -198,3 +198,33 @@ class ImpatientQueueSystem:
 
         logger.info("Вычисление матрицы p завершено.")
         return p_matrix
+
+    def calculate(self, time_array: NDArray[np.float64], state_variables: NDArray[np.float64], initial_probabilities: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Расчет системы.
+
+        :param time_array: массив времени
+        :param state_variables: массив переменных состояния
+        :param initial_probabilities: массив начальных вероятностей
+        :return: матрица вероятностей P
+        """
+        # Генерация матрицы коэффициентов
+        coefficients_matrix = self.generate_coefficient_matrix()
+
+        # Вычисление собственных значений
+        eigenvalues = linalg.eigvals(coefficients_matrix)
+        logger.debug("Собственные значения рассчитаны: %s", eigenvalues)
+
+        # Расчет значений p
+        p_values = self.p_values_calculation(coefficients_matrix, eigenvalues)
+
+        # Генерация матрицы A
+        aa = self.generate_aa_matrix(p_values)
+
+        # Расчет матрицы M
+        m = self.generate_m_matrix(aa, p_values, time_array, eigenvalues, state_variables)
+
+        # Расчет матрицы вероятностей P
+        p = self.generate_p_matrix(m, initial_probabilities)
+
+        return p
