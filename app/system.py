@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 from typing import List
-from scipy import linalg
 from numpy.typing import NDArray
 
 # Инициализация логгирования
@@ -97,8 +96,8 @@ class ImpatientQueueSystem:
             L_matrices = self._generate_L_matrix(coefficients_matrix, g_value)
 
             # Вычисление значений P для матриц L
-            L_det = linalg.det(L_matrices[0])
-            P_values[:, g_value_index] = np.real(linalg.det(L_matrices[1:]) / L_det)
+            L_det = np.linalg.det(L_matrices[0])
+            P_values[:, g_value_index] = np.linalg.det(L_matrices[1:]) / L_det
             logger.debug(f"Значения P для g[{g_value_index + 1}] = {g_value} вычислены.")
 
         logger.info("Вычисление значений P завершено.")
@@ -116,7 +115,7 @@ class ImpatientQueueSystem:
         ones_row = np.ones(self.max_customers, dtype=np.float64)
         xsi_matrix = np.vstack([ones_row, p_values_matrix])
 
-        xsi_matrix_det = linalg.det(xsi_matrix)
+        xsi_matrix_det = np.linalg.det(xsi_matrix)
         logger.debug(f"Определитель базовой матрицы xsi: {xsi_matrix_det}.")
 
         # Вычисление значений A_P
@@ -125,7 +124,7 @@ class ImpatientQueueSystem:
             temp_xsi_matrix = xsi_matrix.copy()
             temp_xsi_matrix[:, index] = 0
             temp_xsi_matrix[shift, index] = 1
-            calc = linalg.det(temp_xsi_matrix) / xsi_matrix_det
+            calc = np.linalg.det(temp_xsi_matrix) / xsi_matrix_det
             a_p_values[index] = calc
             logger.debug(f"Вычислено значение A_P[{index}] = {calc}.")
 
@@ -177,7 +176,7 @@ class ImpatientQueueSystem:
         # Заполнение матрицы M
         for i in range(p_matrix.shape[0]):
             for j in range(aa_matrix.shape[1]):
-                m_matrix[i, j, :] = np.real((p_matrix[i, :] * aa_matrix[:, j]) @ exp_g_t)
+                m_matrix[i, j, :] = (p_matrix[i, :] * aa_matrix[:, j]) @ exp_g_t
 
         logger.info("Генерация матрицы M завершена.")
         return m_matrix
@@ -212,7 +211,7 @@ class ImpatientQueueSystem:
         coefficients_matrix = self.generate_coefficient_matrix()
 
         # Вычисление собственных значений
-        eigenvalues = linalg.eigvals(coefficients_matrix)
+        eigenvalues = np.linalg.eigvals(coefficients_matrix)
         logger.debug("Собственные значения рассчитаны: %s", eigenvalues)
 
         # Расчет значений p

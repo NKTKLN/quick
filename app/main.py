@@ -17,8 +17,8 @@ def main() -> None:
     lam = 89479
     muu = 134218.5
     nuu = 12435
-    n = 4
-    initial_probabilities = np.array([0, 0, 0, 1])
+    n = 31
+    initial_probabilities = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
 
     # Временной интервал
     time_array = np.linspace(0, 0.0001, 1000)
@@ -27,9 +27,7 @@ def main() -> None:
     impatient_queue_system = ImpatientQueueSystem(lam, muu, nuu, n)
 
     # Расчет вероятностей
-    p = impatient_queue_system.calculate(time_array, np.ones(4), initial_probabilities)
-
-    print([p[i].min() for i in range(p.shape[0])])
+    p = impatient_queue_system.calculate(time_array, np.ones(n), initial_probabilities)
 
     # Построение графика
     plot_probabilities(p, time_array)
