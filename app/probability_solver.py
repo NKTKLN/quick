@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
@@ -70,26 +70,38 @@ class ProbabilitySolver:
         logger.info("Вычисление значений P завершено.")
         return p_values
 
-    def _calculate_a_p_values(
+    def _xsi_matrix_generator(
         self,
-        p_values_matrix: NDArray[np.float64],
-        shift: int = 0
-    ) -> NDArray[np.float64]:
+        p_values_matrix: NDArray[np.float64]
+    ) -> Tuple[NDArray[np.float64], float]:
         """
-        Вычисление значений для A_P на основе матрицы значений P.
+        Генерирует базовую матрицу xsi и вычисляет её определитель.
 
         :param p_values_matrix: матрица значений P
-        :param shift: сдвиг для модификации матрицы
-        :return: массив значений A_P
+        :return: Кортеж, содержащий:
+            - xsi_matrix: базовая матрица xsi
+            - xsi_matrix_det: определитель базовой матрицы xsi
         """
-        # Создание базовой матрицы xsi
         ones_row = np.ones(p_values_matrix.shape[1], dtype=np.float64)
         xsi_matrix = np.vstack([ones_row, p_values_matrix])
 
         xsi_matrix_det = np.linalg.det(xsi_matrix)
         logger.debug(f"Определитель базовой матрицы xsi: {xsi_matrix_det}.")
+        return (xsi_matrix, xsi_matrix_det)
 
-        # Вычисление значений A_P
+    def _calculate_a_p_values(
+        self,
+        xsi_matrix: NDArray[np.float64], 
+        xsi_matrix_det: float,
+        shift: int = 0
+    ) -> NDArray[np.float64]:
+        """
+        Вычисление значений для A_P на основе матрицы значений P.
+
+        :param xsi_matrix: базовя матрица xsi
+        :param xsi_matrix_det: определитель базовой матрицы xsi
+        :return: массив значений A_P
+        """
         a_p_values = np.zeros(self.params.max_customers, dtype=np.float64)
         for index in range(self.params.max_customers):
             temp_xsi_matrix = xsi_matrix.copy()
@@ -109,9 +121,11 @@ class ProbabilitySolver:
         :param p_values_matrix: матрица значений P
         :return: матрица AA
         """
+        xsi_matrix, xsi_matrix_det = self._xsi_matrix_generator(p_values_matrix)
+
         aa_matrix = np.empty((self.params.max_customers, self.params.max_customers), dtype=np.float64)
-        for index in range(self.params.max_customers):
-            aa_matrix[:, index] = self._calculate_a_p_values(p_values_matrix, index).T
+        for index in range(aa_matrix.shape[1]):
+            aa_matrix[:, index] = self._calculate_a_p_values(xsi_matrix, xsi_matrix_det, index).T
             logger.debug(f"Столбец {index} для матрицы AA сгенерирован.")
 
         logger.info("Генерация матрицы AA завершена.")
@@ -139,6 +153,7 @@ class ProbabilitySolver:
         for i in range(p_matrix.shape[0]):
             for j in range(aa_matrix.shape[1]):
                 m_matrix[i, j, :] = (p_matrix[i, :] * aa_matrix[:, j]) @ exp_g_t
+                logger.debug(f"Вычислено значение m_matrix[{i}, {j}, :].")
 
         logger.info("Генерация матрицы M завершена.")
         return m_matrix

@@ -14,8 +14,8 @@ def plot_probabilities(p_matrix: np.ndarray, time_array: np.ndarray) -> None:
     num_states = p_matrix.shape[0]
 
     # Построение графиков для каждой строки матрицы p
-    for i in range(num_states):
-        plt.plot(time_array, p_matrix[i], label=f'p{i + 1}', linewidth=2)
+    for index in range(num_states):
+        plt.plot(time_array, p_matrix[index], linewidth=2)
 
     # Построение графика суммы всех вероятностей
     plt.plot(time_array, p_matrix.sum(axis=0), label='Total', color='black', linewidth=2, linestyle='--')

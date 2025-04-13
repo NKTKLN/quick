@@ -20,10 +20,10 @@ def main() -> None:
         lambda_rate=89479, 
         mu_rate=134218.5, 
         nu_rate=12435, 
-        max_customers=31,
+        max_customers=41,
         time_array=np.linspace(0, 0.0001, 1000),
-        state_variables=np.ones(31),
-        initial_probabilities=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+        state_variables=np.ones(41),
+        initial_probabilities=np.concatenate((np.zeros(40), np.ones(1)))
     )
 
     # Инициализация системы
