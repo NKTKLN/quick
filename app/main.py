@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from scipy import linalg
 from .logger import setup_logger
 from .args_parser import parse_args
 from .plot import plot_probabilities
@@ -12,13 +13,13 @@ logger = logging.getLogger(__name__)
 def initialize_system(lam, muu, nuu, n):
     """Инициализация системы и расчет матриц."""
     impatient_queue_system = ImpatientQueueSystem(lam, muu, nuu, n)
-    coefficient_matrix = impatient_queue_system.generate_coefficient_matrix()
-    eigenvalues = impatient_queue_system.find_eigenvalues_of_coefficients_matrix(coefficient_matrix)
-    p_values = impatient_queue_system.p_values_calculation(coefficient_matrix, eigenvalues)
+    coefficients_matrix = impatient_queue_system.generate_coefficient_matrix()
+    eigenvalues = linalg.eigvals(coefficients_matrix)
+    p_values = impatient_queue_system.p_values_calculation(coefficients_matrix, eigenvalues)
     print(p_values.max())
     aa = impatient_queue_system.generate_aa_matrix(p_values)
     print(aa.max())
-    return impatient_queue_system, coefficient_matrix, eigenvalues, p_values, aa
+    return impatient_queue_system, eigenvalues, p_values, aa
 
 
 def calculate_probabilities(impatient_queue_system, aa, p_values, eigenvalues, t, initial_conditions):
@@ -39,7 +40,7 @@ def main() -> None:
     n = 30
 
     # Инициализация системы
-    impatient_queue_system, _, eigenvalues, p_values, aa = initialize_system(lam, muu, nuu, n)
+    impatient_queue_system, eigenvalues, p_values, aa = initialize_system(lam, muu, nuu, n)
 
     # Временной интервал
     t = np.linspace(0, 0.0001, 1000)

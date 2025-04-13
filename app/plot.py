@@ -13,9 +13,22 @@ def plot_probabilities(p_matrix: np.ndarray, time_array: np.ndarray) -> None:
     
     num_states = p_matrix.shape[0]  # Количество состояний (строк в p_matrix)
 
+    d = np.zeros(num_states)
+
     # Построение графиков для каждой строки матрицы p
     for i in range(num_states):
+        if p_matrix[i].max() > 1:
+            d[i] = p_matrix[i].max()
+            plt.plot(time_array, p_matrix[i], label=f'p{i + 1}', color="red", linewidth=2)
+            continue
+        if p_matrix[i].min() < 0:
+            d[i] = p_matrix[i].min()
+            plt.plot(time_array, p_matrix[i], label=f'p{i + 1}', color="blue", linewidth=2)
+            continue
         plt.plot(time_array, p_matrix[i], label=f'p{i + 1}', linewidth=2)
+
+    print(d)
+    print(d.argmax())
 
     # Построение графика суммы всех вероятностей
     plt.plot(time_array, p_matrix.sum(axis=0), label='Total', color='black', linewidth=2, linestyle='--')

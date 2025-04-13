@@ -18,10 +18,16 @@ class ImpatientQueueSystem:
         :param nu_rate: интенсивность ухода нетерпеливых заявок (ν)
         :param max_customers: максимальное количество заявок в системе (n)
         """
+        if max_customers <= 1:
+            raise ValueError("max_customers должен быть больше 1.")
+        if any(rate <= 0 for rate in [lambda_rate, mu_rate, nu_rate]):
+            raise ValueError("Все параметры интенсивности должны быть положительными.")
+
         self.lambda_rate = lambda_rate
         self.mu_rate = mu_rate
         self.nu_rate = nu_rate
-        self.max_customers = max_customers  
+        self.max_customers = max_customers 
+        logger.info("Система инициализирована с λ=%.3f, μ=%.3f, ν=%.3f, n=%d", lambda_rate, mu_rate, nu_rate, max_customers) 
     
     def generate_coefficient_matrix(self) -> NDArray[np.float64]:
         """
@@ -29,60 +35,28 @@ class ImpatientQueueSystem:
 
         :return: матрица коэффициентов A для системы уравнений
         """
-        eye_matrix = np.eye(self.max_customers, dtype=np.float64)
+        coefficients_marix = np.zeros((self.max_customers, self.max_customers))
 
-        # Генерация коэффициентов для P_{n-1}(t)
-        p_n_minus_1_coefficients = np.roll(eye_matrix, shift=1, axis=0)
-        p_n_minus_1_coefficients[0, :] = 0
-        p_n_minus_1_coefficients *= self.lambda_rate
-        logger.debug("Генерация коэффициентов для P_{n-1}(t) прошла успешно.")
-
-        # Генерация коэффициентов для P_{n+1}(t)
-        diag_elements = np.arange(0, self.max_customers)
-        diag_matrix = np.diag(diag_elements)
-        nu_matrix = np.roll(diag_matrix, shift=1, axis=1)
-        nu_matrix[:, 0] = 0
-        nu_matrix *= self.nu_rate
-
-        mu_matrix = np.roll(eye_matrix, shift=-1, axis=0)
-        mu_matrix[:, 0] = 0
-        mu_matrix *= self.mu_rate
-
-        p_n_plus_1_coefficients = nu_matrix + mu_matrix
-        logger.debug("Генерация коэффициентов для P_{n+1}(t) прошла успешно.")
-
-        # Генерация коэффициентов для P_n(t)
-        diag_elements_2 = np.arange(0, self.max_customers - 1)
-        diag_elements_2 = np.concatenate((np.zeros(1), diag_elements_2))
-        nu_matrix_2 = np.diag(diag_elements_2)
-        nu_matrix_2 *= self.nu_rate
-
-        mu_matrix_2 = np.eye(self.max_customers, dtype=np.float64)
-        mu_matrix_2[0, 0] = 0
-        mu_matrix_2 *= self.mu_rate
-
-        lambda_matrix = np.eye(self.max_customers, dtype=np.float64)
-        lambda_matrix *= self.lambda_rate
-
-        p_n_coefficients = (nu_matrix_2 + mu_matrix_2 + lambda_matrix) * -1
-        p_n_coefficients[self.max_customers-1, self.max_customers-1] = -(self.mu_rate + (self.max_customers - 2) * self.nu_rate)
-        logger.debug("Генерация коэффициентов для P_n(t) прошла успешно.")
-
-        # Сложение матриц для финального результата
-        coefficients_marix = p_n_minus_1_coefficients + p_n_coefficients + p_n_plus_1_coefficients
+        # Заполним матрицу коэффициентами из системы уравнений
+        for index in range(self.max_customers):
+            if index == 0:
+                # Первое уравнение: dp0/dt = -λp0 + μp1
+                # На главной диагонали стоит -λ, а справа (в следующем столбце) стоит μ
+                coefficients_marix[index, index] = -self.lambda_rate
+                coefficients_marix[index, index+1] = self.mu_rate
+            elif index == self.max_customers - 1:
+                # Последнее уравнение: dpn+1/dt = λpn - (μ + nν)pn+1
+                # Ниже главной диагонали стоит λ, а на главной диагонали -(μ + nν)
+                coefficients_marix[index, index-1] = self.lambda_rate
+                coefficients_marix[index, index] = -(self.mu_rate + (index - 1) * self.nu_rate)
+            else:
+                # Промежуточные уравнения: dpi/dt = λpi-1 - (μ + (i-1)ν + λ)pi + (μ + iν)pi+1
+                coefficients_marix[index, index-1] = self.lambda_rate
+                coefficients_marix[index, index] = -(self.mu_rate + (index - 1) * self.nu_rate + self.lambda_rate)
+                coefficients_marix[index, index+1] = self.mu_rate + index * self.nu_rate
+        
         logger.info("Матрица коэффициентов A для системы уравнений сгенерирована.")
         return coefficients_marix
-
-    def find_eigenvalues_of_coefficients_matrix(self, coefficients_marix: NDArray[np.float64]) -> NDArray[np.float64]:
-        """
-        Нахождение собственных значений матрицы коэффициентов.
-
-        :param coefficients_marix: матрица коэффициентов A для системы уравнений
-        :return: собственные значения матрицы A
-        """
-        eigenvalues_of_coefficients_marix = linalg.eigvals(coefficients_marix)
-        logger.info("Собственные значения для матрицы A найдены.")
-        return eigenvalues_of_coefficients_marix
 
     def _generate_L_matrix(self, coefficients_matrix: NDArray[np.float64], g: float) -> List[NDArray[np.float64]]:
         """
@@ -93,8 +67,8 @@ class ImpatientQueueSystem:
         :return: список матриц L
         """
         # Модификация диагональных элементов матрицы A
-        eye_matrix = np.eye(self.max_customers, dtype=np.float64) * g
-        modified_matrix = coefficients_matrix - eye_matrix
+        modified_matrix = coefficients_matrix.copy()
+        np.fill_diagonal(modified_matrix, modified_matrix.diagonal() - g)
 
         # Генерация матриц L
         l_matrices = []
@@ -122,15 +96,10 @@ class ImpatientQueueSystem:
             logger.debug(f"Обработка собственного значения g[{g_value_index + 1}] = {g_value}.")
             L_matrices = self._generate_L_matrix(coefficients_matrix, g_value)
 
-            # Вычисление детерминанта первой матрицы L
+            # Вычисление значений P для матриц L
             L_det = linalg.det(L_matrices[0])
-            logger.debug(f"Детерминант L[0] для g[{g_value_index + 1}] = {L_det}.")
-
-            # Вычисление значений P для оставшихся матриц L
-            for matrix_index, L_matrix in enumerate(L_matrices[1:]):
-                calc = np.real(linalg.det(L_matrix) / L_det)
-                P_values[matrix_index, g_value_index] = calc
-                logger.debug(f"Вычислено значение P[{matrix_index + 2}, {g_value_index + 1}] = {calc}.")
+            P_values[:, g_value_index] = np.real(linalg.det(L_matrices[1:]) / L_det)
+            logger.debug(f"Значения P для g[{g_value_index + 1}] = {g_value} вычислены.")
 
         logger.info("Вычисление значений P завершено.")
         return P_values
@@ -144,8 +113,9 @@ class ImpatientQueueSystem:
         :return: массив значений A_P
         """
         # Создание базовой матрицы xsi
-        ones_vector = np.ones(self.max_customers, dtype=np.float64)
-        xsi_matrix = np.vstack([ones_vector, p_values_matrix])
+        ones_row = np.ones(self.max_customers, dtype=np.float64)
+        xsi_matrix = np.vstack([ones_row, p_values_matrix])
+
         xsi_matrix_det = linalg.det(xsi_matrix)
         logger.debug(f"Определитель базовой матрицы xsi: {xsi_matrix_det}.")
 
@@ -174,7 +144,6 @@ class ImpatientQueueSystem:
         
         # Заполнение матрицы AA
         for index in range(self.max_customers):
-            logger.debug(f"Генерация столбца {index} для матрицы AA.")
             a_p_values = self._calculate_a_p_values(p_values_matrix, index)
             aa_matrix[:, index] = a_p_values.T
             logger.debug(f"Столбец {index} для матрицы AA сгенерирован.")
@@ -193,6 +162,9 @@ class ImpatientQueueSystem:
         :param initial_probabilities: массив начальных вероятностей [P1_1, P1_2, P1_3, P1_4, ...]
         :return: матрица M с дополнительным измерением времени
         """
+        if initial_probabilities.shape[0] != p_values_matrix.shape[1]:
+            raise ValueError("Размер initial_probabilities должен соответствовать p_values_matrix.shape[1].")
+        
         # Создание матрицы p
         p_matrix = np.vstack([initial_probabilities, p_values_matrix])
 
@@ -218,6 +190,9 @@ class ImpatientQueueSystem:
         :param initial_probabilities: массив начальных вероятностей [P1_0, P2_0, P3_0, P4_0, ...]
         :return: матрица p, где каждая строка соответствует вероятностям p1, p2, p3, p4, ...
         """
+        if len(initial_probabilities) != m_matrix.shape[0]:
+            raise ValueError("Размер initial_probabilities не соответствует размерности m_matrix.")
+
         # Вычисление матрицы p
         p_matrix = np.dot(initial_probabilities, m_matrix)
 
