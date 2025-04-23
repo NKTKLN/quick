@@ -95,3 +95,10 @@ Todo.md
 # ========================
 !data/raw/*.json
 !example*.*
+
+# ========================
+# System files
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
