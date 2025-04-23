@@ -1,14 +1,13 @@
-"""Модуль для решения системы вероятностей для СМО с нетерпеливыми заявками.
+"""Модуль для численного решения системы вероятностей СМО с нетерпеливыми заявками.
 
-Класс ProbabilitySolver реализует методы для вычисления вероятностных характеристик
-системы массового обслуживания с нетерпеливыми заявками, включая:
-1. Генерацию матриц L на основе собственных значений матрицы коэффициентов.
-2. Расчет значений вероятности P для каждого состояния.
-3. Построение матриц AA и M.
-4. Генерацию финальной матрицы вероятностей P.
+Содержит класс ProbabilitySolver, реализующий полный цикл вычисления вероятностных
+характеристик системы массового обслуживания в переходном режиме.
 
-Класс работает с данными о системе, включая интенсивности потока заявок, интенсивности
-обслуживания, интенсивности ухода заявок, временные сетки и начальные вероятности.
+Основной функционал:
+- Расчет значений P через модифицированные матрицы L
+- Построение матриц AA и M для временного анализа
+- Финальное вычисление матрицы вероятностей P(t)
+- Поддержка комплексных собственных значений и матричных операций
 """
 
 import logging
@@ -59,10 +58,6 @@ class ProbabilitySolver:
 
         Returns:
             List[NDArray[np.float64]]: Список матриц L размером (n-1 x n-1)
-
-        Note:
-            Модифицирует диагональные элементы исходной матрицы коэффициентов,
-            подставляя -g в главную диагональ
         """
         modified_matrix = self.coefficients_matrix.copy()
         np.fill_diagonal(modified_matrix, modified_matrix.diagonal() - g)
@@ -82,13 +77,9 @@ class ProbabilitySolver:
 
         Returns:
             NDArray[np.float64]: Матрица значений P размером (n-1 x n)
-
-        Note:
-            Для нулевых определителей записывает NaN
         """
-        p_values = np.zeros(
-            (self.params.max_customers - 1, self.params.max_customers), dtype=np.float64
-        )
+        matrix_size = self.eigenvalues.shape[0]
+        p_values = np.zeros((matrix_size - 1, matrix_size), dtype=np.float64)
 
         for index, g in enumerate(self.eigenvalues):
             logger.debug(f"Обработка собственного значения g[{index + 1}] = {g}.")
@@ -155,8 +146,9 @@ class ProbabilitySolver:
         Returns:
             NDArray[np.float64]: Вектор значений A_P размером (n,)
         """
+        matrix_size = xsi_matrix.shape[0]
         sign_base, logdet_base = xsi_matrix_signature
-        a_p_values = np.zeros(self.params.max_customers, dtype=np.float64)
+        a_p_values = np.zeros(matrix_size, dtype=np.float64)
 
         if sign_base == 0:
             logger.warning(
@@ -164,7 +156,7 @@ class ProbabilitySolver:
             )
             return a_p_values
 
-        for index in range(self.params.max_customers):
+        for index in range(matrix_size):
             temp_xsi_matrix = xsi_matrix.copy()
             temp_xsi_matrix[:, index] = 0
             temp_xsi_matrix[shift, index] = 1
@@ -198,9 +190,8 @@ class ProbabilitySolver:
         """
         xsi_matrix, xsi_matrix_det = self._xsi_matrix_generator(p_values_matrix)
 
-        aa_matrix = np.empty(
-            (self.params.max_customers, self.params.max_customers), dtype=np.float64
-        )
+        matrix_size = p_values_matrix.shape[1]
+        aa_matrix = np.empty((matrix_size, matrix_size), dtype=np.float64)
         for index in range(aa_matrix.shape[1]):
             aa_matrix[:, index] = self._calculate_a_p_values(
                 xsi_matrix, xsi_matrix_det, index

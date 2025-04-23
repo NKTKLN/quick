@@ -19,6 +19,7 @@
   - `parameters.py`: Определение параметров системы.
   - `matrix_generators.py`: Генерация матриц для расчетов.
   - `probability_solver.py`: Вычисление вероятностей.
+  - `throughput_queue_system.py`: Анализ пропускной способности.
 - **Dockerfile**: Конфигурация для сборки Docker-образа.
 - **.dockerignore**: Исключения для файлов, не попадающих в Docker-образ.
 - **pyproject.toml**: Зависимости проекта.

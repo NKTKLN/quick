@@ -22,7 +22,7 @@ def plot_probabilities(
     p_matrix: np.ndarray,
     time_array: np.ndarray,
     save_to_file: bool = False,
-    filename: str = "probabilities_plot.png"
+    filename: str = "probabilities_plot.png",
 ) -> None:
     """Строит график вероятностей состояний системы и их суммарной вероятности.
 
@@ -39,13 +39,14 @@ def plot_probabilities(
         plt.plot(time_array, p_matrix[state], linewidth=2)
 
     # График суммарной вероятности
-    plt.plot(time_array, p_matrix.sum(axis=0), 'k--',
-            label="Total probability", linewidth=2)
+    plt.plot(
+        time_array, p_matrix.sum(axis=0), "k--", label="Total probability", linewidth=2
+    )
 
     _configure_plot("System States Probabilities", "Time (t)", "Probability")
 
     if save_to_file:
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.savefig(filename, dpi=300, bbox_inches="tight")
         return
     plt.show()
 
@@ -54,7 +55,7 @@ def plot_throughput(
     throughput_results: List[np.ndarray],
     time_array: np.ndarray,
     save_to_file: bool = False,
-    filename: str = "throughput_plot.png"
+    filename: str = "throughput_plot.png",
 ) -> None:
     """Строит график пропускной способности.
 
@@ -68,14 +69,16 @@ def plot_throughput(
 
     # Графики пропускной способности для каждого состояния
     for state in range(len(throughput_results)):
-        plt.plot(time_array, throughput_results[state], linewidth=2,
-                label=f"State {state}")
+        plt.plot(
+            time_array, throughput_results[state], linewidth=2, label=f"State {state}"
+        )
 
-    _configure_plot("System Throughput vs Impatience Rate",
-                   "Impatience rate (ν)", "Throughput")
+    _configure_plot(
+        "System Throughput vs Impatience Rate", "Impatience rate (ν)", "Throughput"
+    )
 
     if save_to_file:
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.savefig(filename, dpi=300, bbox_inches="tight")
         return
     plt.show()
 
@@ -88,11 +91,11 @@ def _configure_plot(title: str, xlabel: str, ylabel: str) -> None:
         xlabel: Подпись оси X
         ylabel: Подпись оси Y
     """
-    plt.title(title, fontsize=16, fontweight='bold')
+    plt.title(title, fontsize=16, fontweight="bold")
     plt.xlabel(xlabel, fontsize=14)
     plt.ylabel(ylabel, fontsize=14)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
-    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.grid(True, linestyle="--", alpha=0.7)
     plt.legend(fontsize=12)
-    plt.axvline(0, color='black', linewidth=0.5)
+    plt.axvline(0, color="black", linewidth=0.5)

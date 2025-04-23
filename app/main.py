@@ -14,10 +14,16 @@ import logging
 import numpy as np
 
 from app.args_parser import parse_args
-from app.impatient_queue_system import ThroughputQueueSystem
+from app.impatient_queue_system import ImpatientQueueSystem
 from app.logger import setup_logger
-from app.parameters import ThroughputQueueSystemParameters
-from app.plot import plot_throughput
+from app.parameters import (
+    QueueSystemParameters,
+    ThroughputQueueSystemParameters,
+)
+from app.plot import plot_probabilities, plot_throughput
+from app.throughput_queue_system import (
+    ThroughputQueueSystem,
+)
 
 # Получаем экземпляр логгера
 logger = logging.getLogger(__name__)
@@ -38,14 +44,6 @@ def main() -> None:
         2. Инициализирует систему массового обслуживания
         3. Вычисляет матрицу вероятностей состояний
         4. Строит графики полученных вероятностей
-
-    Note:
-        Параметры системы заданы жестко в коде для демонстрационных целей.
-        В реальном использовании могут быть заменены на конфигурируемые параметры.
-
-    Example:
-        Запуск из командной строки:
-        $ python main.py --log-level DEBUG --log-file simulation.log
     """
     # Парсинг аргументов командной строки
     args = parse_args()
@@ -69,17 +67,31 @@ def main() -> None:
     # Инициализация системы
     impatient_queue_system = ThroughputQueueSystem(params)
 
-    # for single_param in params:
-    #     # Создание и расчет СМО для текущего ν
-    #     queue_system = ImpatientQueueSystem(single_param)
-    #     probabilities = queue_system.calculate()
-    #     plot_probabilities(probabilities, params.time_array, args.save_plot)
-
     # Расчет вероятностей
     p = impatient_queue_system.calculate()
 
     # # Построение графика
     plot_throughput(p, params.time_array, args.save_plot)
+
+    # Параметры системы
+    params = QueueSystemParameters(
+        lambda_rate=8333,
+        mu_rate=10833,
+        nu_rate=12345,
+        max_customers=4,
+        time_array=np.linspace(0, 0.001, 1000, dtype=np.float64),
+        state_variables=np.ones(4),
+        initial_probabilities=np.concatenate((np.ones(1), np.zeros(3))),
+    )
+
+    # Инициализация системы
+    impatient_queue_system = ImpatientQueueSystem(params)
+
+    # Расчет вероятностей
+    p = impatient_queue_system.calculate()
+
+    # # Построение графика
+    plot_probabilities(p, params.time_array, args.save_plot)
 
 
 if __name__ == "__main__":
