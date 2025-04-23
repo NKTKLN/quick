@@ -4,7 +4,7 @@ tasks:
   install:
     desc: Install dependencies using poetry
     cmds:
-      - poetry install
+      - poetry install --no-root
 
   format:
     desc: Code formatting with black and isort (через ruff)
@@ -40,3 +40,8 @@ tasks:
     desc: Install git hooks via pre-commit
     cmds:
       - poetry run pre-commit install
+
+  run:
+    desc: Run the application
+    cmds:
+      - poetry run python -m app.main
