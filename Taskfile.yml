@@ -1,0 +1,47 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies using poetry
+    cmds:
+      - poetry install --no-root
+
+  format:
+    desc: Code formatting with black and isort (через ruff)
+    cmds:
+      - poetry run ruff check . --fix
+
+  lint:
+    desc: Static code analysis with ruff and mypy
+    cmds:
+      - poetry run ruff check .
+      - poetry run mypy .
+
+  docstyle:
+    desc: Docstring style check
+    cmds:
+      - poetry run interrogate .
+
+  audit:
+    desc: Dependency vulnerability audit
+    cmds:
+      - poetry run pip-audit --ignore-vuln PYSEC-2022-42969
+
+  deadcode:
+    desc: Find unused code
+    cmds:
+      - poetry run vulture .
+
+  check:
+    desc: Full linting, audit run, and code checks
+    deps: [format, lint, docstyle, audit, deadcode]
+
+  precommit:
+    desc: Install git hooks via pre-commit
+    cmds:
+      - poetry run pre-commit install
+
+  run:
+    desc: Run the application
+    cmds:
+      - poetry run python -m app.main
