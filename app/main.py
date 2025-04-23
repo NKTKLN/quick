@@ -14,10 +14,10 @@ import logging
 import numpy as np
 
 from app.args_parser import parse_args
-from app.impatient_queue_system import ImpatientQueueSystem
+from app.impatient_queue_system import ThroughputQueueSystem
 from app.logger import setup_logger
-from app.parameters import QueueSystemParameters
-from app.plot import plot_probabilities
+from app.parameters import ThroughputQueueSystemParameters
+from app.plot import plot_throughput
 
 # Получаем экземпляр логгера
 logger = logging.getLogger(__name__)
@@ -56,24 +56,30 @@ def main() -> None:
     )
 
     # Параметры системы
-    params = QueueSystemParameters(
-        lambda_rate=89479,
-        mu_rate=134218.5,
-        nu_rate=12435,
-        max_customers=31,
-        time_array=np.linspace(0, 0.0001, 1000, dtype=np.float64),
-        state_variables=np.ones(31),
-        initial_probabilities=np.concatenate((np.zeros(30), np.ones(1))),
+    params = ThroughputQueueSystemParameters(
+        lambda_rate=8333,
+        mu_rate=10833,
+        nu_rate=np.array([1000, 10833, 10e5]),
+        max_customers=4,
+        time_array=np.linspace(0, 0.001, 1000, dtype=np.float64),
+        state_variables=np.ones(4),
+        initial_probabilities=np.concatenate((np.ones(1), np.zeros(3))),
     )
 
     # Инициализация системы
-    impatient_queue_system = ImpatientQueueSystem(params)
+    impatient_queue_system = ThroughputQueueSystem(params)
+
+    # for single_param in params:
+    #     # Создание и расчет СМО для текущего ν
+    #     queue_system = ImpatientQueueSystem(single_param)
+    #     probabilities = queue_system.calculate()
+    #     plot_probabilities(probabilities, params.time_array, args.save_plot)
 
     # Расчет вероятностей
     p = impatient_queue_system.calculate()
 
-    # Построение графика
-    plot_probabilities(p, params.time_array)
+    # # Построение графика
+    plot_throughput(p, params.time_array, args.save_plot)
 
 
 if __name__ == "__main__":

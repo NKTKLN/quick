@@ -23,19 +23,6 @@ def setup_logger(
                    logging.DEBUG, INFO, WARNING, ERROR, CRITICAL. Default: INFO.
         log_file: Путь к файлу для записи логов. Если None, вывод будет направлен
                   в стандартный поток вывода (консоль). Default: ''.
-
-    Returns:
-        None: Функция не возвращает значений, только настраивает систему логирования.
-
-    Examples:
-        >>> # Минимальная настройка (логи в консоль)
-        >>> setup_logger()
-
-        >>> # Логи в файл с уровнем DEBUG
-        >>> setup_logger(log_level=logging.DEBUG, log_file="app.log")
-
-        >>> # Полное отключение логирования
-        >>> setup_logger(disable_logging=True)
     """
     if disable_logging:
         logging.disable(logging.CRITICAL)

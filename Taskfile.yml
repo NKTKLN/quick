@@ -9,7 +9,7 @@ tasks:
   format:
     desc: Code formatting with black and isort (через ruff)
     cmds:
-      - poetry run ruff format .
+      - poetry run ruff check . --fix
 
   lint:
     desc: Static code analysis with ruff and mypy

@@ -16,13 +16,6 @@ def parse_args() -> argparse.Namespace:
 
     Returns:
         argparse.Namespace: Объект с распарсенными аргументами командной строки.
-
-    Example:
-        >>> args = parse_args()
-        >>> if args.disable_logging:
-        ...     print("Логирование отключено")
-        Пример вызова из командной строки:
-        python main.py --log-level DEBUG --log-file simulation.log
     """
     parser = argparse.ArgumentParser(
         description="Система расчета математической модели СМО с нетерпеливыми заявками\
@@ -41,5 +34,10 @@ def parse_args() -> argparse.Namespace:
         "--log-file",
         default=None,
         help="Имя файла для записи логов (если не указан, логи выводятся в консоль)",
+    )
+    parser.add_argument(
+        "--save-plot",
+        action="store_true",
+        help="Сохранить график вероятностей в формате PNG",
     )
     return parser.parse_args()

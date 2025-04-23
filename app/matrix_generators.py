@@ -29,10 +29,10 @@ class CoefficientMatrixBuilder:
 
         Args:
             params: Параметры системы массового обслуживания, включая:
-                   - lambda_rate (λ): интенсивность входящего потока
-                   - mu_rate (μ): интенсивность обслуживания
-                   - nu_rate (ν): интенсивность ухода заявки из очереди
-                   - max_customers (n): максимальное число заявок в системе
+                    - lambda_rate (λ): интенсивность входящего потока
+                    - mu_rate (μ): интенсивность обслуживания
+                    - nu_rate (ν): интенсивность ухода заявки из очереди
+                    - max_customers (n): максимальное число заявок в системе
         """
         self.params = params
 
@@ -48,8 +48,8 @@ class CoefficientMatrixBuilder:
 
         Returns:
             NDArray[np.float64]: Квадратная матрица коэффициентов размером n x n, где
-                               n - максимальное число заявок в системе.
-                               Матрица имеет трехдиагональную структуру.
+                                 n - максимальное число заявок в системе.
+                                 Матрица имеет трехдиагональную структуру.
         """
         n = self.params.max_customers
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate

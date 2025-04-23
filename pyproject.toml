@@ -29,11 +29,13 @@ pip-audit = "^2.9.0"
 [tool.ruff]
 line-length = 88
 target-version = "py39"
-select = ["E", "F", "W", "C90", "B", "B9", "I", "D", "S"]
-ignore = ["E203", "D100"]
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint]
+ignore = ["E203", "D100"]
+select = ["E", "F", "W", "C90", "B", "B9", "I", "D", "S"]
+
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.mypy]
