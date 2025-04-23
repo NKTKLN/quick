@@ -1,8 +1,14 @@
-"""Модуль с параметрами системы массового обслуживания (СМО).
+"""Модуль с классами параметров для систем массового обслуживания.
 
-Содержит dataclass QueueSystemParameters, инкапсулирующий параметры
-для моделирования СМО с нетерпеливыми заявками, а также ThroughputQueueSystemParameters
-для анализа пропускной способности при различных интенсивностях ухода заявок.
+Содержит набор dataclass-ов для хранения и обработки параметров:
+- Одноканальных СМО с нетерпеливыми заявками
+- Многоканальных СМО
+- СМО с анализом пропускной способности при различных параметрах
+
+Основные классы:
+1. QueueSystemParameters - базовые параметры одноканальной СМО
+2. ThroughputQueueSystemParameters - параметры для анализа пропускной способности
+3. MultiQueueSystemParameters - параметры многоканальной СМО
 """
 
 from dataclasses import dataclass, fields
@@ -29,17 +35,6 @@ class QueueSystemParameters:
         state_variables (NDArray[np.float64]): Вектор переменных состояния системы
         initial_probabilities (NDArray[np.float64]): Начальное распределение
                                                      вероятностей состояний системы
-
-    Example:
-        >>> params = QueueSystemParameters(
-        ...     lambda_rate=1.5,
-        ...     mu_rate=1.0,
-        ...     nu_rate=0.5,
-        ...     max_customers=10,
-        ...     time_array=np.linspace(0, 10, 100),
-        ...     state_variables=np.zeros(10),
-        ...     initial_probabilities=np.array([1.0] + [0.0]*9)
-        ... )
     """
 
     lambda_rate: float  # Интенсивность поступления заявок (λ)
@@ -62,25 +57,12 @@ class ThroughputQueueSystemParameters(QueueSystemParameters):
         nu_rate (NDArray[np.float64]): Массив интенсивностей ухода
                                        нетерпеливых заявок (ν)
         Все остальные атрибуты наследуются от QueueSystemParameters
-
-    Example:
-        >>> throughput_params = ThroughputQueueSystemParameters(
-        ...     lambda_rate=1.5,
-        ...     mu_rate=1.0,
-        ...     nu_rate=np.linspace(0.1, 1.0, 10),
-        ...     max_customers=10,
-        ...     time_array=np.linspace(0, 10, 100),
-        ...     state_variables=np.zeros(10),
-        ...     initial_probabilities=np.array([1.0] + [0.0]*9)
-        ... )
-        >>> for params in throughput_params:
-        ...     print(params.nu_rate)  # Будет последовательно выводить значения
     """
 
     nu_rate: NDArray[np.float64]  # Список интенсивностей ухода нетерпеливых заявок (ν)
 
     def __iter__(self) -> Iterator[QueueSystemParameters]:
-        """Итератор по всем значениям ν, возвращающий QueueSystemParameters для каждого.
+        """Итератор по всем значениям ν, возвращающий QueueSystemParameters.
 
         Returns:
             Iterator[QueueSystemParameters]: Итератор, который для каждого значения ν
@@ -101,3 +83,57 @@ class ThroughputQueueSystemParameters(QueueSystemParameters):
         # Генерация экземпляров QueueSystemParameters для каждого значения nu_rate
         for nu in self.nu_rate:
             yield QueueSystemParameters(**base_params, nu_rate=nu)
+
+
+@dataclass
+class MultiQueueSystemParameters(QueueSystemParameters):
+    """Расширение параметров СМО для многолинейной системы массового обслуживания.
+
+    Добавляет параметр количества обслуживающих приборов (процессоров) к базовым
+    параметрам СМО.
+
+    Attributes:
+        processor_count (int): Количество обслуживающих приборов (процессоров) в системе
+        Все остальные атрибуты наследуются от QueueSystemParameters
+    """
+
+    processor_count: int  # Количество обслуживающих процессоров (m)
+
+
+@dataclass
+class MultiThroughputQueueSystemParameters(MultiQueueSystemParameters):
+    """Расширение параметров многолинейной СМО для анализа пропускной способности.
+
+    Позволяет задать массив значений интенсивности ухода заявок (ν) и итерироваться
+    по ним, возвращая на каждой итерации экземпляр MultiQueueSystemParameters.
+
+    Attributes:
+        nu_rate (NDArray[np.float64]): Массив интенсивностей ухода
+                                       нетерпеливых заявок (ν)
+        Все остальные атрибуты наследуются от MultiQueueSystemParameters
+    """
+
+    nu_rate: NDArray[np.float64]  # Список интенсивностей ухода нетерпеливых заявок (ν)
+
+    def __iter__(self) -> Iterator[MultiQueueSystemParameters]:
+        """Итератор по всем значениям ν, возвращающий MultiQueueSystemParameters.
+
+        Returns:
+            Iterator[MultiQueueSystemParameters]: Итератор, который для каждого
+            значения ν из массива nu_rate возвращает полный набор параметров СМО
+
+        Note:
+            При итерации создаются новые экземпляры MultiQueueSystemParameters с
+            фиксированным значением ν из массива nu_rate, все остальные параметры
+            копируются из текущего объекта.
+        """
+        # Сборка параметров для базового MultiQueueSystemParameters без nu_rate
+        base_params = {
+            field.name: getattr(self, field.name)
+            for field in fields(self)
+            if field.name != "nu_rate"
+        }
+
+        # Генерация экземпляров MultiQueueSystemParameters для каждого значения nu_rate
+        for nu in self.nu_rate:
+            yield MultiQueueSystemParameters(**base_params, nu_rate=nu)

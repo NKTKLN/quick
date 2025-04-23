@@ -16,7 +16,8 @@ import numpy as np
 from app.args_parser import parse_args
 from app.impatient_queue_system import ThroughputQueueSystem
 from app.logger import setup_logger
-from app.parameters import ThroughputQueueSystemParameters
+from app.matrix_generators import MultiQueueSystemMatrixBuilder
+from app.parameters import MultiQueueSystemParameters, ThroughputQueueSystemParameters
 from app.plot import plot_throughput
 
 # Получаем экземпляр логгера
@@ -54,6 +55,21 @@ def main() -> None:
         log_level=args.log_level,
         log_file=args.log_file,
     )
+
+    d = MultiQueueSystemParameters(
+        lambda_rate=8333,
+        mu_rate=10833,
+        nu_rate=12345,
+        max_customers=4,
+        processor_count=2,
+        time_array=np.linspace(0, 0.001, 1000, dtype=np.float64),
+        state_variables=np.ones(4),
+        initial_probabilities=np.concatenate((np.ones(1), np.zeros(3))),
+    )
+
+    print(MultiQueueSystemMatrixBuilder(d).build())
+
+    return
 
     # Параметры системы
     params = ThroughputQueueSystemParameters(

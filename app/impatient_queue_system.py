@@ -1,117 +1,155 @@
-"""Модуль описывает систему массового обслуживания с нетерпеливыми заявками.
+"""Модуль для моделирования систем массового обслуживания с нетерпеливыми заявками.
 
-Содержит класс ImpatientQueueSystem, который реализует расчет вероятностных
-характеристик СМО на основе заданных параметров. Расчёты производятся с
-использованием матричных методов и собственных значений.
+Модуль содержит классы для расчета вероятностных характеристик однолинейных и
+многолинейных СМО с использованием матричных методов.
+
+Основные классы:
+1. ImpatientQueueSystem - моделирование однолинейной СМО с нетерпеливыми заявками
+2. MultiImpatientQueueSystem - моделирование многолинейной СМО с нетерпеливыми заявками
+
+Основные функции:
+- Построение матриц переходов между состояниями системы
+- Решение систем уравнений для стационарных вероятностей
+- Расчет собственных значений матриц системы
 """
 
 import logging
-from typing import List
 
 import numpy as np
 from numpy.typing import NDArray
 
-from app.matrix_generators import CoefficientMatrixBuilder
-from app.parameters import QueueSystemParameters, ThroughputQueueSystemParameters
+from app.matrix_generators import QueueSystemMatrixBuilder
+from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
 from app.probability_solver import ProbabilitySolver
 
-# Инициализация логгирования
+# Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
 
 
 class ImpatientQueueSystem:
-    """Класс для расчета системы массового обслуживания с нетерпеливыми заявками.
+    """Класс для моделирования СМО с нетерпеливыми заявками.
 
     Осуществляет расчет вероятностных характеристик СМО с использованием матричного
     метода на основе заданных параметров системы.
     """
 
     def __init__(self, params: QueueSystemParameters) -> None:
-        """Инициализирует систему с заданными параметрами.
+        """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params: Объект QueueSystemParameters, содержащий все необходимые
-                    параметры системы массового обслуживания.
+            params: Объект QueueSystemParameters, содержащий параметры системы:
+                    - lambda_rate: интенсивность входящего потока
+                    - mu_rate: интенсивность обслуживания
+                    - nu_rate: интенсивность ухода заявок из очереди
+                    - channel_count: количество каналов обслуживания
+                    - queue_capacity: максимальная длина очереди
         """
         self.params = params
 
     def calculate(self) -> NDArray[np.float64]:
-        """Выполняет полный расчет системы массового обслуживания.
+        """Выполняет полный расчет вероятностей состояний системы.
 
         Процесс расчета включает:
-        1. Построение матрицы коэффициентов
-        2. Вычисление собственных значений
-        3. Расчет вероятностных характеристик
-        4. Генерацию итоговой матрицы вероятностей
+        1. Построение матрицы переходов системы
+        2. Вычисление собственных значений матрицы
+        3. Решение системы уравнений для вероятностей
+        4. Построение итоговой матрицы вероятностей состояний
 
         Returns:
-            NDArray[np.float64]: Матрица вероятностей P размерностью (N+1)x(M+1),
-                                 где N - максимальное число заявок в системе,
-                                 M - максимальное число источников заявок.
-                                 Элемент P[i,j] представляет вероятность нахождения
-                                 системы в состоянии i,j.
+            NDArray[np.float64]: Матрица вероятностей размерностью (N+1)x(M+1),
+                               где N - емкость системы, M - число источников.
+                               P[i,j] - вероятность состояния с i заявками в системе
+                               и j занятыми источниками.
         """
-        a_matrix = CoefficientMatrixBuilder(self.params).build()
+        transition_matrix = self._build_transition_matrix()
+        eigenvalues = self._compute_eigenvalues(transition_matrix)
+        probability_matrix = self._solve_probability_system(
+            transition_matrix, eigenvalues
+        )
+        return probability_matrix
 
-        eigenvalues = np.linalg.eigvals(a_matrix)
-        eigenvalues = eigenvalues.real.astype(np.float64)
-        logger.debug("Собственные значения рассчитаны: %s", eigenvalues)
+    def _build_transition_matrix(self) -> NDArray[np.float64]:
+        """Строит матрицу переходов системы массового обслуживания.
 
-        prob_solver = ProbabilitySolver(self.params, a_matrix, eigenvalues)
+        Returns:
+            NDArray[np.float64]: Матрица переходов между состояниями системы.
+        """
+        transition_matrix = QueueSystemMatrixBuilder(self.params).build()
+        return transition_matrix
 
-        p_values = prob_solver.p_values_calculation()
-        aa_matrix = prob_solver.generate_aa_matrix(p_values)
-        m_matrix = prob_solver.generate_m_matrix(aa_matrix, p_values)
-        return prob_solver.generate_p_matrix(m_matrix)
-
-
-class ThroughputQueueSystem:
-    """Класс для расчета пропускной способности СМО с нетерпеливыми заявками.
-
-    Осуществляет серийный расчет характеристик СМО для различных значений
-    интенсивности ухода заявок (ν) с использованием матричного метода.
-    """
-
-    def __init__(self, params: ThroughputQueueSystemParameters) -> None:
-        """Инициализирует систему с заданными параметрами.
+    def _compute_eigenvalues(
+        self, transition_matrix: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Вычисляет собственные значения матрицы переходов.
 
         Args:
-            params: Объект ThroughputQueueSystemParameters, содержащий:
-                    - базовые параметры СМО
-                    - диапазон значений интенсивности ухода заявок (ν)
+            transition_matrix: Матрица переходов между состояниями системы.
+
+        Returns:
+            NDArray[np.float64]: Массив собственных значений матрицы.
+
+        Note:
+            Логирует рассчитанные собственные значения для отладки.
+        """
+        eigenvalues = np.linalg.eigvals(transition_matrix)
+        real_eigenvalues = eigenvalues.real.astype(np.float64)
+        logger.debug("Рассчитаны собственные значения: %s", real_eigenvalues)
+        return real_eigenvalues
+
+    def _solve_probability_system(
+        self, transition_matrix: NDArray[np.float64], eigenvalues: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Решает систему уравнений для нахождения стационарных вероятностей.
+
+        Args:
+            transition_matrix: Матрица переходов системы.
+            eigenvalues: Собственные значения матрицы переходов.
+
+        Returns:
+            NDArray[np.float64]: Матрица стационарных вероятностей состояний системы.
+
+        Note:
+            Использует ProbabilitySolver для поэтапного расчета:
+            1. Вычисление промежуточных вероятностей (p_values)
+            2. Построение расширенной матрицы (aa_matrix)
+            3. Генерацию матрицы коэффициентов (m_matrix)
+            4. Финальный расчет матрицы вероятностей
+        """
+        prob_solver = ProbabilitySolver(self.params, transition_matrix, eigenvalues)
+        intermediate_probs = prob_solver.calculate_intermediate_probabilities()
+        extended_matrix = prob_solver.build_extended_matrix(intermediate_probs)
+        coefficient_matrix = prob_solver.build_coefficient_matrix(
+            extended_matrix, intermediate_probs
+        )
+        return prob_solver.build_probability_matrix(coefficient_matrix)
+
+
+class MultiImpatientQueueSystem:
+    """Класс для моделирования многолинейной СМО с нетерпеливыми заявками.
+
+    Осуществляет расчет вероятностных характеристик многолинейной СМО с использованием
+    матричного метода на основе заданных параметров системы.
+    """
+
+    def __init__(self, params: MultiQueueSystemParameters) -> None:
+        """Инициализирует систему массового обслуживания с заданными параметрами.
+
+        Args:
+            params: Объект MultiQueueSystemParameters, содержащий параметры системы:
+                    - lambda_rate: интенсивность входящего потока
+                    - mu_rate: интенсивность обслуживания
+                    - nu_rate: интенсивность ухода заявок из очереди
+                    - channel_count: количество каналов обслуживания
+                    - queue_capacity: максимальная длина очереди
+                    - processor_count: количество обслуживающих приборов в системе
         """
         self.params = params
 
-    def calculate(self) -> List[NDArray[np.float64]]:
-        """Выполняет расчет пропускной способности для различных значений ν.
-
-        Процесс расчета включает:
-        1. Итерацию по значениям интенсивности ухода заявок (ν)
-        2. Расчет вероятностных характеристик для каждого ν
-        3. Вычисление пропускной способности системы
-        4. Формирование итогового массива результатов
+    def _build_transition_matrix(self) -> NDArray[np.float64]:
+        """Строит матрицу переходов многолинейной системы массового обслуживания.
 
         Returns:
-            List[NDArray[np.float64]]: Список массивов пропускной способности
-                                       для каждого значения ν. Каждый массив
-                                       соответствует результатам расчета для
-                                       конкретного значения интенсивности ухода.
+            NDArray[np.float64]: Матрица переходов между состояниями системы.
         """
-        throughput_results = []
-
-        # Итерация по набору параметров с разными ν
-        for single_param in self.params:
-            # Создание и расчет СМО для текущего ν
-            queue_system = ImpatientQueueSystem(single_param)
-            probabilities = queue_system.calculate()
-
-            # Расчет пропускной способности: (1 - p_loss) * lambda
-            current_throughput = (1 - probabilities[-1]) * single_param.lambda_rate
-            throughput_results.append(current_throughput)
-
-            logger.info(
-                "Рассчитана пропускная способность для ν=%.3f",
-                single_param.nu_rate
-            )
-
-        return throughput_results
+        transition_matrix = MultiImpatientQueueSystem(self.params).build()
+        return transition_matrix
