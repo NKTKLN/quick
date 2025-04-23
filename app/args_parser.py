@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
         description="Система расчета математической модели СМО с нетерпеливыми заявками\
-                     в переходгом режиме"
+                     в переходгом режиме."
     )
     parser.add_argument(
         "--disable-logging", action="store_true", help="Отключить логгирование"
