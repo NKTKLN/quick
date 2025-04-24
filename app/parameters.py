@@ -13,12 +13,72 @@
 
 from abc import ABC
 from dataclasses import dataclass, fields
-from typing import Iterator
+from typing import Any, Iterator, Type
 
 import numpy as np
 from numpy.typing import NDArray
 
 
+class QueueSystemParametersIterator:
+    """Итератор для генерации параметров СМО с разными значениями интенсивности ухода.
+
+    Позволяет последовательно получать параметры СМО для каждого значения
+    интенсивности ухода заявок (ν) из заданного массива.
+
+    Attributes:
+        nu_rate (NDArray[np.float64]): Массив значений интенсивности ухода заявок
+        base_params (dict[str, Any]): Базовые параметры СМО (без ν)
+        class_type (Type[Union[QueueSystemParameters, MultiQueueSystemParameters]]):
+            Тип класса параметров для создания экземпляров
+        __position (int): Текущая позиция в массиве nu_rate
+    """
+
+    def __init__(
+        self,
+        nu_rate: NDArray[np.float64],
+        base_params: dict[str, Any],
+        class_type: Type,
+    ) -> None:
+        """Инициализация итератора.
+
+        Args:
+            nu_rate: Массив значений интенсивности ухода заявок (ν)
+            base_params: Базовые параметры СМО (все, кроме ν)
+            class_type: Класс параметров СМО для создания экземпляров
+        """
+        self.nu_rate = nu_rate
+        self.base_params = base_params
+        self.class_type = class_type
+        self.__position = 0
+
+    def __iter__(
+        self,
+    ) -> Iterator:
+        """Возвращает сам итератор.
+
+        Returns:
+            Iterator: Сам объект итератора
+        """
+        return self
+
+    def __next__(self) -> Any:
+        """Возвращает следующий набор параметров СМО.
+
+        Returns:
+            QueueSystemParameters | MultiQueueSystemParameters:
+            Экземпляр класса параметров СМО с очередным значением ν из массива
+
+        Raises:
+            StopIteration: Когда достигнут конец массива nu_rate
+        """
+        if self.__position < len(self.nu_rate):
+            nu = self.nu_rate[self.__position]
+            self.__position += 1
+            return self.class_type(**self.base_params, nu_rate=nu)
+        raise StopIteration
+
+
+@dataclass
 class BaseQueueSystemParameters(ABC):
     """Базовый класс для всех систем массового обслуживания.
 
@@ -43,6 +103,7 @@ class BaseQueueSystemParameters(ABC):
     initial_probabilities: NDArray[np.float64]  # Массив начальных вероятностей
 
 
+@dataclass
 class MultiBaseQueueSystemParameters(BaseQueueSystemParameters):
     """Расширение параметров для многолинейной системы массового обслуживания.
 
@@ -92,23 +153,21 @@ class ThroughputQueueSystemParameters(BaseQueueSystemParameters):
 
         Returns:
             Iterator[QueueSystemParameters]: Итератор, который для каждого значения ν
-            из массива nu_rate возвращает полный набор параметров СМО
+            из массива nu_rate возвращает полный набор параметров СМО.
 
         Note:
             При итерации создаются новые экземпляры QueueSystemParameters с
             фиксированным значением ν из массива nu_rate, все остальные параметры
             копируются из текущего объекта.
         """
-        # Сборка параметров для базового QueueSystemParameters без nu_rate
         base_params = {
             field.name: getattr(self, field.name)
             for field in fields(self)
             if field.name != "nu_rate"
         }
-
-        # Генерация экземпляров QueueSystemParameters для каждого значения nu_rate
-        for nu in self.nu_rate:
-            yield QueueSystemParameters(**base_params, nu_rate=nu)
+        return QueueSystemParametersIterator(
+            self.nu_rate, base_params, QueueSystemParameters
+        )
 
 
 @dataclass
@@ -142,11 +201,11 @@ class MultiThroughputQueueSystemParameters(MultiBaseQueueSystemParameters):
 
     nu_rate: NDArray[np.float64]  # Список интенсивностей ухода нетерпеливых заявок (ν)
 
-    def __iter__(self) -> Iterator[MultiQueueSystemParameters]:
+    def __iter__(self) -> QueueSystemParametersIterator:
         """Итератор по всем значениям ν, возвращающий MultiQueueSystemParameters.
 
         Returns:
-            Iterator[MultiQueueSystemParameters]: Итератор, который для каждого
+            MultiQueueSystemParameters: Итератор, который для каждого
             значения ν из массива nu_rate возвращает полный набор параметров СМО
 
         Note:
@@ -154,13 +213,11 @@ class MultiThroughputQueueSystemParameters(MultiBaseQueueSystemParameters):
             фиксированным значением ν из массива nu_rate, все остальные параметры
             копируются из текущего объекта.
         """
-        # Сборка параметров для базового MultiQueueSystemParameters без nu_rate
         base_params = {
             field.name: getattr(self, field.name)
             for field in fields(self)
             if field.name != "nu_rate"
         }
-
-        # Генерация экземпляров MultiQueueSystemParameters для каждого значения nu_rate
-        for nu in self.nu_rate:
-            yield MultiQueueSystemParameters(**base_params, nu_rate=nu)
+        return QueueSystemParametersIterator(
+            self.nu_rate, base_params, MultiQueueSystemParameters
+        )

@@ -155,7 +155,7 @@ if submitted:
 
     # Инициализация соответствующей системы
     if system_type == "Многолинейная":
-        params = MultiQueueSystemParameters(
+        params_for_multi = MultiQueueSystemParameters(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -165,7 +165,7 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = MultiImpatientQueueSystem(params)
+        impatient_queue_system = MultiImpatientQueueSystem(params_for_multi)
     else:
         params = QueueSystemParameters(
             lambda_rate=lambda_rate,
@@ -185,7 +185,7 @@ if submitted:
         probabilities = impatient_queue_system.calculate()
 
         st.subheader("📊 Графики вероятностей состояний системы")
-        fig = plot_probabilities(probabilities, params.time_array)
+        fig = plot_probabilities(probabilities, time_array)
         st.pyplot(fig)
 
         st.subheader("📝 Вероятности в конце периода")

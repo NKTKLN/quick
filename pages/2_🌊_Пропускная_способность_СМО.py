@@ -162,7 +162,7 @@ if submitted:
 
     # Инициализация соответствующей системы
     if system_type == "Многолинейная":
-        params = MultiThroughputQueueSystemParameters(
+        params_for_multi = MultiThroughputQueueSystemParameters(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -172,7 +172,7 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = MultiThroughputQueueSystem(params)
+        impatient_queue_system = MultiThroughputQueueSystem(params_for_multi)
     else:
         params = ThroughputQueueSystemParameters(
             lambda_rate=lambda_rate,
@@ -192,5 +192,5 @@ if submitted:
         probabilities = impatient_queue_system.calculate()
 
         st.subheader("📊 График пропускной способности системы")
-        fig = plot_throughput(probabilities, params.time_array)
+        fig = plot_throughput(probabilities, time_array)
         st.pyplot(fig)
