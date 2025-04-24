@@ -6,11 +6,12 @@
 
 - [Python](https://www.python.org/downloads/)
 - [Poetry](https://python-poetry.org/docs/#installation)
-- [Docker](https://docs.docker.com/get-docker/)
+- [Docker](https://docs.docker.com/get-docker/) (опционально)
+- [Task](https://taskfile.dev/) (опционально)
 
 ## 📂 Структура проекта
 
-- **app**: Основной код приложения.
+- **app**: Основной код приложения:
   - `main.py`: Точка входа в приложение.
   - `impatient_queue_system.py`: Логика математической модели.
   - `plot.py`: Построение графиков.
@@ -20,10 +21,16 @@
   - `matrix_generators.py`: Генерация матриц для расчетов.
   - `probability_solver.py`: Вычисление вероятностей.
   - `throughput_queue_system.py`: Анализ пропускной способности.
+- **pages**: Дополнительные страницы для Streamlit-приложения:
+  - `1_🧪_Моделирование_СМО.py`: Моделирование систем массового обслуживания.
+  - `2_🌊_Пропускная_способность_СМО.py`: Анализ пропускной способности системы.
+- **streamlit_app.py**: Основной интерфейс приложения на базе Streamlit.
 - **Dockerfile**: Конфигурация для сборки Docker-образа.
 - **.dockerignore**: Исключения для файлов, не попадающих в Docker-образ.
-- **pyproject.toml**: Зависимости проекта.
+- **pyproject.toml**: Конфигурация зависимостей проекта.
 - **Taskfile.yml**: Сценарии для автоматизации задач.
+- **README.md**: Документация проекта.
+- **LICENSE**: Лицензия проекта.
 
 ## 🛠️ Установка и запуск
 
@@ -39,7 +46,7 @@
 3. Запустите приложение:
 
    ```bash
-   python -m app.main
+   streamlit run streamlit_app.py
    ```
 
 ### 🐳 Запуск в Docker
@@ -71,19 +78,6 @@
    ```bash
    task run
    ```
-
-## 📝 Аргументы командной строки
-
-- `--disable-logging`: Отключить логирование.
-- `--log-level`: Уровень логирования (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).
-- `--log-file`: Имя файла для записи логов (по умолчанию логи выводятся в консоль).
-- `--save-plot`: Сохранить график вероятностей в формате PNG.
-
-Пример запуска с аргументами:
-
-```bash
-python -m app.main --log-level DEBUG --log-file logs.txt --save-plot
-```
 
 ## 📜 Лицензия
 

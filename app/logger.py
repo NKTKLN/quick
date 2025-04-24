@@ -33,6 +33,3 @@ def setup_logger(
     logging.basicConfig(
         level=log_level, format=log_format, filename=log_file, filemode="a"
     )
-
-    logger = logging.getLogger(__name__)
-    logger.info("Настройка логгера завершена.")

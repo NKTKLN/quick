@@ -1,30 +1,34 @@
-"""Моделирование СМО с нетерпеливыми заявками.
+"""Моделирование СМО для вычисления пропускной способности.
 
-Этот модуль реализует интерактивное веб-приложение для численного моделирования
-СМО типа M/M/m/n с нетерпеливыми заявками, которое может применяться для анализа
-медицинских информационно-измерительных систем.
+Этот модуль реализует интерактивное веб-приложение для численного анализа
+пропускной способности СМО типа M/M/m/n с учетом нетерпеливых заявок.
 
 Основные функциональные возможности:
-- Моделирование как одноканальных, так и многоканальных СМО
-- Настройка параметров системы (интенсивности поступления, обслуживания, ухода)
-- Визуализация динамики вероятностей состояний системы
-- Проверка корректности входных параметров
+- Расчет пропускной способности одноканальных и многоканальных СМО
+- Анализ влияния параметров системы на пропускную способность
+- Визуализация динамики изменения пропускной способности
+- Валидация входных параметров системы
 """
 
 import numpy as np
-import pandas as pd
 import streamlit as st
 
-from app.impatient_queue_system import ImpatientQueueSystem, MultiImpatientQueueSystem
-from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
-from app.plot import plot_probabilities
+from app.parameters import (
+    MultiThroughputQueueSystemParameters,
+    ThroughputQueueSystemParameters,
+)
+from app.plot import plot_throughput
+from app.throughput_queue_system import (
+    MultiThroughputQueueSystem,
+    ThroughputQueueSystem,
+)
 
-st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
+st.title("🌊 Пропускная способность СМО с нетерпеливыми заявками")
 
 st.markdown("""
 ## 🔍 Описание
-На этой странице реализовано численное моделирование СМО типа **M/M/m/n с нетерпеливыми\
-    заявками**, применяемой в медицинских информационно-измерительных системах.
+На этой странице реализован рассчет пропускной способности
+системы массового обслуживания типа **M/M/m/n** с учетом нетерпеливых заявок.
 
 ## 📌 Основные параметры системы:
 - **λ (лямбда)** — интенсивность поступления заявок (пакетов/с)
@@ -40,7 +44,7 @@ with st.expander("ℹ️ Как использовать это приложен
     2. Укажите временной диапазон для моделирования
     3. Задайте начальные вероятности состояний
     4. Нажмите "Применить параметры"
-    5. Используйте график вероятностей, который будет отображен ниже
+    5. Используйте график пропускной способности, который будет отображен ниже
     """)
 
 st.markdown("---")
@@ -66,13 +70,12 @@ with st.form("param_form"):
             value=10833.0,
             format="%.10f",
         )
-    with col3:
-        nu_rate = st.number_input(
-            "Интенсивность ухода нетерпеливых заявок (ν)",
-            min_value=0.0,
-            value=12345.0,
-            format="%.10f",
-        )
+
+    nu_rate_str = st.text_input(
+        "Интенсивность ухода нетерпеливых заявок (ν) — *введите через запятую*",
+        "1000, 10833, 10e5",
+    )
+    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",")])
 
     st.markdown("---")
 
@@ -137,6 +140,10 @@ if submitted:
         )
         st.stop()
 
+    if len(nu_rate) == 0:
+        st.error("Количество интенсивности ухода нетерпеливых заявок равно 0.")
+        st.stop()
+
     if np.any(initial_probabilities < 0) or np.any(initial_probabilities > 1):
         st.error("Все вероятности должны быть в диапазоне от 0 до 1.")
         st.stop()
@@ -149,13 +156,13 @@ if submitted:
         st.error("Конечное время должно быть больше начального.")
         st.stop()
 
-    if lambda_rate <= 0 or mu_rate <= 0 or nu_rate <= 0:
+    if lambda_rate <= 0 or mu_rate <= 0 or np.any(nu_rate <= 0):
         st.error("Все интенсивности (λ, μ, ν) должны быть положительными.")
         st.stop()
 
     # Инициализация соответствующей системы
     if system_type == "Многолинейная":
-        params = MultiQueueSystemParameters(
+        params = MultiThroughputQueueSystemParameters(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -165,9 +172,9 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = MultiImpatientQueueSystem(params)
+        impatient_queue_system = MultiThroughputQueueSystem(params)
     else:
-        params = QueueSystemParameters(
+        params = ThroughputQueueSystemParameters(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -176,26 +183,14 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = ImpatientQueueSystem(params)
+        impatient_queue_system = ThroughputQueueSystem(params)
 
     st.success("✅ Параметры успешно заданы!")
 
     # Расчет и визуализация результатов
-    with st.spinner("⏳ Идет расчет вероятностей..."):
+    with st.spinner("⏳ Идет расчет пропускной способности..."):
         probabilities = impatient_queue_system.calculate()
 
-        st.subheader("📊 Графики вероятностей состояний системы")
-        fig = plot_probabilities(probabilities, params.time_array)
+        st.subheader("📊 График пропускной способности системы")
+        fig = plot_throughput(probabilities, params.time_array)
         st.pyplot(fig)
-
-        st.subheader("📝 Вероятности в конце периода")
-        end_probs = probabilities[:, -1]
-        prob_df = pd.DataFrame(
-            {
-                "Состояние": [f"S{i}" for i in range(len(end_probs))],
-                "Вероятность": end_probs,
-            }
-        )
-        st.table(prob_df)
-
-        st.markdown(f"**📌 Сумма итоговых вероятностей:** {sum(end_probs):.6f}")

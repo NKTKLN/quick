@@ -1,31 +1,27 @@
-# Base Python image
+# Используем официальный образ Python
 FROM python:3.12-slim
 
-# Set the working directory
+# Устанавливаем зависимости системы
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем Poetry
+RUN pip install --no-cache-dir poetry
+
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential curl unzip && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
-
-# Copy Poetry files
+# Копируем файлы проекта
 COPY pyproject.toml poetry.lock ./
-
-# Install project dependencies
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-root --no-interaction --no-ansi
-
-# Copy the rest of the application files
 COPY . .
 
-# Expose 8080 port for web UI
-EXPOSE 8080
+# Устанавливаем зависимости через Poetry
+RUN poetry config virtualenvs.create false && poetry install --no-root --no-dev
 
-# Set the entry point
-ENTRYPOINT ["python", "-m", "app.main"]
-CMD []
+# Указываем порт для Streamlit
+EXPOSE 8501
+
+# Команда для запуска Streamlit-приложения
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]

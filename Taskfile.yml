@@ -45,4 +45,4 @@ tasks:
   run:
     desc: Run the application
     cmds:
-      - poetry run python -m app.main
+      - poetry run streamlit run streamlit_app.py

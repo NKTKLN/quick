@@ -13,6 +13,7 @@ dependencies = [
     "logger (>=1.4,<2.0)",
     "streamlit (>=1.44.1,<2.0.0)",
     "watchdog (>=6.0.0,<7.0.0)",
+    "pandas-stubs (>=2.2.3.250308,<3.0.0.0)",
 ]
 
 
