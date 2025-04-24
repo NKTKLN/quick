@@ -14,7 +14,8 @@
 """
 
 import logging
-from typing import List
+from abc import ABC, abstractmethod
+from typing import Any, List
 
 import numpy as np
 from numpy.typing import NDArray
@@ -31,20 +32,34 @@ from app.parameters import (
 logger = logging.getLogger(__name__)
 
 
-class ThroughputQueueSystem:
-    """Класс для расчета пропускной способности СМО.
+class BaseThroughputQueueSystem(ABC):
+    """Абстрактный базовый класс для анализа пропускной способности СМО.
 
-    Осуществляет серийный расчет характеристик СМО для различных значений
-    интенсивности ухода заявок (ν) с использованием матричного метода.
+    Определяет общий интерфейс и базовую реализацию для расчета зависимости пропускной
+    способности системы от интенсивности ухода заявок. Классы-наследники реализуют
+    специфичную логику для различных типов СМО (одноканальных/многоканальных).
+
+    Основные функции:
+    - Серийный расчет характеристик для диапазона значений интенсивности ухода
+    - Вычисление пропускной способности как (1 - вероятность потери) * λ
+    - Интеграция с базовыми моделями СМО для получения вероятностных характеристик
+
+    Методы:
+        calculate(): Основной метод для выполнения серии расчетов
+        _calculate_probabilities(): Абстрактный метод расчета вероятностей
     """
 
-    def __init__(self, params: ThroughputQueueSystemParameters) -> None:
-        """Инициализирует систему с заданными параметрами.
+    def __init__(self, params: Any) -> None:
+        """Инициализирует анализатор пропускной способности с заданными параметрами.
 
         Args:
-            params: Объект ThroughputQueueSystemParameters, содержащий:
-                    - базовые параметры СМО
-                    - диапазон значений интенсивности ухода заявок (ν)
+            params: Объект параметров, содержащий:
+                   - Базовые параметры СМО (λ, μ, количество каналов и т.д.)
+                   - Диапазон значений интенсивности ухода заявок (ν)
+                   - Другие специфичные параметры для серийного расчета
+
+        Note:
+            Конкретный тип параметров может уточняться в классах-наследниках.
         """
         self.params = params
 
@@ -79,6 +94,40 @@ class ThroughputQueueSystem:
 
         return throughput_results
 
+    @abstractmethod
+    def _calculate_probabilities(self, params: Any) -> NDArray[np.float64]:
+        """Абстрактный метод для расчета вероятностей состояний системы.
+
+        Должен быть реализован в классах-наследниках для конкретных типов СМО.
+
+        Args:
+            params: Параметры СМО для конкретного расчета
+
+        Returns:
+            NDArray[np.float64]: Массив стационарных вероятностей состояний,
+                               где последний элемент соответствует вероятности
+                               потери заявки.
+        """
+        pass
+
+
+class ThroughputQueueSystem(BaseThroughputQueueSystem):
+    """Класс для расчета пропускной способности СМО.
+
+    Осуществляет серийный расчет характеристик СМО для различных значений
+    интенсивности ухода заявок (ν) с использованием матричного метода.
+    """
+
+    def __init__(self, params: ThroughputQueueSystemParameters) -> None:
+        """Инициализирует систему с заданными параметрами.
+
+        Args:
+            params: Объект ThroughputQueueSystemParameters, содержащий:
+                    - базовые параметры СМО
+                    - диапазон значений интенсивности ухода заявок (ν)
+        """
+        super().__init__(params)
+
     def _calculate_probabilities(
         self, params: QueueSystemParameters
     ) -> NDArray[np.float64]:
@@ -105,7 +154,7 @@ class ThroughputQueueSystem:
         return probabilities
 
 
-class MultiThroughputQueueSystem(ThroughputQueueSystem):
+class MultiThroughputQueueSystem(BaseThroughputQueueSystem):
     """Класс для расчета пропускной способности многолинейной СМО.
 
     Осуществляет серийный расчет характеристик многолинейной СМО для различных значений
@@ -120,7 +169,7 @@ class MultiThroughputQueueSystem(ThroughputQueueSystem):
                     - базовые параметры СМО
                     - диапазон значений интенсивности ухода заявок (ν)
         """
-        self.params = params
+        super().__init__(params)
 
     def _calculate_probabilities(
         self, params: MultiQueueSystemParameters

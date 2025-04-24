@@ -16,6 +16,8 @@
 """
 
 import logging
+from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,7 +28,44 @@ from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
 logger = logging.getLogger(__name__)
 
 
-class QueueSystemMatrixBuilder:
+class MatrixBuilder(ABC):
+    """Абстрактный базовый класс для построения матриц коэффициентов.
+
+    Определяет интерфейс для генерации матриц коэффициентов, описывающих динамику
+    систем массового обслуживания. Классы-наследники реализуют конкретные алгоритмы
+    построения матриц для различных типов СМО.
+
+    Основные характеристики:
+    - Поддержка трехдиагональной структуры матриц
+    - Учет параметров системы (интенсивности потоков, количество каналов)
+    - Генерация квадратных матриц коэффициентов для систем дифференциальных уравнений
+
+    Методы:
+    - build(): абстрактный метод для генерации матрицы коэффициентов
+    """
+
+    def __init__(self, params: Any):
+        """Инициализирует построитель матрицы с параметрами системы.
+
+        Args:
+            params: Объект параметров системы массового обслуживания, содержащий
+                    необходимые параметры для построения матрицы
+        """
+        self.params = params
+
+    @abstractmethod
+    def build(self) -> NDArray[np.float64]:
+        """Абстрактный метод для построения матрицы коэффициентов.
+
+        Returns:
+            NDArray[np.float64]: Квадратная матрица коэффициентов системы
+                                дифференциальных уравнений, описывающих динамику СМО.
+                                Размерность матрицы определяется параметрами системы.
+        """
+        pass
+
+
+class QueueSystemMatrixBuilder(MatrixBuilder):
     """Класс для построения матрицы коэффициентов системы СМО.
 
     Строит трехдиагональную матрицу коэффициентов для системы дифференциальных
@@ -44,7 +83,7 @@ class QueueSystemMatrixBuilder:
                     - nu_rate (ν): интенсивность ухода заявки из очереди
                     - max_customers (n): максимальное число заявок в системе
         """
-        self.params = params
+        super().__init__(params)
 
     def build(self) -> NDArray[np.float64]:
         """Строит матрицу коэффициентов системы дифференциальных уравнений.
@@ -90,7 +129,7 @@ class QueueSystemMatrixBuilder:
         return coefficients_matrix
 
 
-class MultiQueueSystemMatrixBuilder(QueueSystemMatrixBuilder):
+class MultiQueueSystemMatrixBuilder(MatrixBuilder):
     """Класс для построения матрицы коэффициентов многоканальной системы СМО.
 
     Наследует базовый функционал от QueueSystemMatrixBuilder и расширяет его
@@ -109,7 +148,7 @@ class MultiQueueSystemMatrixBuilder(QueueSystemMatrixBuilder):
                     - max_customers (n): максимальное число заявок в системе
                     - processor_count (m): количество обслуживающих приборов в системе
         """
-        self.params = params
+        super().__init__(params)
 
     def build(self) -> NDArray[np.float64]:
         """Строит матрицу коэффициентов для многоканальной системы.

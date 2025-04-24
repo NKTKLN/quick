@@ -14,6 +14,8 @@
 """
 
 import logging
+from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -29,23 +31,36 @@ from app.probability_solver import ProbabilitySolver
 logger = logging.getLogger(__name__)
 
 
-class ImpatientQueueSystem:
-    """Класс для моделирования СМО с нетерпеливыми заявками.
+class QueueSystem(ABC):
+    """Абстрактный базовый класс для моделирования систем массового обслуживания (СМО).
 
-    Осуществляет расчет вероятностных характеристик СМО с использованием матричного
-    метода на основе заданных параметров системы.
+    Предоставляет общий интерфейс и базовую реализацию для расчета вероятностных
+    характеристик СМО с нетерпеливыми заявками. Классы-наследники должны реализовать
+    специфичную логику построения матриц переходов для конкретных типов систем.
+
+    Основные функции:
+    - Управление процессом расчета вероятностей состояний системы
+    - Координация работы компонентов (построение матриц, решение уравнений)
+    - Предоставление единого интерфейса для различных типов СМО
+
+    Методы:
+    - calculate(): основной метод для выполнения полного расчета
+    - _build_transition_matrix(): абстрактный метод построения матрицы переходов
+    - _compute_eigenvalues(): вычисление собственных значений матрицы
+    - _solve_probability_system(): решение системы уравнений для вероятностей
     """
 
-    def __init__(self, params: QueueSystemParameters) -> None:
+    def __init__(self, params: Any) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params: Объект QueueSystemParameters, содержащий параметры системы:
-                    - lambda_rate: интенсивность входящего потока
-                    - mu_rate: интенсивность обслуживания
-                    - nu_rate: интенсивность ухода заявок из очереди
-                    - channel_count: количество каналов обслуживания
-                    - queue_capacity: максимальная длина очереди
+            params: Объект параметров системы, содержащий:
+                   - Интенсивности потоков (входящий, обслуживания, ухода)
+                   - Структурные параметры системы (количество каналов, емкость очереди)
+                   - Другие специфичные параметры конкретной СМО
+
+        Note:
+            Конкретный тип параметров определяется в классах-наследниках.
         """
         self.params = params
 
@@ -71,14 +86,14 @@ class ImpatientQueueSystem:
         )
         return probability_matrix
 
+    @abstractmethod
     def _build_transition_matrix(self) -> NDArray[np.float64]:
-        """Строит матрицу переходов системы массового обслуживания.
+        """Абстрактный метод построения матрицы переходов между состояниями СМО.
 
         Returns:
             NDArray[np.float64]: Матрица переходов между состояниями системы.
         """
-        transition_matrix = QueueSystemMatrixBuilder(self.params).build()
-        return transition_matrix
+        pass
 
     def _compute_eigenvalues(
         self, transition_matrix: NDArray[np.float64]
@@ -125,7 +140,37 @@ class ImpatientQueueSystem:
         return prob_solver.generate_p_matrix(m_matrix)
 
 
-class MultiImpatientQueueSystem(ImpatientQueueSystem):
+class ImpatientQueueSystem(QueueSystem):
+    """Класс для моделирования СМО с нетерпеливыми заявками.
+
+    Осуществляет расчет вероятностных характеристик СМО с использованием матричного
+    метода на основе заданных параметров системы.
+    """
+
+    def __init__(self, params: QueueSystemParameters) -> None:
+        """Инициализирует систему массового обслуживания с заданными параметрами.
+
+        Args:
+            params: Объект QueueSystemParameters, содержащий параметры системы:
+                    - lambda_rate: интенсивность входящего потока
+                    - mu_rate: интенсивность обслуживания
+                    - nu_rate: интенсивность ухода заявок из очереди
+                    - channel_count: количество каналов обслуживания
+                    - queue_capacity: максимальная длина очереди
+        """
+        super().__init__(params)
+
+    def _build_transition_matrix(self) -> NDArray[np.float64]:
+        """Строит матрицу переходов системы массового обслуживания.
+
+        Returns:
+            NDArray[np.float64]: Матрица переходов между состояниями системы.
+        """
+        transition_matrix = QueueSystemMatrixBuilder(self.params).build()
+        return transition_matrix
+
+
+class MultiImpatientQueueSystem(QueueSystem):
     """Класс для моделирования многолинейной СМО с нетерпеливыми заявками.
 
     Осуществляет расчет вероятностных характеристик многолинейной СМО с использованием
@@ -144,7 +189,7 @@ class MultiImpatientQueueSystem(ImpatientQueueSystem):
                     - queue_capacity: максимальная длина очереди
                     - processor_count: количество обслуживающих приборов в системе
         """
-        self.params = params
+        super().__init__(params)
 
     def _build_transition_matrix(self) -> NDArray[np.float64]:
         """Строит матрицу переходов многолинейной системы массового обслуживания.
