@@ -154,6 +154,7 @@ if submitted:
         st.stop()
 
     # Инициализация соответствующей системы
+    impatient_queue_system: ImpatientQueueSystem | MultiImpatientQueueSystem
     if system_type == "Многолинейная":
         params_for_multi = MultiQueueSystemParameters(
             lambda_rate=lambda_rate,

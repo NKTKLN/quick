@@ -161,6 +161,7 @@ if submitted:
         st.stop()
 
     # Инициализация соответствующей системы
+    impatient_queue_system: ThroughputQueueSystem | MultiThroughputQueueSystem
     if system_type == "Многолинейная":
         params_for_multi = MultiThroughputQueueSystemParameters(
             lambda_rate=lambda_rate,

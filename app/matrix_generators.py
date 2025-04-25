@@ -189,12 +189,12 @@ class MultiQueueSystemMatrixBuilder(MatrixBuilder):
                 #  dpi/dt = λ·pi-1 - [μ·min(i,m) + ν·max(0,i-m) + λ]·pi +
                 #           [μ·min(i+1,m) + ν·max(0,i+1-m)]·pi+1
                 coefficients_matrix[index, index - 1] = λ
-                coefficients_matrix[index, index] = -(λ + m * μ + (index - m) * ν)
-
-                if index + 1 <= m:
-                    coefficients_matrix[index, index + 1] = (index + 1) * μ
-                else:
-                    coefficients_matrix[index, index + 1] = m * μ + (index + 1 - m) * ν
+                coefficients_matrix[index, index] = -(
+                    λ + min(index, m) * μ + max(0, index - m) * ν
+                )
+                coefficients_matrix[index, index + 1] = (
+                    min(index + 1, m) * μ + max(0, index + 1 - m) * ν
+                )
 
         logger.info(
             "Матрица коэффициентов A для многолинейной системы уравнений сгенерирована."
