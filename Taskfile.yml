@@ -5,10 +5,16 @@ tasks:
     desc: Install dependencies using poetry
     cmds:
       - poetry install --no-root
+    
+  precommit:
+    desc: Install git hooks via pre-commit
+    cmds:
+      - poetry run pre-commit install
 
   format:
-    desc: Code formatting with black and isort (через ruff)
+    desc: Code formatting with black and ruff (через isort)
     cmds:
+      - poetry run black .
       - poetry run ruff format .
       - poetry run ruff check . --fix
 
@@ -36,11 +42,6 @@ tasks:
   check:
     desc: Full linting, audit run, and code checks
     deps: [format, lint, docstyle, audit, deadcode]
-
-  precommit:
-    desc: Install git hooks via pre-commit
-    cmds:
-      - poetry run pre-commit install
 
   run:
     desc: Run the application

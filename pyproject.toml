@@ -28,6 +28,21 @@ pre-commit = "^4.2.0"
 interrogate = "^1.7.0"
 vulture = "^2.14"
 pip-audit = "^2.9.0"
+black = "^25.1.0"
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+  | tmp
+)/
+'''
 
 [tool.ruff]
 line-length = 88
