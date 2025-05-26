@@ -12,7 +12,7 @@ tasks:
       - poetry run pre-commit install
 
   format:
-    desc: Code formatting with black and ruff (через isort)
+    desc: Code formatting with black and ruff
     cmds:
       - poetry run black .
       - poetry run ruff format .
