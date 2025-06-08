@@ -1,12 +1,12 @@
 """Модуль для построения матриц коэффициентов систем массового обслуживания.
 
 Модуль содержит классы для генерации матриц коэффициентов систем дифференциальных
-уравнений,описывающих поведение одноканальных и многоканальных СМО с нетерпеливыми
+уравнений, описывающих поведение одноканальных и многоканальных СМО с нетерпеливыми
 заявками.
 
 Основные классы:
-1. QueueSystemMatrixBuilder - построитель матрицы для одноканальной СМО
-2. MultiQueueSystemMatrixBuilder - построитель матрицы для многоканальной СМО
+1. SingleServerMatrixBuilder - построитель матрицы для одноканальной СМО
+2. MultiServerMatrixBuilder - построитель матрицы для многоканальной СМО
 
 Основные функции:
 - Построение трехдиагональных матриц коэффициентов
@@ -17,12 +17,11 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
-from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
+from app.models import MultiServerParams, SingleServerParams
 
 # Инициализация логгирования
 logger = logging.getLogger(__name__)
@@ -44,12 +43,13 @@ class MatrixBuilder(ABC):
     - build(): абстрактный метод для генерации матрицы коэффициентов
     """
 
-    def __init__(self, params: Any):
+    def __init__(self, params: SingleServerParams | MultiServerParams) -> None:
         """Инициализирует построитель матрицы с параметрами системы.
 
-        Args:
-            params: Объект параметров системы массового обслуживания, содержащий
-                    необходимые параметры для построения матрицы
+        Атрибуты:
+            params (SingleServerParams | MultiServerParams): Объект параметров системы
+                массового обслуживания, содержащий необходимые параметры для
+                построения матрицы
         """
         self.params = params
 
@@ -57,15 +57,15 @@ class MatrixBuilder(ABC):
     def build(self) -> NDArray[np.float64]:
         """Абстрактный метод для построения матрицы коэффициентов.
 
-        Returns:
+        Возвращает:
             NDArray[np.float64]: Квадратная матрица коэффициентов системы
-                                дифференциальных уравнений, описывающих динамику СМО.
-                                Размерность матрицы определяется параметрами системы.
+                                 дифференциальных уравнений, описывающих динамику СМО.
+                                 Размерность матрицы определяется параметрами системы.
         """
         pass
 
 
-class QueueSystemMatrixBuilder(MatrixBuilder):
+class SingleServerMatrixBuilder(MatrixBuilder):
     """Класс для построения матрицы коэффициентов системы СМО.
 
     Строит трехдиагональную матрицу коэффициентов для системы дифференциальных
@@ -73,10 +73,10 @@ class QueueSystemMatrixBuilder(MatrixBuilder):
     нетерпеливыми заявками.
     """
 
-    def __init__(self, params: QueueSystemParameters) -> None:
+    def __init__(self, params: SingleServerParams) -> None:
         """Инициализирует построитель матрицы с параметрами системы.
 
-        Args:
+        Атрибуты:
             params: Параметры системы массового обслуживания, включая:
                     - lambda_rate (λ): интенсивность входящего потока
                     - mu_rate (μ): интенсивность обслуживания
@@ -95,7 +95,7 @@ class QueueSystemMatrixBuilder(MatrixBuilder):
         - Для промежуточных уравнений: тридиагональная структура с коэффициентами:
           λ (под диагональю), -(μ+(i-1)ν+λ) (диагональ), μ+iν (над диагональю)
 
-        Returns:
+        Возвращает:
             NDArray[np.float64]: Квадратная матрица коэффициентов размером n x n, где
                                  n - максимальное число заявок в системе.
                                  Матрица имеет трехдиагональную структуру.
@@ -129,7 +129,7 @@ class QueueSystemMatrixBuilder(MatrixBuilder):
         return coefficients_matrix
 
 
-class MultiQueueSystemMatrixBuilder(MatrixBuilder):
+class MultiServerMatrixBuilder(MatrixBuilder):
     """Класс для построения матрицы коэффициентов многоканальной системы СМО.
 
     Наследует базовый функционал от QueueSystemMatrixBuilder и расширяет его
@@ -137,10 +137,10 @@ class MultiQueueSystemMatrixBuilder(MatrixBuilder):
     Строит трехдиагональную матрицу коэффициентов с учетом количества процессоров.
     """
 
-    def __init__(self, params: MultiQueueSystemParameters) -> None:
+    def __init__(self, params: MultiServerParams) -> None:
         """Инициализирует построитель матрицы с параметрами системы.
 
-        Args:
+        Атрибуты:
             params: Параметры системы массового обслуживания, включая:
                     - lambda_rate (λ): интенсивность входящего потока
                     - mu_rate (μ): интенсивность обслуживания
@@ -158,7 +158,7 @@ class MultiQueueSystemMatrixBuilder(MatrixBuilder):
         - Для состояний, где число заявок больше m: работают только m приборов,
           остальные заявки ждут в очереди и могут уйти с интенсивностью ν
 
-        Returns:
+        Возвращает:
             NDArray[np.float64]: Квадратная матрица коэффициентов размером
                                  (n+m+1) x (n+m+1), где n - максимальное число заявок
                                  в системе, m - количество обслуживающих приборов.

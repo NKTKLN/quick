@@ -1,16 +1,20 @@
 """Модуль для анализа пропускной способности СМО с нетерпеливыми заявками.
 
-Модуль содержит классы для расчета пропускной способности однолинейных и
-многолинейных СМО при различных значениях интенсивности ухода заявок.
+Этот модуль реализует классы для расчета пропускной способности
+однолинейных и многолинейных систем массового обслуживания (СМО),
+в которых заявки могут уходить из очереди при длительном ожидании.
 
-Основные классы:
-1. ThroughputQueueSystem - расчет пропускной способности однолинейной СМО
-2. MultiThroughputQueueSystem - расчет пропускной способности многолинейной СМО
+Классы:
+    BaseThroughputSystem: Абстрактная базовая модель для анализа СМО.
+    SingleServerThroughputQueueSystem: Расчет для одноканальной СМО.
+    MultiServerThroughputSystem: Расчет для многоканальной СМО.
 
-Основные функции:
-- Серийный расчет характеристик для диапазона значений интенсивности ухода
-- Вычисление пропускной способности как (1 - вероятность потери) * интенсивность входа
-- Интеграция с базовыми моделями СМО для получения вероятностных характеристик
+Функциональность:
+    - Серийный расчет пропускной способности при изменяющейся
+      интенсивности ухода заявок (ν).
+    - Использование вероятностей потери для вычисления пропускной способности:
+      Throughput = (1 - P_loss) * λ.
+    - Интеграция с моделями ImpatientQueueSystem и MultiImpatientQueueSystem.
 """
 
 import logging
@@ -20,19 +24,19 @@ from typing import Any, List
 import numpy as np
 from numpy.typing import NDArray
 
-from app.impatient_queue_system import ImpatientQueueSystem, MultiImpatientQueueSystem
-from app.parameters import (
-    MultiQueueSystemParameters,
-    MultiThroughputQueueSystemParameters,
-    QueueSystemParameters,
-    ThroughputQueueSystemParameters,
+from app.models import (
+    MultiServerParams,
+    MultiServerThroughputParams,
+    SingleServerParams,
+    SingleServerThroughputParams,
 )
+from app.services.probability import MultiServerSystem, SingleServerSystem
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
 
 
-class BaseThroughputQueueSystem(ABC):
+class BaseThroughputSystem(ABC):
     """Абстрактный базовый класс для анализа пропускной способности СМО.
 
     Определяет общий интерфейс и базовую реализацию для расчета зависимости пропускной
@@ -111,25 +115,25 @@ class BaseThroughputQueueSystem(ABC):
         pass
 
 
-class ThroughputQueueSystem(BaseThroughputQueueSystem):
+class SingleServerThroughputSystem(BaseThroughputSystem):
     """Класс для расчета пропускной способности СМО.
 
     Осуществляет серийный расчет характеристик СМО для различных значений
     интенсивности ухода заявок (ν) с использованием матричного метода.
     """
 
-    def __init__(self, params: ThroughputQueueSystemParameters) -> None:
+    def __init__(self, params: SingleServerThroughputParams) -> None:
         """Инициализирует систему с заданными параметрами.
 
         Args:
-            params: Объект ThroughputQueueSystemParameters, содержащий:
+            params: Объект SingleServerThroughputParams, содержащий:
                     - базовые параметры СМО
                     - диапазон значений интенсивности ухода заявок (ν)
         """
         super().__init__(params)
 
     def _calculate_probabilities(
-        self, params: QueueSystemParameters
+        self, params: SingleServerParams
     ) -> NDArray[np.float64]:
         """Вычисляет стационарные вероятности состояний СМО для заданных параметров.
 
@@ -137,7 +141,7 @@ class ThroughputQueueSystem(BaseThroughputQueueSystem):
         параметрами и выполняет расчет вероятностей состояний системы.
 
         Args:
-            params: Параметры СМО (QueueSystemParameters), включая:
+            params: Параметры СМО (SingleServerParams), включая:
                     - lambda_rate: интенсивность входящего потока
                     - mu_rate: интенсивность обслуживания
                     - nu_rate: интенсивность ухода заявок из очереди
@@ -149,30 +153,30 @@ class ThroughputQueueSystem(BaseThroughputQueueSystem):
                                  где последний элемент соответствует вероятности
                                  потери заявки.
         """
-        queue_system = ImpatientQueueSystem(params)
+        queue_system = SingleServerSystem(params)
         probabilities = queue_system.calculate()
         return probabilities
 
 
-class MultiThroughputQueueSystem(BaseThroughputQueueSystem):
+class MultiServerThroughputSystem(BaseThroughputSystem):
     """Класс для расчета пропускной способности многолинейной СМО.
 
     Осуществляет серийный расчет характеристик многолинейной СМО для различных значений
     интенсивности ухода заявок (ν) с использованием матричного метода.
     """
 
-    def __init__(self, params: MultiThroughputQueueSystemParameters) -> None:
+    def __init__(self, params: MultiServerThroughputParams) -> None:
         """Инициализирует систему с заданными параметрами.
 
         Args:
-            params: Объект MultiThroughputQueueSystemParameters, содержащий:
+            params: Объект MultiServerThroughputParams, содержащий:
                     - базовые параметры СМО
                     - диапазон значений интенсивности ухода заявок (ν)
         """
         super().__init__(params)
 
     def _calculate_probabilities(
-        self, params: MultiQueueSystemParameters
+        self, params: MultiServerParams
     ) -> NDArray[np.float64]:
         """Вычисляет стационарные вероятности состояний СМО для заданных параметров.
 
@@ -180,7 +184,7 @@ class MultiThroughputQueueSystem(BaseThroughputQueueSystem):
         параметрами и выполняет расчет вероятностей состояний системы.
 
         Args:
-            params: Параметры СМО (MultiQueueSystemParameters), включая:
+            params: Параметры СМО (MultiServerParams), включая:
                     - lambda_rate: интенсивность входящего потока
                     - mu_rate: интенсивность обслуживания
                     - nu_rate: интенсивность ухода заявок из очереди
@@ -193,6 +197,6 @@ class MultiThroughputQueueSystem(BaseThroughputQueueSystem):
                                  многолинейной СМО, где последний элемент соответствует
                                  вероятности потери заявки.
         """
-        queue_system = MultiImpatientQueueSystem(params)
+        queue_system = MultiServerSystem(params)
         probabilities = queue_system.calculate()
         return probabilities

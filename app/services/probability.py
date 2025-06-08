@@ -15,23 +15,24 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.linalg import eig
 
-from app.matrix_generators import (
-    MultiQueueSystemMatrixBuilder,
-    QueueSystemMatrixBuilder,
+from app.models import MultiServerParams, SingleServerParams
+from app.services.matrix_generators import (
+    MultiServerMatrixBuilder,
+    SingleServerMatrixBuilder,
 )
-from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
-from app.probability_solver import ProbabilitySolver
+from app.services.solver import ProbabilitySolver
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
 
 
-class QueueSystem(ABC):
+class BaseProbabilitySystem(ABC):
     """Абстрактный базовый класс для моделирования систем массового обслуживания (СМО).
 
     Предоставляет общий интерфейс и базовую реализацию для расчета вероятностных
@@ -80,9 +81,9 @@ class QueueSystem(ABC):
                                и j занятыми источниками.
         """
         transition_matrix = self._build_transition_matrix()
-        eigenvalues = self._compute_eigenvalues(transition_matrix)
+        eigenvalues, xsi_matrix = self._compute_eigenvalues(transition_matrix)
         probability_matrix = self._solve_probability_system(
-            transition_matrix, eigenvalues
+            transition_matrix, eigenvalues, xsi_matrix
         )
         return probability_matrix
 
@@ -95,9 +96,17 @@ class QueueSystem(ABC):
         """
         pass
 
+    def _scale_matrix(
+        self, matrix: NDArray[np.float64]
+    ) -> Tuple[NDArray[np.float64], float]:
+        scale = np.max(np.abs(matrix))
+        if scale == 0:
+            return matrix
+        return matrix / scale, scale
+
     def _compute_eigenvalues(
         self, transition_matrix: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Вычисляет собственные значения матрицы переходов.
 
         Args:
@@ -109,19 +118,25 @@ class QueueSystem(ABC):
         Note:
             Логирует рассчитанные собственные значения для отладки.
         """
-        eigenvalues = np.linalg.eigvals(transition_matrix)
-        real_eigenvalues = eigenvalues.real.astype(np.float64)
-        logger.debug("Рассчитаны собственные значения: %s", real_eigenvalues)
-        return real_eigenvalues
+        scaled_matrix, scale = self._scale_matrix(transition_matrix)
+        logger.debug("Значение маштабирования: %s", scale)
+        eigenvalues, xsi_matrix = eig(scaled_matrix)
+        eigenvalues *= scale
+        logger.debug("Рассчитаны собственные значения: %s", eigenvalues)
+        return eigenvalues, xsi_matrix
 
     def _solve_probability_system(
-        self, transition_matrix: NDArray[np.float64], eigenvalues: NDArray[np.float64]
+        self,
+        transition_matrix: NDArray[np.float64],
+        eigenvalues: NDArray[np.float64],
+        xsi_matrix: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """Решает систему уравнений для нахождения стационарных вероятностей.
 
         Args:
             transition_matrix: Матрица переходов системы.
             eigenvalues: Собственные значения матрицы переходов.
+            xsi_matrix: Матрица собственных векторов.
 
         Returns:
             NDArray[np.float64]: Матрица стационарных вероятностей состояний системы.
@@ -134,24 +149,22 @@ class QueueSystem(ABC):
             4. Финальный расчет матрицы вероятностей
         """
         prob_solver = ProbabilitySolver(self.params, transition_matrix, eigenvalues)
-        p_values = prob_solver.p_values_calculation()
-        aa_matrix = prob_solver.generate_aa_matrix(p_values)
-        m_matrix = prob_solver.generate_m_matrix(aa_matrix, p_values)
+        m_matrix = prob_solver.generate_m_matrix(xsi_matrix)
         return prob_solver.generate_p_matrix(m_matrix)
 
 
-class ImpatientQueueSystem(QueueSystem):
+class SingleServerSystem(BaseProbabilitySystem):
     """Класс для моделирования СМО с нетерпеливыми заявками.
 
     Осуществляет расчет вероятностных характеристик СМО с использованием матричного
     метода на основе заданных параметров системы.
     """
 
-    def __init__(self, params: QueueSystemParameters) -> None:
+    def __init__(self, params: SingleServerParams) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params: Объект QueueSystemParameters, содержащий параметры системы:
+            params: Объект SingleServerParams, содержащий параметры системы:
                     - lambda_rate: интенсивность входящего потока
                     - mu_rate: интенсивность обслуживания
                     - nu_rate: интенсивность ухода заявок из очереди
@@ -166,22 +179,22 @@ class ImpatientQueueSystem(QueueSystem):
         Returns:
             NDArray[np.float64]: Матрица переходов между состояниями системы.
         """
-        transition_matrix = QueueSystemMatrixBuilder(self.params).build()
+        transition_matrix = SingleServerMatrixBuilder(self.params).build()
         return transition_matrix
 
 
-class MultiImpatientQueueSystem(QueueSystem):
+class MultiServerSystem(BaseProbabilitySystem):
     """Класс для моделирования многолинейной СМО с нетерпеливыми заявками.
 
     Осуществляет расчет вероятностных характеристик многолинейной СМО с использованием
     матричного метода на основе заданных параметров системы.
     """
 
-    def __init__(self, params: MultiQueueSystemParameters) -> None:
+    def __init__(self, params: MultiServerParams) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params: Объект MultiQueueSystemParameters, содержащий параметры системы:
+            params: Объект MultiServerParams, содержащий параметры системы:
                     - lambda_rate: интенсивность входящего потока
                     - mu_rate: интенсивность обслуживания
                     - nu_rate: интенсивность ухода заявок из очереди
@@ -197,5 +210,5 @@ class MultiImpatientQueueSystem(QueueSystem):
         Returns:
             NDArray[np.float64]: Матрица переходов между состояниями системы.
         """
-        transition_matrix = MultiQueueSystemMatrixBuilder(self.params).build()
+        transition_matrix = MultiServerMatrixBuilder(self.params).build()
         return transition_matrix

@@ -13,15 +13,15 @@
 import numpy as np
 import streamlit as st
 
-from app.parameters import (
-    MultiThroughputQueueSystemParameters,
-    ThroughputQueueSystemParameters,
+from app.models import (
+    MultiServerThroughputParams,
+    SingleServerThroughputParams,
 )
-from app.plot import plot_throughput
-from app.throughput_queue_system import (
-    MultiThroughputQueueSystem,
-    ThroughputQueueSystem,
+from app.services.throughput import (
+    MultiServerThroughputSystem,
+    SingleServerThroughputSystem,
 )
+from app.utils.plot import plot_throughput
 
 st.title("🌊 Пропускная способность СМО с нетерпеливыми заявками")
 
@@ -165,9 +165,9 @@ if submitted:
         st.stop()
 
     # Инициализация соответствующей системы
-    impatient_queue_system: ThroughputQueueSystem | MultiThroughputQueueSystem
+    impatient_queue_system: SingleServerThroughputSystem | MultiServerThroughputSystem
     if system_type == "Многолинейная":
-        params_for_multi = MultiThroughputQueueSystemParameters(
+        params_for_multi = MultiServerThroughputParams(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -177,9 +177,9 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = MultiThroughputQueueSystem(params_for_multi)
+        impatient_queue_system = MultiServerThroughputSystem(params_for_multi)
     else:
-        params = ThroughputQueueSystemParameters(
+        params = SingleServerThroughputParams(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -188,7 +188,7 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = ThroughputQueueSystem(params)
+        impatient_queue_system = SingleServerThroughputSystem(params)
 
     st.success("✅ Параметры успешно заданы!")
 

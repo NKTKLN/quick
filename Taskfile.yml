@@ -43,6 +43,11 @@ tasks:
     desc: Full linting, audit run, and code checks
     deps: [format, lint, docstyle, audit, deadcode]
 
+  unused-libs:
+    desc: Check for unused libraries
+    cmds:
+      - poetry run deptry .
+
   run:
     desc: Run the application
     cmds:

@@ -15,9 +15,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from app.impatient_queue_system import ImpatientQueueSystem, MultiImpatientQueueSystem
-from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
-from app.plot import plot_probabilities
+from app.models import MultiServerParams, SingleServerParams
+from app.services.probability import MultiServerSystem, SingleServerSystem
+from app.utils.plot import plot_probabilities
 
 st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
 
@@ -158,9 +158,9 @@ if submitted:
         st.stop()
 
     # Инициализация соответствующей системы
-    impatient_queue_system: ImpatientQueueSystem | MultiImpatientQueueSystem
+    impatient_queue_system: SingleServerSystem | MultiServerSystem
     if system_type == "Многолинейная":
-        params_for_multi = MultiQueueSystemParameters(
+        params_for_multi = MultiServerParams(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -170,9 +170,9 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = MultiImpatientQueueSystem(params_for_multi)
+        impatient_queue_system = MultiServerSystem(params_for_multi)
     else:
-        params = QueueSystemParameters(
+        params = SingleServerParams(
             lambda_rate=lambda_rate,
             mu_rate=mu_rate,
             nu_rate=nu_rate,
@@ -181,7 +181,7 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = ImpatientQueueSystem(params)
+        impatient_queue_system = SingleServerSystem(params)
 
     st.success("✅ Параметры успешно заданы!")
 
