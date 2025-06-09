@@ -18,6 +18,12 @@
 from .base_params import BasicMultiServerParams, BasicSingleServerParams
 from .iterators import ParamsNuIterator
 from .probability import MultiServerParams, SingleServerParams
+from .settings import (
+    CalculationType,
+    ComputationConfig,
+    MergedComputationConfig,
+    MpmathComputationConfig,
+)
 from .throughput import MultiServerThroughputParams, SingleServerThroughputParams
 
 __all__ = [
@@ -28,4 +34,8 @@ __all__ = [
     "MultiServerThroughputParams",
     "BasicSingleServerParams",
     "BasicMultiServerParams",
+    "CalculationType",
+    "ComputationConfig",
+    "MpmathComputationConfig",
+    "MergedComputationConfig",
 ]

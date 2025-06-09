@@ -15,7 +15,13 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from app.models import MultiServerParams, SingleServerParams
+from app.models import (
+    CalculationType,
+    ComputationConfig,
+    MpmathComputationConfig,
+    MultiServerParams,
+    SingleServerParams,
+)
 from app.services.probability import MultiServerSystem, SingleServerSystem
 from app.utils.plot import plot_probabilities
 
@@ -46,6 +52,29 @@ with st.expander("ℹ️ Как использовать это приложен
     5. Используйте график вероятностей, который будет отображен ниже
     """
     )
+
+st.markdown("---")
+with st.form("settiongs_form"):
+    st.subheader("⚙️ Настройки вычисления для системы")
+    calculation_type = st.selectbox(
+        "Выберите тип вычисления:",
+        [
+            "Numpy (быстрое, для небольших систем)",
+            "Mpmath (точное, для больших систем)",
+            "Объединенное (для сложных систем с высокой точностью)",
+        ],
+    )
+    if calculation_type == "Numpy (быстрое, для небольших систем)":
+        config = ComputationConfig(calculation_type=CalculationType.NUMPY)
+    elif calculation_type == "Mpmath (точное, для больших систем)":
+        config = MpmathComputationConfig(calculation_type=CalculationType.MPMATH)
+    else:
+        config = ComputationConfig(calculation_type=CalculationType.NUMPY)
+    submitted = st.form_submit_button("✅ Применить настройки")
+
+if submitted:
+    st.success("✅ Настройки успешно применены!")
+    st.session_state.config = config
 
 st.markdown("---")
 st.subheader("🔬 Тип системы")
@@ -170,7 +199,7 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = MultiServerSystem(params_for_multi)
+        impatient_queue_system = MultiServerSystem(params_for_multi, config)
     else:
         params = SingleServerParams(
             lambda_rate=lambda_rate,
@@ -181,7 +210,7 @@ if submitted:
             state_variables=state_variables,
             initial_probabilities=initial_probabilities,
         )
-        impatient_queue_system = SingleServerSystem(params)
+        impatient_queue_system = SingleServerSystem(params, config)
 
     st.success("✅ Параметры успешно заданы!")
 
