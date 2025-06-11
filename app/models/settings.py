@@ -59,4 +59,4 @@ class MergedComputationConfig(MpmathComputationConfig):
                            источников. По умолчанию — 1e-16.
     """
 
-    tolerance: float = 1e-16
+    tolerance: float = 1e-12

@@ -142,13 +142,13 @@ class NumpyProbabilitySolver(BasicProbabilitySolver):
             ValueError: Если размерности входных матриц не согласованы
         """
         matrix_size = xsi_matrix.shape[0]
-        time_array_size = len(self.params.time_array)
+        time_steps = len(self.params.time_array)
 
         xsi_matrix_inv = np.linalg.inv(xsi_matrix)
         exp_g_t = np.exp(np.outer(self.eigenvalues, self.params.time_array))
 
         m_matrix = np.zeros(
-            (matrix_size, matrix_size, time_array_size), dtype=np.float64
+            (matrix_size, matrix_size, time_steps), dtype=np.float64
         )
         for k in tqdm(range(matrix_size), desc="Вычисление слоёв M"):
             outer = np.outer(xsi_matrix[:, k], xsi_matrix_inv[k, :])
@@ -182,23 +182,57 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
             eigenvalues: Массив собственных значений матрицы коэффициентов размером (n,)
             config (MpmathComputationConfig): Конфигурация вычислений.
         """
-        self.precision = config.precision
+        self.__exp_g_t: list[list[Any]] = None
+        self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    def _generate_exp_matrix(self):
+    def _generate_exp_matrix(self) -> list[list[Any]]:
         """Генерирует матрицу экспонент exp(λ_k * t).
 
         Внутренний метод для построения матрицы экспоненциального поведения
         собственных значений во времени.
 
         Возвращает:
-            list[list[mp.mpf]]: Двумерная матрица exp(λ_k * t) для всех λ и t
+            list[list[Any]]: Двумерная матрица exp(λ_k * t) для всех λ и t
         """
-        with mp.workdps(self.precision):
+        with mp.workdps(self._precision):
             time_array = mp.matrix(self.params.time_array)
             outer = [[eig * t for t in time_array] for eig in self.eigenvalues]
             exp_g_t = [[mp.exp(val) for val in row] for row in outer]
         return exp_g_t
+
+    @property
+    def _exp_g_t(self):
+        if self.__exp_g_t is None:
+            self.__exp_g_t = self._generate_exp_matrix()
+        return self.__exp_g_t
+
+    def _compute_m_matrix(
+        self,
+        xsi_matrix: np.ndarray,
+        xsi_matrix_inv: np.ndarray,
+        exp_g_t: list[list[Any]],
+        invalid_indices: np.ndarray | None = None
+    ) -> np.ndarray:
+        matrix_size = len(xsi_matrix)
+        time_steps = len(self.params.time_array)
+
+        with mp.workdps(self._precision):
+            m_matrix = np.zeros(
+                (matrix_size, matrix_size, time_steps), dtype=object
+            )
+            for k in tqdm(range(matrix_size), desc="Пересчёт слоёв M"):
+                for i in range(matrix_size):
+                    for j in range(matrix_size):
+                        time_end_step = time_steps if invalid_indices is None else invalid_indices[i, j] + 1
+                        if time_end_step == 0:
+                            continue
+
+                        outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
+                        for t in range(time_end_step):
+                            m_matrix[i, j, t] += mp.re(outer_ij * exp_g_t[k][t])
+
+            return m_matrix
 
     def generate_m_matrix(self, xsi_matrix):
         """Генерирует матрицу M(t) с повышенной точностью.
@@ -213,23 +247,12 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
             NDArray[mp.mpf]: 3D матрица M размером (n x n x t),
                             где t — количество временных точек
         """
-        matrix_size = len(xsi_matrix)
-        time_array_size = len(self.params.time_array)
-
-        with mp.workdps(self.precision):
+        with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
             exp_g_t = self._generate_exp_matrix()
-
-            m_matrix = np.zeros(
-                (matrix_size, matrix_size, time_array_size), dtype=mp.mpf
+            m_matrix = self._compute_m_matrix(
+                xsi_matrix, xsi_matrix_inv, exp_g_t
             )
-            for k in tqdm(range(matrix_size), desc="Вычисление слоёв M"):
-                for i in range(matrix_size):
-                    for j in range(matrix_size):
-                        outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
-                        for t in range(time_array_size):
-                            m_matrix[i][j][t] += mp.re(outer_ij * exp_g_t[k][t])
-
             logger.info("Генерация матрицы M завершена.")
             return m_matrix
 
@@ -250,18 +273,39 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
             eigenvalues: Массив собственных значений матрицы коэффициентов размером (n,)
             config (MergedComputationConfig): Конфигурация вычислений.
         """
-        self.precision = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    # def _is_valid_data_point(self, value) -> bool:
-    #     return abs(value) < self.config.tolerance
+    def _get_invalid_indices(self, data_matrix: NDArray[Any], check_sum: bool = True) -> NDArray[np.int64]:
+        matrix_size = data_matrix.shape[0]
+        time_steps = data_matrix.shape[2]
+
+        invalid_indices = np.full((matrix_size, matrix_size), -1, dtype=np.int64)
+
+        # Проверка значений каждого элемента
+        for i in range(matrix_size):
+            for j in range(matrix_size):
+                for t in range(time_steps):
+                    value = data_matrix[i, j, t]
+                    if -self.config.tolerance <= value <= 1 + self.config.tolerance:
+                        continue
+                    invalid_indices[i, j] = max(invalid_indices[i, j], t)
+
+        if not check_sum:
+            return invalid_indices
+
+        # Проверка суммы по графикам
+        sum_over_graphs = data_matrix.sum(axis=(0))
+        for j in range(matrix_size):
+            for t in range(time_steps):
+                value_sum = sum_over_graphs[j, t]
+                if 1 - self.config.tolerance <= value_sum <= 1 + self.config.tolerance:
+                    continue
+                invalid_indices[:, j] = np.maximum(invalid_indices[:, j], t)
+
+        return invalid_indices
 
     def generate_m_matrix(self, xsi_matrix) -> NDArray[np.float64]:
-        matrix_size = len(xsi_matrix)
-        time_array_size = len(self.params.time_array)
-
         original_eigenvalues = self.eigenvalues
-
         try:
             self.eigenvalues = np.array([float(mp.re(x)) for x in self.eigenvalues], dtype=np.float64)
             numpy_xsi_matrix = np.array([[float(mp.re(x)) for x in row] for row in xsi_matrix.tolist()], dtype=np.float64)
@@ -272,70 +316,21 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
         finally:
             self.eigenvalues = original_eigenvalues
 
-        isd = {}
-        for i in range(matrix_size):
-            for j in range(matrix_size):
-                for t in range(time_array_size):
-                    if -1e-16 <= numpy_m_matrix[i][j][t] <= 1 + 1e-16:
-                        continue
-                    isd[i] = max(t, isd.get(i, 0))
-        
-        print(f"Неверные индексы: {isd}")
-
-        with mp.workdps(self.precision):
+        with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
-            exp_g_t = self._generate_exp_matrix()
 
-            mpmath_m_matrix = np.zeros(
-                (matrix_size, matrix_size, time_array_size), dtype=mp.mpf
-            )
-            for k in tqdm(range(matrix_size), desc="Пересчёт слоёв M"):
-                for i in range(matrix_size):
-                    for j in range(matrix_size):
-                        if isd.get(i, -1) + 1 == 0:
+        numpy_invalid_indices = self._get_invalid_indices(numpy_m_matrix)
+        mpmath_m_matrix = self._compute_m_matrix(
+            xsi_matrix, xsi_matrix_inv, self._exp_g_t, numpy_invalid_indices
+        )
+        filter = ~mpmath_m_matrix.astype(bool)
+        mpmath_m_matrix[filter] = numpy_m_matrix[filter]
 
-                            continue
-
-                        outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
-                        for t in range(isd.get(i, -1) + 1):
-                            mpmath_m_matrix[i][j][t] += mp.re(outer_ij * exp_g_t[k][t])
-
-            for i in range(matrix_size):
-                for j in range(matrix_size):
-                    for t in range(time_array_size):
-                        if mpmath_m_matrix[i][j][t] == 0:
-                            mpmath_m_matrix[i][j][t] = numpy_m_matrix[i][j][t]
-
-        jsd = {}
-        s = mpmath_m_matrix.sum(axis=(0))
-        for j, row in enumerate(s):
-            for t, dot in enumerate(row):
-                if 1 - 1e-10 <= dot <= 1 + 1e-10:
-                    continue
-                jsd[j] = max(t, isd.get(j, 0))
+        mpmath_invalid_indices = self._get_invalid_indices(mpmath_m_matrix, check_sum=True)
+        end_m_matrix = self._compute_m_matrix(
+            xsi_matrix, xsi_matrix_inv, self._exp_g_t, mpmath_invalid_indices
+        )
+        filter = ~end_m_matrix.astype(bool)
+        end_m_matrix[filter] = mpmath_m_matrix[filter]
         
-        print(f"Неверный индекс t: {jsd}")
-
-        with mp.workdps(self.precision):
-            xsi_matrix_inv = mp.inverse(xsi_matrix)
-            exp_g_t = self._generate_exp_matrix()
-
-            m_matrix = np.zeros(
-                (matrix_size, matrix_size, time_array_size), dtype=mp.mpf
-            )
-            for k in tqdm(range(matrix_size), desc="Пересчёт слоёв M №2"):
-                for i in range(matrix_size):
-                    for j in range(matrix_size):
-                        if jsd.get(j, -1) + 1 == 0:
-                            continue
-
-                        outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
-                        for t in range(jsd.get(j, -1) + 1):
-                            m_matrix[i][j][t] += mp.re(outer_ij * exp_g_t[k][t])
-            
-            for i in range(matrix_size):
-                for j in range(matrix_size):
-                    for t in range(time_array_size):
-                        if m_matrix[i][j][t] == 0:
-                            m_matrix[i][j][t] = mpmath_m_matrix[i][j][t]
-            return m_matrix
+        return end_m_matrix
