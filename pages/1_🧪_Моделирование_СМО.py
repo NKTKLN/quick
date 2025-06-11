@@ -21,6 +21,7 @@ from app.models import (
     MpmathComputationConfig,
     MultiServerParams,
     SingleServerParams,
+    MergedComputationConfig
 )
 from app.services.probability import MultiServerSystem, SingleServerSystem
 from app.utils.plot import plot_probabilities
@@ -69,7 +70,7 @@ with st.form("settiongs_form"):
     elif calculation_type == "Mpmath (точное, для больших систем)":
         config = MpmathComputationConfig(calculation_type=CalculationType.MPMATH)
     else:
-        config = ComputationConfig(calculation_type=CalculationType.NUMPY)
+        config = MergedComputationConfig(calculation_type=CalculationType.MERGED)
     submitted = st.form_submit_button("✅ Применить настройки")
 
 if submitted:

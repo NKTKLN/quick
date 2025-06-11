@@ -15,9 +15,6 @@ class CalculationType(Flag):
         - NUMPY: использование библиотеки NumPy для стандартных вычислений
         - MPMATH: использование библиотеки mpmath для высокоточных вычислений
         - MERGED: смешанный режим вычислений (NumPy + mpmath)
-
-    Пример:
-        >>> CalculationType.NUMPY | CalculationType.MPMATH
     """
 
     NUMPY = auto()
@@ -62,5 +59,4 @@ class MergedComputationConfig(MpmathComputationConfig):
                            источников. По умолчанию — 1e-16.
     """
 
-    # tolerance: float = 1e-16
-    pass
+    tolerance: float = 1e-16

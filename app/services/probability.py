@@ -37,7 +37,7 @@ from app.services.matrix_generators import (
     MultiServerMatrixBuilder,
     SingleServerMatrixBuilder,
 )
-from app.services.solver import MpmathProbabilitySolver, NumpyProbabilitySolver
+from app.services.solver import MpmathProbabilitySolver, NumpyProbabilitySolver, MergedProbabilitySolver
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
@@ -160,10 +160,10 @@ class BaseProbabilitySystem(ABC):
                 prob_solver = MpmathProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
-            # case CalculationType.MERGED:
-            #     prob_solver = ProbabilitySolver(
-            #         self.params, transition_matrix, eigenvalues, self.config
-            #     )
+            case CalculationType.MERGED:
+                prob_solver = MergedProbabilitySolver(
+                    self.params, transition_matrix, eigenvalues, self.config
+                )
             case _:
                 raise ValueError("Unsupported calculation type")
 
