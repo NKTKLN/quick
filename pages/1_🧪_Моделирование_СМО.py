@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from app.models import (
+from app.domain import (
     CalculationType,
     ComputationConfig,
     MergedComputationConfig,

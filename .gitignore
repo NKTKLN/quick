@@ -37,7 +37,7 @@ dist/
 *.log
 tmp/
 tmp.*
-messages.db*
+cache_data.duckdb
 
 # ========================
 # Jupyter Notebooks

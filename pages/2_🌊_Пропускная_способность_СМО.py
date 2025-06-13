@@ -13,7 +13,7 @@
 import numpy as np
 import streamlit as st
 
-from app.models import (
+from app.domain import (
     MultiServerThroughputParams,
     SingleServerThroughputParams,
 )
