@@ -37,7 +37,11 @@ from app.services.matrix_generators import (
     MultiServerMatrixBuilder,
     SingleServerMatrixBuilder,
 )
-from app.services.solver import MpmathProbabilitySolver, NumpyProbabilitySolver, MergedProbabilitySolver
+from app.services.solver import (
+    MergedProbabilitySolver,
+    MpmathProbabilitySolver,
+    NumpyProbabilitySolver,
+)
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)

@@ -1,16 +1,18 @@
 """Модуль для численного решения системы вероятностей СМО с нетерпеливыми заявками.
 
-Содержит реализацию решателей, основанных на NumPy и mpmath, для вычисления динамики
+Содержит реализации решателей, основанных на NumPy и mpmath, для вычисления динамики
 вероятностных состояний системы массового обслуживания (СМО) в переходном режиме.
 
 Основные компоненты:
-    - BasicProbabilitySolver: абстрактный базовый класс решателя
-    - NumpyProbabilitySolver: реализация через numpy для стандартной точности
-    - MpmathProbabilitySolver: реализация через mpmath для повышенной точности
+    - BasicProbabilitySolver: абстрактный базовый класс решателя вероятностей.
+    - NumpyProbabilitySolver: реализация с использованием numpy.
+    - MpmathProbabilitySolver: реализация с использованием mpmath.
+    - MergedProbabilitySolver: гибридная реализация.
 """
 
 import logging
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Any
 
 import mpmath as mp
@@ -30,9 +32,10 @@ logger = logging.getLogger(__name__)
 
 
 class BasicProbabilitySolver(ABC):
-    """Базовый абстрактный класс решателя вероятностей для СМО.
+    """Абстрактный базовый класс решателя вероятностей для СМО с нетерпеливыми заявками.
 
-    Предоставляет общую структуру и интерфейс для вычисления вероятностей.
+    Определяет общий интерфейс и базовые методы для вычисления вероятностных
+    характеристик переходного режима системы массового обслуживания.
     """
 
     def __init__(
@@ -54,12 +57,6 @@ class BasicProbabilitySolver(ABC):
         self.coefficients_matrix = coefficients_matrix
         self.eigenvalues = eigenvalues
         self.config = config
-
-    def copy(self):
-        cls = self.__class__
-        new_obj = cls.__new__(cls)
-        new_obj.__dict__ = self.__dict__.copy()
-        return new_obj
 
     @abstractmethod
     def generate_m_matrix(
@@ -153,9 +150,7 @@ class NumpyProbabilitySolver(BasicProbabilitySolver):
         xsi_matrix_inv = np.linalg.inv(xsi_matrix)
         exp_g_t = np.exp(np.outer(self.eigenvalues, self.params.time_array))
 
-        m_matrix = np.zeros(
-            (matrix_size, matrix_size, time_steps), dtype=np.float64
-        )
+        m_matrix = np.zeros((matrix_size, matrix_size, time_steps), dtype=np.float64)
         for k in tqdm(range(matrix_size), desc="Вычисление слоёв M"):
             outer = np.outer(xsi_matrix[:, k], xsi_matrix_inv[k, :])
             m_matrix += np.real(
@@ -211,19 +206,32 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         xsi_matrix: np.ndarray,
         xsi_matrix_inv: np.ndarray,
         exp_g_t: list[list[Any]],
-        invalid_indices: np.ndarray | None = None
+        invalid_indices: np.ndarray | None = None,
     ) -> np.ndarray:
+        """Вычисляет матрицу M(t) по слоям с использованием mpmath.
+
+        Аргументы:
+            xsi_matrix: Матрица собственных векторов.
+            xsi_matrix_inv: Обратная матрица собственных векторов.
+            exp_g_t: Матрица экспонент exp(λ_k * t).
+            invalid_indices: Индексы временных точек для корректировки вычислений.
+
+        Возвращает:
+            3D numpy-массив с типом object, содержащий вычисленные значения M(t).
+        """
         matrix_size = len(xsi_matrix)
         time_steps = len(self.params.time_array)
 
         with mp.workdps(self._precision):
-            m_matrix = np.zeros(
-                (matrix_size, matrix_size, time_steps), dtype=object
-            )
+            m_matrix = np.zeros((matrix_size, matrix_size, time_steps), dtype=object)
             for k in tqdm(range(matrix_size), desc="Пересчёт слоёв M"):
                 for i in range(matrix_size):
                     for j in range(matrix_size):
-                        time_end_step = time_steps if invalid_indices is None else invalid_indices[i, j] + 1
+                        time_end_step = (
+                            time_steps
+                            if invalid_indices is None
+                            else invalid_indices[i, j] + 1
+                        )
                         if time_end_step == 0:
                             continue
 
@@ -249,13 +257,17 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
             exp_g_t = self._generate_exp_matrix()
-        m_matrix = self._compute_m_matrix(
-            xsi_matrix, xsi_matrix_inv, exp_g_t
-        )
+        m_matrix = self._compute_m_matrix(xsi_matrix, xsi_matrix_inv, exp_g_t)
         logger.info("Генерация матрицы M завершена.")
         return m_matrix
 
+
 class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
+    """Гибридный решатель, сочетающий точность mpmath и производительность numpy.
+
+    Автоматически переключается между методами для оптимизации вычислений.
+    """
+
     def __init__(
         self,
         params: SingleServerParams,
@@ -274,7 +286,18 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    def _get_invalid_indices(self, data_matrix: NDArray[Any], check_sum: bool = True) -> NDArray[np.int64]:
+    def _get_invalid_indices(
+        self, data_matrix: NDArray[Any], check_sum: bool = True
+    ) -> NDArray[np.int64]:
+        """Определяет индексы временных точек с некорректными значениями.
+
+        Аргументы:
+            data_matrix: Трехмерный массив значений M(t).
+            check_sum: Флаг проверки суммы по графикам (по умолчанию True).
+
+        Возвращает:
+            Массив индексов последних некорректных временных точек для каждой пары.
+        """
         matrix_size = data_matrix.shape[0]
         time_steps = data_matrix.shape[2]
 
@@ -304,30 +327,57 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
         return invalid_indices
 
     def generate_m_matrix(self, xsi_matrix) -> NDArray[np.float64]:
-        solver_copy = self.copy()
-        solver_copy.eigenvalues = np.array([float(mp.re(x)) for x in self.eigenvalues], dtype=np.float64)
-        numpy_xsi_matrix = np.array([[float(mp.re(x)) for x in row] for row in xsi_matrix.tolist()], dtype=np.float64)
+        """Генерирует матрицу M(t) с улучшенной точностью, комбинируя numpy и mpmath.
+
+        Производит начальное вычисление с помощью numpy, затем корректирует
+        некорректные значения с использованием mpmath.
+
+        Аргументы:
+            xsi_matrix: Матрица собственных векторов (n x n).
+
+        Возвращает:
+            3D массив M(t) с исправленными значениями.
+        """
+        solver_copy = deepcopy(self)
+        solver_copy.eigenvalues = np.array(
+            [float(mp.re(x)) for x in self.eigenvalues], dtype=np.float64
+        )
+        numpy_xsi_matrix = np.array(
+            [[float(mp.re(x)) for x in row] for row in xsi_matrix.tolist()],
+            dtype=np.float64,
+        )
 
         numpy_m_matrix = NumpyProbabilitySolver.generate_m_matrix(
             solver_copy, numpy_xsi_matrix
         )
+        numpy_invalid_indices = self._get_invalid_indices(numpy_m_matrix)
+
+        if np.all(numpy_invalid_indices == -1):
+            logger.info(
+                "Корректных значений достаточно, использование numpy достаточно."
+            )
+            return numpy_m_matrix
 
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
             exp_g_t = self._generate_exp_matrix()
 
-        numpy_invalid_indices = self._get_invalid_indices(numpy_m_matrix)
+        # Первичная коррекция неподходящих точек
         mpmath_m_matrix = self._compute_m_matrix(
             xsi_matrix, xsi_matrix_inv, exp_g_t, numpy_invalid_indices
         )
         filter = ~mpmath_m_matrix.astype(bool)
         mpmath_m_matrix[filter] = numpy_m_matrix[filter]
 
-        mpmath_invalid_indices = self._get_invalid_indices(mpmath_m_matrix, check_sum=True)
+        # Вторичная коррекци для сумм точек и их значений
+        mpmath_invalid_indices = self._get_invalid_indices(
+            mpmath_m_matrix, check_sum=True
+        )
         end_m_matrix = self._compute_m_matrix(
             xsi_matrix, xsi_matrix_inv, exp_g_t, mpmath_invalid_indices
         )
         filter = ~end_m_matrix.astype(bool)
         end_m_matrix[filter] = mpmath_m_matrix[filter]
-        
+
+        logger.info("Коррекция матрицы M(t) с использованием mpmath завершена.")
         return end_m_matrix

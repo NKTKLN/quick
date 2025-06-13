@@ -18,10 +18,10 @@ import streamlit as st
 from app.models import (
     CalculationType,
     ComputationConfig,
+    MergedComputationConfig,
     MpmathComputationConfig,
     MultiServerParams,
     SingleServerParams,
-    MergedComputationConfig
 )
 from app.services.probability import MultiServerSystem, SingleServerSystem
 from app.utils.plot import plot_probabilities

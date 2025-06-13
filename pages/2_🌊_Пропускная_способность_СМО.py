@@ -59,7 +59,7 @@ system_type = st.selectbox("Выберите тип СМО:", ["Однолине
 with st.form("param_form"):
     st.subheader("⚙️ Параметры системы")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         lambda_rate = st.number_input(
             "Интенсивность поступления заявок (λ)",
