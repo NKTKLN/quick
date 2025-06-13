@@ -26,6 +26,7 @@ from app.domain import (
     MpmathComputationConfig,
     SingleServerParams,
 )
+from app.db import duckdb_cache
 
 # Инициализация логгирования
 logger = logging.getLogger(__name__)
@@ -128,6 +129,7 @@ class NumpyProbabilitySolver(BasicProbabilitySolver):
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
+    @duckdb_cache
     def generate_m_matrix(self, xsi_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
         """Генерирует матрицу M, объединяя временные и пространственные характеристики.
 
