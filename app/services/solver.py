@@ -55,6 +55,12 @@ class BasicProbabilitySolver(ABC):
         self.eigenvalues = eigenvalues
         self.config = config
 
+    def copy(self):
+        cls = self.__class__
+        new_obj = cls.__new__(cls)
+        new_obj.__dict__ = self.__dict__.copy()
+        return new_obj
+
     @abstractmethod
     def generate_m_matrix(
         self, xsi_matrix: NDArray[np.float64] | Any
@@ -298,16 +304,13 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
         return invalid_indices
 
     def generate_m_matrix(self, xsi_matrix) -> NDArray[np.float64]:
-        original_eigenvalues = self.eigenvalues
-        try:
-            self.eigenvalues = np.array([float(mp.re(x)) for x in self.eigenvalues], dtype=np.float64)
-            numpy_xsi_matrix = np.array([[float(mp.re(x)) for x in row] for row in xsi_matrix.tolist()], dtype=np.float64)
+        solver_copy = self.copy()
+        solver_copy.eigenvalues = np.array([float(mp.re(x)) for x in self.eigenvalues], dtype=np.float64)
+        numpy_xsi_matrix = np.array([[float(mp.re(x)) for x in row] for row in xsi_matrix.tolist()], dtype=np.float64)
 
-            numpy_m_matrix = NumpyProbabilitySolver.generate_m_matrix(
-                self, numpy_xsi_matrix
-            )
-        finally:
-            self.eigenvalues = original_eigenvalues
+        numpy_m_matrix = NumpyProbabilitySolver.generate_m_matrix(
+            solver_copy, numpy_xsi_matrix
+        )
 
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
