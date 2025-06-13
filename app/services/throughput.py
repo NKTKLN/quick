@@ -24,7 +24,7 @@ from typing import Any, List
 import numpy as np
 from numpy.typing import NDArray
 
-from app.models import (
+from app.domain import (
     MultiServerParams,
     MultiServerThroughputParams,
     SingleServerParams,

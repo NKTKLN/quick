@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import NDArray
 
-from app.models import MultiServerParams, SingleServerParams
+from app.domain import MultiServerParams, SingleServerParams
 
 # Инициализация логгирования
 logger = logging.getLogger(__name__)

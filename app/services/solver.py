@@ -20,7 +20,7 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm import tqdm
 
-from app.models import (
+from app.domain import (
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
@@ -185,7 +185,7 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         """
         self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
-
+    
     def _generate_exp_matrix(self) -> list[list[Any]]:
         """Генерирует матрицу экспонент exp(λ_k * t).
 

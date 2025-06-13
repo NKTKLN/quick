@@ -25,7 +25,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.linalg import eig
 
-from app.models import (
+from app.domain import (
     CalculationType,
     ComputationConfig,
     MergedComputationConfig,
