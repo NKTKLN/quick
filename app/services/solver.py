@@ -182,7 +182,6 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
             eigenvalues: Массив собственных значений матрицы коэффициентов размером (n,)
             config (MpmathComputationConfig): Конфигурация вычислений.
         """
-        self.__exp_g_t: list[list[Any]] = None
         self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
@@ -200,12 +199,6 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
             outer = [[eig * t for t in time_array] for eig in self.eigenvalues]
             exp_g_t = [[mp.exp(val) for val in row] for row in outer]
         return exp_g_t
-
-    @property
-    def _exp_g_t(self):
-        if self.__exp_g_t is None:
-            self.__exp_g_t = self._generate_exp_matrix()
-        return self.__exp_g_t
 
     def _compute_m_matrix(
         self,
@@ -250,11 +243,11 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
             exp_g_t = self._generate_exp_matrix()
-            m_matrix = self._compute_m_matrix(
-                xsi_matrix, xsi_matrix_inv, exp_g_t
-            )
-            logger.info("Генерация матрицы M завершена.")
-            return m_matrix
+        m_matrix = self._compute_m_matrix(
+            xsi_matrix, xsi_matrix_inv, exp_g_t
+        )
+        logger.info("Генерация матрицы M завершена.")
+        return m_matrix
 
 class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
     def __init__(
@@ -318,17 +311,18 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
 
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
+            exp_g_t = self._generate_exp_matrix()
 
         numpy_invalid_indices = self._get_invalid_indices(numpy_m_matrix)
         mpmath_m_matrix = self._compute_m_matrix(
-            xsi_matrix, xsi_matrix_inv, self._exp_g_t, numpy_invalid_indices
+            xsi_matrix, xsi_matrix_inv, exp_g_t, numpy_invalid_indices
         )
         filter = ~mpmath_m_matrix.astype(bool)
         mpmath_m_matrix[filter] = numpy_m_matrix[filter]
 
         mpmath_invalid_indices = self._get_invalid_indices(mpmath_m_matrix, check_sum=True)
         end_m_matrix = self._compute_m_matrix(
-            xsi_matrix, xsi_matrix_inv, self._exp_g_t, mpmath_invalid_indices
+            xsi_matrix, xsi_matrix_inv, exp_g_t, mpmath_invalid_indices
         )
         filter = ~end_m_matrix.astype(bool)
         end_m_matrix[filter] = mpmath_m_matrix[filter]
