@@ -1,17 +1,22 @@
 import os
 import threading
 from typing import Optional
-from pydantic import ConfigDict, Field
-from pydantic_settings import BaseSettings
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AppConfig(BaseSettings):
-    duckdb_path: str = Field("cache_data.duckdb", env="DUCKDB_PATH")
-    enable_cache: bool = Field(True, env="ENABLE_CACHE")
-    log_level: str = Field("info", env="LOG_LEVEL")
-    port: int = Field(8080, env="PORT")
+    duckdb_path: str = Field(default="cache_data.duckdb")
+    enable_cache: bool = Field(default=True)
+    log_level: str = Field(default="info")
+    port: int = Field(default=8080)
 
-    model_config = ConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="",
+    )
+
 
 class ConfigLoader:
     _config: Optional[AppConfig] = None
@@ -24,7 +29,7 @@ class ConfigLoader:
         enable_cache: Optional[bool] = None,
         log_level: Optional[str] = None,
         port: Optional[int] = None,
-    ):
+    ) -> None:
         if duckdb_path is not None:
             os.environ["DUCKDB_PATH"] = duckdb_path
         if enable_cache is not None:

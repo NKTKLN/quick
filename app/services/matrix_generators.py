@@ -164,6 +164,9 @@ class MultiServerMatrixBuilder(MatrixBuilder):
                                  в системе, m - количество обслуживающих приборов.
                                  Матрица имеет трехдиагональную структуру.
         """
+        if not isinstance(self.params, MultiServerParams):
+            raise  # TODO
+
         n, m = self.params.max_customers, self.params.processor_count
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate
 

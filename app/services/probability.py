@@ -20,7 +20,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-import mpmath as mp
+import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
 from numpy.typing import NDArray
 from scipy.linalg import eig
@@ -130,7 +130,9 @@ class BaseProbabilitySystem(ABC):
         if self.config.calculation_type in [
             CalculationType.MPMATH,
             CalculationType.MERGED,
-        ]:
+        ] and isinstance(
+            self.config, MpmathComputationConfig | MergedComputationConfig
+        ):
             with mp.workdps(self.config.precision):
                 mp_matrix = mp.matrix(transition_matrix.tolist())
                 eigenvalues, xsi_matrix = mp.eig(mp_matrix)
@@ -142,8 +144,8 @@ class BaseProbabilitySystem(ABC):
     def _solve_probability_system(
         self,
         transition_matrix: NDArray[np.float64],
-        eigenvalues: NDArray[np.float64],
-        xsi_matrix: NDArray[np.float64],
+        eigenvalues: NDArray[np.float64] | Any,
+        xsi_matrix: NDArray[np.float64] | Any,
     ) -> NDArray[np.float64]:
         """Решает систему уравнений для нахождения стационарных вероятностей.
 
@@ -155,16 +157,25 @@ class BaseProbabilitySystem(ABC):
         Returns:
             NDArray[np.float64]: Матрица стационарных вероятностей состояний системы.
         """
+        prob_solver: (
+            NumpyProbabilitySolver | MpmathProbabilitySolver | MergedProbabilitySolver
+        )
         match self.config.calculation_type:
-            case CalculationType.NUMPY:
+            case CalculationType.NUMPY if isinstance(
+                self.config, ComputationConfig
+            ):
                 prob_solver = NumpyProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
-            case CalculationType.MPMATH:
+            case CalculationType.MPMATH if isinstance(
+                self.config, MpmathComputationConfig
+            ):
                 prob_solver = MpmathProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
-            case CalculationType.MERGED:
+            case CalculationType.MERGED if isinstance(
+                self.config, MergedComputationConfig
+            ):
                 prob_solver = MergedProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
