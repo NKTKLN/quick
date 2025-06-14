@@ -1,50 +1,81 @@
+"""Модуль конфигурации приложения.
+
+Определяет классы и методы для загрузки, инициализации и кеширования
+конфигурационных параметров приложения с использованием библиотеки pydantic.
+
+Основные компоненты:
+    - AppConfig: Класс конфигурации, загружаемый из переменных окружения или .env файла.
+    - ConfigLoader: Потокобезопасный загрузчик конфигурации, позволяющий
+      инициализировать параметры из объекта и кешировать результаты.
+"""
+
 import os
 import threading
-from typing import Optional
+from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.domain import ConfigInitParams
+
 
 class AppConfig(BaseSettings):
+    """Конфигурация приложения, загружаемая из переменных окружения или файла .env.
+
+    Атрибуты:
+        disable_cache (bool): Отключение кэширования (по умолчанию False).
+        duckdb_path (str): Путь к базе данных DuckDB (по умолчанию "cache_data.duckdb").
+        disable_logging (bool): Отключение логирования (по умолчанию False).
+        log_level (str): Уровень логирования (по умолчанию "info").
+        log_path (str): Путь для записи логов (по умолчанию пустая строка).
+        port (int): Порт, на котором запускается приложение (по умолчанию 8080).
+        log_format (str): Формат лог-сообщений.
+    """
+
+    disable_cache: bool = Field(default=False)
     duckdb_path: str = Field(default="cache_data.duckdb")
-    enable_cache: bool = Field(default=True)
+    disable_logging: bool = Field(default=False)
     log_level: str = Field(default="info")
+    log_path: str = Field(default="")
     port: int = Field(default=8080)
+
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_prefix="",
+        env_prefix="",  # Без префикса для переменных окружения
     )
 
 
 class ConfigLoader:
-    _config: Optional[AppConfig] = None
+    """Потокобезопасный загрузчик и кешировщик конфигурации приложения."""
+
     _lock = threading.Lock()
 
     @classmethod
-    def init(
-        cls,
-        duckdb_path: Optional[str] = None,
-        enable_cache: Optional[bool] = None,
-        log_level: Optional[str] = None,
-        port: Optional[int] = None,
-    ) -> None:
-        if duckdb_path is not None:
-            os.environ["DUCKDB_PATH"] = duckdb_path
-        if enable_cache is not None:
-            os.environ["ENABLE_CACHE"] = str(enable_cache)
-        if log_level is not None:
-            os.environ["LOG_LEVEL"] = log_level
-        if port is not None:
-            os.environ["PORT"] = str(port)
+    def init(cls, params: ConfigInitParams) -> None:
+        """Инициализирует конфигурацию приложения.
 
+        Устанавливает переменные окружения из переданных параметров,
+        очищает кеш get_config для повторной загрузки с новыми значениями.
+
+        Аргументы:
+            params (ConfigInitParams): Объект с параметрами конфигурации.
+        """
         with cls._lock:
-            cls._config = None
+            for key, value in params.dict(exclude_none=True).items():
+                env_key = key.upper()
+                os.environ[env_key] = str(value)
+            cls.get_config.cache_clear()
 
     @classmethod
+    @lru_cache(maxsize=1)
     def get_config(cls) -> AppConfig:
-        with cls._lock:
-            if cls._config is None:
-                cls._config = AppConfig()
-            return cls._config
+        """Возвращает инстанцию AppConfig с текущими настройками.
+
+        Использует кеширование для избежания повторных загрузок конфигурации.
+
+        Возвращает:
+            AppConfig: Объект с конфигурацией приложения.
+        """
+        return AppConfig()

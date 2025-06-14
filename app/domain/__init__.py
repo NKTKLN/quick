@@ -16,6 +16,7 @@
 """
 
 from .base_params import BasicMultiServerParams, BasicSingleServerParams
+from .config import ConfigInitParams
 from .iterators import ParamsNuIterator
 from .probability import MultiServerParams, SingleServerParams
 from .settings import (
@@ -38,4 +39,5 @@ __all__ = [
     "ComputationConfig",
     "MpmathComputationConfig",
     "MergedComputationConfig",
+    "ConfigInitParams",
 ]

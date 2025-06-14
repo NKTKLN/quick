@@ -161,9 +161,7 @@ class BaseProbabilitySystem(ABC):
             NumpyProbabilitySolver | MpmathProbabilitySolver | MergedProbabilitySolver
         )
         match self.config.calculation_type:
-            case CalculationType.NUMPY if isinstance(
-                self.config, ComputationConfig
-            ):
+            case CalculationType.NUMPY if isinstance(self.config, ComputationConfig):
                 prob_solver = NumpyProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
