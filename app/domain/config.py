@@ -5,6 +5,7 @@
 """
 
 from dataclasses import dataclass
+from enum import Flag, auto
 from typing import Optional
 
 
@@ -27,6 +28,11 @@ class ConfigInitParams:
     disable_cache: Optional[bool] = None
     duckdb_path: Optional[str] = None
     disable_logging: Optional[bool] = None
-    log_level: Optional[str] = None
+    log_level: Optional[int] = None
     log_path: Optional[str] = None
     port: Optional[int] = None
+
+class CachingType(Flag):
+    SELF = auto()
+    ARGS = auto()
+    MERGED = auto()

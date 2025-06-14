@@ -1,11 +1,11 @@
 import logging
 import os
-import pickle
 import threading
 from typing import Any, Optional
 
 import duckdb
 
+from app.domain.config import CachingType
 from app.settings import ConfigLoader
 
 # Setting up logging
@@ -37,35 +37,53 @@ class DuckDBClient:
             return cls._instance
 
     def get_existing_call(
-        self, func_name: Any, args_blob: Any, kwargs_blob: Any
+        self, func_name: Any, self_blob: Any, args_blob: Any, kwargs_blob: Any, code_word: Any, caching_type: CachingType
     ) -> Any:
-        row = self.connection.execute(
-            """
-        select result from function_calls where function_name = ? and args = ? and kwargs = ?
-        """,
-            (func_name, args_blob, kwargs_blob),
-        ).fetchone()
+        match caching_type:
+            case CachingType.SELF:
+                row = self.connection.execute(
+                    """
+                select result from function_calls where function_name = ? and self_data = ? and args = ? and kwargs = ?
+                """,
+                    (func_name, self_blob, code_word, code_word),
+                ).fetchone()
+            case CachingType.ARGS:
+                row = self.connection.execute(
+                    """
+                select result from function_calls where function_name = ? and args = ? and kwargs = ?
+                """,
+                    (func_name, args_blob, kwargs_blob),
+                ).fetchone()
+            case CachingType.MERGED:
+                row = self.connection.execute(
+                    """
+                select result from function_calls where function_name = ? and self_data = ? and args = ? and kwargs = ?
+                """,
+                    (func_name, self_blob, args_blob, kwargs_blob),
+                ).fetchone()
+            case _:
+                raise ValueError
 
         if row is None:
             return None
 
-        result_blob = row[0]
-        return pickle.loads(result_blob)
+        return row[0]
 
     def insert_call(
         self,
         timestamp: Any,
         func_name: Any,
+        self_blob: Any,
         args_blob: Any,
         kwargs_blob: Any,
         result_blob: Any,
     ) -> None:
         self.connection.execute(
             """
-        insert into function_calls (timestamp, function_name, args, kwargs, result)
-        values (?, ?, ?, ?, ?)
+        insert into function_calls (timestamp, function_name, self_data, args, kwargs, result)
+        values (?, ?, ?, ?, ?, ?)
         """,
-            (timestamp, func_name, args_blob, kwargs_blob, result_blob),
+            (timestamp, func_name, self_blob, args_blob, kwargs_blob, result_blob),
         )
 
     def query(self, sql: str) -> Any:

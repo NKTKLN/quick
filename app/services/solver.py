@@ -26,6 +26,7 @@ from app.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
     SingleServerParams,
+    CachingType
 )
 
 # Инициализация логгирования
@@ -75,7 +76,8 @@ class BasicProbabilitySolver(ABC):
             NDArray: Трехмерная матрица M(t) размером (n x n x t)
         """
         pass
-
+    
+    @duckdb_cache(CachingType.MERGED, 'params.initial_probabilities')
     def generate_p_matrix(
         self, m_matrix: NDArray[np.float64 | Any]
     ) -> NDArray[np.float64]:
@@ -129,7 +131,7 @@ class NumpyProbabilitySolver(BasicProbabilitySolver):
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    @duckdb_cache
+    @duckdb_cache(CachingType.MERGED, 'params.time_array', 'eigenvalues')
     def generate_m_matrix(self, xsi_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
         """Генерирует матрицу M, объединяя временные и пространственные характеристики.
 
@@ -188,7 +190,8 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    def _generate_exp_matrix(self) -> list[list[Any]]:
+    @duckdb_cache(CachingType.SELF, '_precision', 'params.time_array', 'eigenvalues')
+    def _generate_exp_matrix(self) -> NDArray[Any]:
         """Генерирует матрицу экспонент exp(λ_k * t).
 
         Внутренний метод для построения матрицы экспоненциального поведения
@@ -200,14 +203,15 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         with mp.workdps(self._precision):
             time_array = mp.matrix(self.params.time_array)
             outer = [[eig * t for t in time_array] for eig in self.eigenvalues]
-            exp_g_t = [[mp.exp(val) for val in row] for row in outer]
+            exp_g_t = np.array([[mp.exp(val) for val in row] for row in outer], dtype=mp.mpf)
         return exp_g_t
 
+    @duckdb_cache(CachingType.MERGED, 'params.time_array', '_precision')
     def _compute_m_matrix(
         self,
         xsi_matrix: Any,
         xsi_matrix_inv: Any,
-        exp_g_t: list[list[Any]],
+        exp_g_t: NDArray[Any],
         invalid_indices: Optional[NDArray[np.int64]] = None,
     ) -> NDArray[Any]:
         """Вычисляет матрицу M(t) по слоям с использованием mpmath.
@@ -239,7 +243,7 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
 
                         outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
                         for t in range(time_end_step):
-                            m_matrix[i, j, t] += mp.re(outer_ij * exp_g_t[k][t])
+                            m_matrix[i, j, t] += mp.re(outer_ij * exp_g_t[k, t])
 
             return m_matrix
 
@@ -288,6 +292,7 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
+    @duckdb_cache(CachingType.MERGED, 'config.tolerance')
     def _get_invalid_indices(
         self, data_matrix: NDArray[np.float64 | Any], check_sum: bool = True
     ) -> NDArray[np.int64]:

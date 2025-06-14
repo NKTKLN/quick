@@ -9,6 +9,7 @@
       инициализировать параметры из объекта и кешировать результаты.
 """
 
+import logging
 import os
 import threading
 from functools import lru_cache
@@ -35,7 +36,7 @@ class AppConfig(BaseSettings):
     disable_cache: bool = Field(default=False)
     duckdb_path: str = Field(default="cache_data.duckdb")
     disable_logging: bool = Field(default=False)
-    log_level: str = Field(default="info")
+    log_level: int = Field(default=logging.INFO)
     log_path: str = Field(default="")
     port: int = Field(default=8080)
 
