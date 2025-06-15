@@ -1,4 +1,4 @@
-"""Утилиты приложения."""
+"""Пакет с утилитами приложения."""
 
 from .logger import setup_logger
 from .serialization import PickleSerializer

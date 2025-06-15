@@ -38,6 +38,7 @@ dist/
 tmp/
 tmp.*
 cache_data.duckdb
+cache_data.duckdb.*
 
 # ========================
 # Jupyter Notebooks

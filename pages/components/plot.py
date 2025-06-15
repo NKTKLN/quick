@@ -130,7 +130,8 @@ def plot_throughput(
 
     fig.update_layout(
         title=dict(
-            text="System Throughput vs Impatience Rate", font=dict(size=20, color="black")
+            text="System Throughput vs Impatience Rate",
+            font=dict(size=20, color="black"),
         ),
         xaxis=dict(
             title="Time (t)",

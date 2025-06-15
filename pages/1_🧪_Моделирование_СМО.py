@@ -62,6 +62,7 @@ def get_user_inputs() -> tuple[
                размеры, временной массив, переменные состояния и начальные вероятности.
     """
     config = calculation_config()
+    st.markdown("---")
 
     st.subheader("🔬 Тип системы")
     system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
