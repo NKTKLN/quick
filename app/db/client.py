@@ -82,7 +82,7 @@ class DuckDBClient:
 
     @classmethod
     def reset_instance(cls) -> None:
-        """Сбрасывает singleton-экземпляр и закрывает соединение, если оно существует."""
+        """Сбрасывает singleton-экземпляр и закрывает соединение, если существует."""
         with cls._lock:
             if cls._instance is not None:
                 logger.debug("Сброс singleton-экземпляра DuckDBClient.")
@@ -101,7 +101,9 @@ class DuckDBClient:
         """
         logger.debug(f"Выполняется поиск кэша для функции '{func_name}'.")
         result = self.connection.execute(
-            "select result from function_calls where function_name = ? and key_data = ?",
+            """select result from function_calls \
+            where function_name = ? and key_data = ?
+            """,
             (func_name, key_blob),
         ).fetchone()
         return result[0] if result else None
@@ -119,7 +121,9 @@ class DuckDBClient:
         """
         logger.debug(f"Сохраняется результат для функции '{func_name}' на {timestamp}.")
         self.connection.execute(
-            "insert into function_calls (timestamp, function_name, key_data, result) values (?, ?, ?, ?)",
+            """insert into function_calls (timestamp, function_name, key_data, result) \
+            values (?, ?, ?, ?)
+            """,
             (timestamp, func_name, key_blob, result_blob),
         )
 
@@ -132,5 +136,5 @@ class DuckDBClient:
         """Автоматически закрывает соединение при уничтожении объекта."""
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Ошибка закрытия соединения: {e}")

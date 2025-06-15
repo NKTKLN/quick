@@ -1,19 +1,16 @@
-"""Моделирование СМО для вычисления пропускной способности.
+"""Страница для расчёта пропускной способности СМО с нетерпеливыми заявками.
 
-Этот модуль реализует интерактивное веб-приложение для численного анализа
-пропускной способности СМО типа M/M/m/n с учетом нетерпеливых заявок.
-
-Основные функциональные возможности:
-- Расчет пропускной способности одноканальных и многоканальных СМО
-- Анализ влияния параметров системы на пропускную способность
-- Визуализация динамики изменения пропускной способности
-- Валидация входных параметров системы
+Позволяет задавать параметры системы и вычислительную конфигурацию,
+производить расчет пропускной способности и визуализировать результаты.
 """
 
 import numpy as np
 import streamlit as st
 
 from app.domain import (
+    ComputationConfig,
+    MergedComputationConfig,
+    MpmathComputationConfig,
     MultiServerThroughputParams,
     SingleServerThroughputParams,
 )
@@ -21,13 +18,21 @@ from app.services.throughput import (
     MultiServerThroughputSystem,
     SingleServerThroughputSystem,
 )
-from app.utils.plot import plot_throughput
+from pages.components import (
+    calculation_config,
+    plot_throughput,
+    render_initial_probabilities,
+    render_state_variables,
+    system_capacity_inputs,
+    throughput_intensity_parameters,
+    time_settings,
+)
 
-st.title("🌊 Пропускная способность СМО с нетерпеливыми заявками")
 
-st.markdown(
-    """
-## 🔍 Описание
+def render_description() -> None:
+    """Отображает описание модели и основных параметров системы."""
+    st.markdown(
+        """## 🔍 Описание
 На этой странице реализован рассчет пропускной способности
 системы массового обслуживания типа **M/M/m/n** с учетом нетерпеливых заявок.
 
@@ -37,165 +42,182 @@ st.markdown(
 - **ν (ню)** — интенсивность ухода нетерпеливых заявок (пакетов/с)
 - **n** — размер буфера (макс. кол-во заявок в системе, включая обслуживаемую)
 - **m** (опционально) — количество обслуживающих процессоров
-"""
-)
-
-with st.expander("ℹ️ Как использовать это приложение"):
-    st.write(
-        """
-    1. Задайте параметры системы в форме ниже
-    2. Укажите временной диапазон для моделирования
-    3. Задайте начальные вероятности состояний
-    4. Нажмите "Применить параметры"
-    5. Используйте график пропускной способности, который будет отображен ниже
     """
     )
 
-st.markdown("---")
-st.subheader("🔬 Тип системы")
 
-system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
+def get_user_inputs() -> tuple[
+    ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    str,
+    float,
+    float,
+    np.ndarray[np.float64],
+    int,
+    int | None,
+    np.ndarray[np.float64],
+    np.ndarray[np.float64],
+    np.ndarray[np.float64],
+]:
+    """Собирает все входные параметры от пользователя через UI.
 
-with st.form("param_form"):
-    st.subheader("⚙️ Параметры системы")
+    Returns:
+        tuple: Параметры конфигурации вычислений, тип системы, интенсивности,
+               размеры, временной массив, переменные состояния и начальные вероятности.
+    """
+    config = calculation_config()
 
-    col1, col2 = st.columns(2)
-    with col1:
-        lambda_rate = st.number_input(
-            "Интенсивность поступления заявок (λ)",
-            min_value=0.0,
-            value=8333.0,
-            format="%.10f",
-        )
-    with col2:
-        mu_rate = st.number_input(
-            "Интенсивность обслуживания заявок (μ)",
-            min_value=0.0,
-            value=10833.0,
-            format="%.10f",
-        )
+    st.subheader("🔬 Тип системы")
+    system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
+    lambda_rate, mu_rate, nu_rate = throughput_intensity_parameters()
+    max_customers, processor_count = system_capacity_inputs(system_type)
+    time_array = time_settings()
 
-    nu_rate_str = st.text_input(
-        "Интенсивность ухода нетерпеливых заявок (ν) — *введите через запятую*",
-        "1000, 10833, 10e5",
-    )
-    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",")])
-
-    st.markdown("---")
-
-    max_customers = st.number_input(
-        "Максимальное количество заявок в системе (n)",
-        min_value=1,
-        max_value=100,
-        value=4,
-    )
-
+    count = max_customers
     if system_type == "Многолинейная":
-        processor_count = st.number_input(
-            "Количество обслуживающих процессоров (m)",
-            min_value=1,
-            max_value=100,
-            value=2,
-        )
+        count = max_customers + processor_count
 
-    st.subheader("⏳ Временные параметры")
-    col_t1, col_t2, col_t3 = st.columns(3)
-    with col_t1:
-        t_start = st.number_input(
-            "Начальное время", min_value=0.0, value=0.0, format="%.10f"
-        )
-    with col_t2:
-        t_end = st.number_input(
-            "Конечное время", min_value=0.0, value=0.001, format="%.10f"
-        )
-    with col_t3:
-        t_steps = st.number_input(
-            "Количество шагов по времени", min_value=10, value=1000
-        )
-    time_array = np.linspace(t_start, t_end, int(t_steps), dtype=np.float64)
+    state_variables = render_state_variables(count)
+    initial_probabilities = render_initial_probabilities(count)
 
-    st.subheader("📈 Начальные условия")
-    state_variables_str = st.text_input(
-        "Переменные состояния — *введите через запятую*", "1, 1, 1, 1"
-    )
-    state_variables = np.array(
-        [float(x.strip()) for x in state_variables_str.split(",")]
+    return (
+        config,
+        system_type,
+        lambda_rate,
+        mu_rate,
+        nu_rate,
+        max_customers,
+        processor_count,
+        time_array,
+        state_variables,
+        initial_probabilities,
     )
 
-    initial_probabilities_str = st.text_input(
-        "Начальные вероятности — *введите через запятую*", "1, 0, 0, 0"
-    )
-    initial_probabilities = np.array(
-        [float(x.strip()) for x in initial_probabilities_str.split(",")]
-    )
 
-    submitted = st.form_submit_button("🚀 Применить параметры")
+def validate_inputs(
+    initial_probabilities: np.ndarray[np.float64],
+    state_variables: np.ndarray[np.float64],
+    lambda_rate: float,
+    mu_rate: float,
+    nu_rate: np.ndarray[np.float64],
+    time_array: np.ndarray[np.float64],
+) -> bool:
+    """Проверяет корректность введенных пользователем данных.
 
-if submitted:
-    # Валидация входных данных
+    Args:
+        initial_probabilities (np.ndarray[np.float64]): Массив начальных вероятностей.
+        state_variables (np.ndarray[np.float64]): Массив переменных состояния.
+        lambda_rate (float): Интенсивность поступления заявок λ.
+        mu_rate (float): Интенсивность обслуживания μ.
+        nu_rate (np.ndarray[np.float64]): Интенсивность ухода нетерпеливых заявок ν.
+        time_array (np.ndarray[np.float64]): Массив времени для моделирования.
+
+    Returns:
+        bool: True, если все проверки пройдены, иначе False.
+    """
     if not np.isclose(np.sum(initial_probabilities), 1.0):
         st.error("Сумма начальных вероятностей должна быть равна 1.")
-        st.stop()
-
-    if len(state_variables) != len(initial_probabilities):
-        st.error(
-            "Количество переменных состояния должно совпадать с количеством начальных\
-                вероятностей."
-        )
-        st.stop()
+        return False
 
     if len(nu_rate) == 0:
         st.error("Количество интенсивности ухода нетерпеливых заявок равно 0.")
-        st.stop()
+        return False
+
+    if len(state_variables) != len(initial_probabilities):
+        st.error(
+            "Количество переменных состояния должно совпадать с количеством \
+                начальных вероятностей."
+        )
+        return False
 
     if np.any(initial_probabilities < 0) or np.any(initial_probabilities > 1):
         st.error("Все вероятности должны быть в диапазоне от 0 до 1.")
-        st.stop()
+        return False
 
     if np.any(state_variables < 0):
         st.error("Переменные состояния не могут быть отрицательными.")
-        st.stop()
+        return False
 
-    if t_end <= t_start:
-        st.error("Конечное время должно быть больше начального.")
-        st.stop()
+    if time_array is None or len(time_array) == 0:
+        st.error("Временной диапазон некорректен или пуст.")
+        return False
 
-    if lambda_rate <= 0 or mu_rate <= 0 or np.any(nu_rate <= 0):
-        st.error("Все интенсивности (λ, μ, ν) должны быть положительными.")
-        st.stop()
+    if lambda_rate <= 0 or mu_rate <= 0:
+        st.error("Все интенсивности (λ, μ) должны быть положительными.")
+        return False
 
-    # Инициализация соответствующей системы
-    impatient_queue_system: SingleServerThroughputSystem | MultiServerThroughputSystem
-    if system_type == "Многолинейная":
-        params_for_multi = MultiServerThroughputParams(
-            lambda_rate=lambda_rate,
-            mu_rate=mu_rate,
-            nu_rate=nu_rate,
-            max_customers=max_customers,
-            processor_count=processor_count,
-            time_array=time_array,
-            state_variables=state_variables,
-            initial_probabilities=initial_probabilities,
-        )
-        impatient_queue_system = MultiServerThroughputSystem(params_for_multi)
-    else:
-        params = SingleServerThroughputParams(
-            lambda_rate=lambda_rate,
-            mu_rate=mu_rate,
-            nu_rate=nu_rate,
-            max_customers=max_customers,
-            time_array=time_array,
-            state_variables=state_variables,
-            initial_probabilities=initial_probabilities,
-        )
-        impatient_queue_system = SingleServerThroughputSystem(params)
+    return True
 
-    st.success("✅ Параметры успешно заданы!")
 
-    # Расчет и визуализация результатов
-    with st.spinner("⏳ Идет расчет пропускной способности..."):
-        probabilities = impatient_queue_system.calculate()
+def main() -> None:
+    """Основная функция рендеринга страницы."""
+    st.title("🌊 Пропускная способность СМО с нетерпеливыми заявками")
+    render_description()
+    st.markdown("---")
+    (
+        config,
+        system_type,
+        lambda_rate,
+        mu_rate,
+        nu_rate,
+        max_customers,
+        processor_count,
+        time_array,
+        state_variables,
+        initial_probabilities,
+    ) = get_user_inputs()
+    
+    if st.button("🚀 Применить параметры"):
+        if not validate_inputs(
+            initial_probabilities,
+            state_variables,
+            lambda_rate,
+            mu_rate,
+            nu_rate,
+            time_array,
+        ):
+            st.stop()
+        system: SingleServerThroughputSystem | MultiServerThroughputSystem
+        if system_type == "Многолинейная":
+            system = MultiServerThroughputSystem(
+                MultiServerThroughputParams(
+                    lambda_rate=lambda_rate,
+                    mu_rate=mu_rate,
+                    nu_rate=nu_rate,
+                    max_customers=max_customers,
+                    processor_count=processor_count,
+                    time_array=time_array,
+                    state_variables=state_variables,
+                    initial_probabilities=initial_probabilities,
+                ),
+                config,
+            )
+        else:
+            system = SingleServerThroughputSystem(
+                SingleServerThroughputParams(
+                    lambda_rate=lambda_rate,
+                    mu_rate=mu_rate,
+                    nu_rate=nu_rate,
+                    max_customers=max_customers,
+                    time_array=time_array,
+                    state_variables=state_variables,
+                    initial_probabilities=initial_probabilities,
+                ),
+                config,
+            )
 
+        st.success("✅ Параметры успешно заданы!")
+
+        try:
+            with st.spinner("⏳ Идет расчет пропускной способности..."):
+                probabilities = system.calculate()
+        except Exception as e:
+            st.error(f"Ошибка при расчёте: {e}")
+            st.stop()
+
+        st.markdown("---")
         st.subheader("📊 График пропускной способности системы")
         fig = plot_throughput(probabilities, time_array)
-        st.pyplot(fig)
+        st.plotly_chart(fig, use_container_width=True)
+
+
+main()

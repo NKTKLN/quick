@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, TypeVar, cast
 
 from app.db.client import DuckDBClient
+from app.settings import ConfigLoader
 from app.utils import PickleSerializer
 
 # Настройка логгера
@@ -54,6 +55,11 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                     return obj
                 except AttributeError as e:
                     raise AttributeError(f"Не удалось получить '{path}': {e}") from e
+
+            config = ConfigLoader.get_config()
+            if config.disable_cache:
+                result = method(self, *args, **kwargs)
+                return result
 
             serializer = PickleSerializer()
             db_client = DuckDBClient.get_instance()

@@ -25,6 +25,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from app.domain import (
+    ComputationConfig,
+    MergedComputationConfig,
+    MpmathComputationConfig,
     MultiServerParams,
     MultiServerThroughputParams,
     SingleServerParams,
@@ -53,7 +56,11 @@ class BaseThroughputSystem(ABC):
         _calculate_probabilities(): Абстрактный метод расчета вероятностей
     """
 
-    def __init__(self, params: Any) -> None:
+    def __init__(
+        self,
+        params: Any,
+        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    ) -> None:
         """Инициализирует анализатор пропускной способности с заданными параметрами.
 
         Args:
@@ -61,11 +68,10 @@ class BaseThroughputSystem(ABC):
                    - Базовые параметры СМО (λ, μ, количество каналов и т.д.)
                    - Диапазон значений интенсивности ухода заявок (ν)
                    - Другие специфичные параметры для серийного расчета
-
-        Note:
-            Конкретный тип параметров может уточняться в классах-наследниках.
+            config: Конфигурация вычислений
         """
         self.params = params
+        self.config = config
 
     def calculate(self) -> List[NDArray[np.float64]]:
         """Выполняет расчет пропускной способности для различных значений ν.
@@ -122,15 +128,20 @@ class SingleServerThroughputSystem(BaseThroughputSystem):
     интенсивности ухода заявок (ν) с использованием матричного метода.
     """
 
-    def __init__(self, params: SingleServerThroughputParams) -> None:
+    def __init__(
+        self,
+        params: SingleServerThroughputParams,
+        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    ) -> None:
         """Инициализирует систему с заданными параметрами.
 
         Args:
             params: Объект SingleServerThroughputParams, содержащий:
                     - базовые параметры СМО
                     - диапазон значений интенсивности ухода заявок (ν)
+            config: Конфигурация вычислений
         """
-        super().__init__(params)
+        super().__init__(params, config)
 
     def _calculate_probabilities(
         self, params: SingleServerParams
@@ -153,7 +164,7 @@ class SingleServerThroughputSystem(BaseThroughputSystem):
                                  где последний элемент соответствует вероятности
                                  потери заявки.
         """
-        queue_system = SingleServerSystem(params)
+        queue_system = SingleServerSystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities
 
@@ -165,15 +176,20 @@ class MultiServerThroughputSystem(BaseThroughputSystem):
     интенсивности ухода заявок (ν) с использованием матричного метода.
     """
 
-    def __init__(self, params: MultiServerThroughputParams) -> None:
+    def __init__(
+        self,
+        params: MultiServerThroughputParams,
+        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    ) -> None:
         """Инициализирует систему с заданными параметрами.
 
         Args:
             params: Объект MultiServerThroughputParams, содержащий:
                     - базовые параметры СМО
                     - диапазон значений интенсивности ухода заявок (ν)
+            config: Конфигурация вычислений
         """
-        super().__init__(params)
+        super().__init__(params, config)
 
     def _calculate_probabilities(
         self, params: MultiServerParams
@@ -197,6 +213,6 @@ class MultiServerThroughputSystem(BaseThroughputSystem):
                                  многолинейной СМО, где последний элемент соответствует
                                  вероятности потери заявки.
         """
-        queue_system = MultiServerSystem(params)
+        queue_system = MultiServerSystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities
