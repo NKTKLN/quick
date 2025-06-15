@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, TypeVar, cast
 
 from app.db.client import DuckDBClient
 from app.settings import ConfigLoader
-from app.utils import PickleSerializer
+from app.common import PickleSerializer
 
 # Настройка логгера
 logger = logging.getLogger(__name__)

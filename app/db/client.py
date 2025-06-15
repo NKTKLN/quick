@@ -49,13 +49,13 @@ class DuckDBClient:
         """
         current_file_path = os.path.abspath(__file__)
         current_dir = os.path.dirname(current_file_path)
-        schema_path = os.path.join(current_dir, "schema.sql")
+        schema_path = os.path.abspath(os.path.join(current_dir, "..", "sql", "schema.sql"))
 
         if not os.path.exists(schema_path):
             raise FileNotFoundError(f"Файл схемы не найден: {schema_path}")
 
         try:
-            with open(f"{current_dir}/schema.sql", "r") as f:
+            with open(schema_path, "r") as f:
                 schema_sql = f.read()
                 self.connection.execute(schema_sql)
                 logger.info("Схема базы данных успешно инициализирована.")

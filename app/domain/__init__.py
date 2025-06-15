@@ -16,7 +16,7 @@
 """
 
 from .base_params import BasicMultiServerParams, BasicSingleServerParams
-from .config import ConfigInitParams
+from .config_params import ConfigInitParams
 from .iterators import ParamsNuIterator
 from .probability import MultiServerParams, SingleServerParams
 from .settings import (
