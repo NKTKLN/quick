@@ -26,7 +26,6 @@ from app.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
     SingleServerParams,
-    CachingType
 )
 
 # Инициализация логгирования
@@ -76,8 +75,8 @@ class BasicProbabilitySolver(ABC):
             NDArray: Трехмерная матрица M(t) размером (n x n x t)
         """
         pass
-    
-    @duckdb_cache(CachingType.MERGED, 'params.initial_probabilities')
+
+    @duckdb_cache("params.initial_probabilities")
     def generate_p_matrix(
         self, m_matrix: NDArray[np.float64 | Any]
     ) -> NDArray[np.float64]:
@@ -131,7 +130,7 @@ class NumpyProbabilitySolver(BasicProbabilitySolver):
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    @duckdb_cache(CachingType.MERGED, 'params.time_array', 'eigenvalues')
+    @duckdb_cache("params.time_array", "eigenvalues")
     def generate_m_matrix(self, xsi_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
         """Генерирует матрицу M, объединяя временные и пространственные характеристики.
 
@@ -190,7 +189,7 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    @duckdb_cache(CachingType.SELF, '_precision', 'params.time_array', 'eigenvalues')
+    @duckdb_cache("_precision", "params.time_array", "eigenvalues")
     def _generate_exp_matrix(self) -> NDArray[Any]:
         """Генерирует матрицу экспонент exp(λ_k * t).
 
@@ -203,10 +202,12 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         with mp.workdps(self._precision):
             time_array = mp.matrix(self.params.time_array)
             outer = [[eig * t for t in time_array] for eig in self.eigenvalues]
-            exp_g_t = np.array([[mp.exp(val) for val in row] for row in outer], dtype=mp.mpf)
+            exp_g_t = np.array(
+                [[mp.exp(val) for val in row] for row in outer], dtype=mp.mpf
+            )
         return exp_g_t
 
-    @duckdb_cache(CachingType.MERGED, 'params.time_array', '_precision')
+    @duckdb_cache("params.time_array", "_precision")
     def _compute_m_matrix(
         self,
         xsi_matrix: Any,
@@ -292,7 +293,7 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
-    @duckdb_cache(CachingType.MERGED, 'config.tolerance')
+    @duckdb_cache("config.tolerance")
     def _get_invalid_indices(
         self, data_matrix: NDArray[np.float64 | Any], check_sum: bool = True
     ) -> NDArray[np.int64]:

@@ -1,56 +1,104 @@
+"""Декоратор `duckdb_cache` для кэширования результатов методов.
+
+Кэш сохраняется в DuckDB с использованием Pickle-сериализации.
+Ключ формируется на основе аргументов метода и указанных атрибутов экземпляра.
+"""
+
+import functools
 import logging
 from datetime import datetime
-from pickle import dumps
-from app.utils import PickleSerializer
-from typing import Any, Callable
-
-import numpy as np
-from numpy.typing import NDArray
+from typing import Any, Callable, Dict, TypeVar, cast
 
 from app.db.client import DuckDBClient
-from app.domain import CachingType
+from app.utils import PickleSerializer
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
 
-def duckdb_cache(caching_type: CachingType, *attrs: Any):
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapper(self, *args: Any, **kwargs: Any) -> NDArray[np.float64] | Any:
-            logger.debug(f"Вызов кеширующего декоратора для функции '{func.__name__}' с args={args} kwargs={kwargs}")
-            
-            def get_nested_attr(obj, attr_path):
-                attrs = attr_path.split('.')
-                for attr in attrs:
-                    obj = getattr(obj, attr)
-                return obj
+T = TypeVar("T", bound=Callable[..., Any])
 
-            db = DuckDBClient.get_instance()
-            s = PickleSerializer()
 
-            key_parts = []
-            for attr_path in attrs:
-                value = get_nested_attr(self, attr_path)
-                key_parts.append(value)
-            self_blob = dumps(tuple(key_parts))
-            args_blob = s.dump_args_to_pickle(args)
-            kwargs_blob = s.dump_kwargs_to_pickle(kwargs)
-            logger.debug("Сериализованы self, args и kwargs")
+def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
+    """Кэширует результат метода экземпляра класса, используя DuckDB и Pickle.
 
-            data = db.get_existing_call(func.__name__, self_blob, args_blob, kwargs_blob, s.code_word, caching_type)
-            if data is not None:
-                logger.info(f"Кеш найден для функции '{func.__name__}'")
-                return s.load_result_from_pickle(data, getattr(self, "_precision", None))
-            logger.info(f"Кеша нет для функции '{func.__name__}', выполняем функцию")
-            
-            result = func(self, *args, **kwargs)
-            logger.debug(f"Функция '{func.__name__}' выполнена, кешируем результат")
+    При повторном вызове метода с теми же аргументами и значениями указанных атрибутов
+    self, результат возвращается из DuckDB, если он уже был сохранён ранее.
 
-            result_blob = s.dump_result_to_pickle(result)
-            db.insert_call(
-                datetime.now(), func.__name__, self_blob, args_blob, kwargs_blob, result_blob
+    Args:
+        *attribute_paths (str): Пути к атрибутам объекта (например, "config.name"),
+                                включаемые в кэш-ключ.
+
+    Returns:
+        Callable[[T], T]: Декоратор, оборачивающий метод и реализующий кэширование.
+    """
+
+    def decorator(method: T) -> T:
+        @functools.wraps(method)
+        def wrapper(self, *args: Any, **kwargs: Any) -> Any:
+            def extract_nested_attribute(obj: Any, path: str) -> Any:
+                """Извлекает значение вложенного атрибута по точечной нотации.
+
+                Args:
+                    obj (Any): Объект, у которого нужно извлечь значение.
+                    path (str): Путь к атрибуту в формате 'config.name.value'.
+
+                Returns:
+                    Any: Значение атрибута.
+
+                Raises:
+                    AttributeError: Если путь к атрибуту недоступен.
+                """
+                try:
+                    for attr in path.split("."):
+                        obj = getattr(obj, attr)
+                    return obj
+                except AttributeError as e:
+                    raise AttributeError(f"Не удалось получить '{path}': {e}") from e
+
+            serializer = PickleSerializer()
+            db_client = DuckDBClient.get_instance()
+
+            # Формирование части ключа из self
+            try:
+                self_cache_info: Dict[str, Any] = {
+                    path: extract_nested_attribute(self, path)
+                    for path in attribute_paths
+                }
+            except AttributeError as e:
+                logger.error(f"Не удалось извлечь атрибуты self для ключа: {e}")
+                raise
+
+            cache_key_data = {"self": self_cache_info, "args": args, "kwargs": kwargs}
+
+            logger.debug(
+                f"Формирование кэш-ключа для метода {method.__name__}: {cache_key_data}"
             )
-            logger.debug(f"Результат сохранён в кеш в БД для функции '{func.__name__}'")
+
+            key_blob = serializer.dump_key_to_pickle(cache_key_data)
+
+            # Попытка загрузить результат из кэша
+            data = db_client.get_by_key(method.__name__, key_blob)
+            if data is not None:
+                logger.info(
+                    "Кэш найден для %s, возвращаем сохранённый результат.",
+                    method.__name__,
+                )
+                return serializer.load_result_from_pickle(
+                    data, getattr(self, "_precision", None)
+                )
+
+            logger.debug(f"Кэш не найден для {method.__name__}, выполняем метод.")
+
+            result = method(self, *args, **kwargs)
+
+            logger.debug(f"Сохраняем результат метода {method.__name__} в кэш.")
+            result_blob = serializer.dump_to_pickle(result)
+            db_client.insert_result(
+                datetime.now(), method.__name__, key_blob, result_blob
+            )
 
             return result
-        return wrapper
+
+        return cast(T, wrapper)
+
     return decorator

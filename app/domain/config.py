@@ -5,7 +5,6 @@
 """
 
 from dataclasses import dataclass
-from enum import Flag, auto
 from typing import Optional
 
 
@@ -31,8 +30,3 @@ class ConfigInitParams:
     log_level: Optional[int] = None
     log_path: Optional[str] = None
     port: Optional[int] = None
-
-class CachingType(Flag):
-    SELF = auto()
-    ARGS = auto()
-    MERGED = auto()
