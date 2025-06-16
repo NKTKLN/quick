@@ -21,7 +21,6 @@ class ConfigInitParams:
         disable_logging (Optional[bool]): Отключение логирования.
         log_level (Optional[str]): Уровень логирования.
         log_path (Optional[str]): Путь для логов.
-        port (Optional[int]): Порт приложения.
     """
 
     disable_cache: Optional[bool] = None
@@ -29,4 +28,3 @@ class ConfigInitParams:
     disable_logging: Optional[bool] = None
     log_level: Optional[int] = None
     log_path: Optional[str] = None
-    port: Optional[int] = None

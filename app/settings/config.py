@@ -29,7 +29,6 @@ class AppConfig(BaseSettings):
         disable_logging (bool): Отключение логирования (по умолчанию False).
         log_level (str): Уровень логирования (по умолчанию "info").
         log_path (str): Путь для записи логов (по умолчанию пустая строка).
-        port (int): Порт, на котором запускается приложение (по умолчанию 8080).
         log_format (str): Формат лог-сообщений.
     """
 
@@ -38,7 +37,6 @@ class AppConfig(BaseSettings):
     disable_logging: bool = Field(default=False)
     log_level: int = Field(default=logging.INFO)
     log_path: str = Field(default="")
-    port: int = Field(default=8080)
 
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 

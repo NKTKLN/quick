@@ -54,13 +54,15 @@
 1. Соберите Docker-образ:
 
    ```bash
-   docker build -t impatient-queue-system .
+   docker build -t quick-system .
    ```
 
 2. Запустите контейнер:
 
    ```bash
-   docker run --rm -it impatient-queue-system
+   docker run -it --rm -p 8501:8501 \
+        -v $(pwd)/cache:/app/cache \
+        quick-system
    ```
 
 ### ⚙️ Использование Taskfile

@@ -37,6 +37,7 @@ dist/
 *.log
 tmp/
 tmp.*
+cache/
 cache_data.duckdb
 cache_data.duckdb.*
 
