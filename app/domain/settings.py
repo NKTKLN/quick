@@ -33,9 +33,11 @@ class ComputationConfig:
 
     Attributes:
         calculation_type (CalculationType): Тип вычислений, который будет использоваться
+        disable_cache (bool): Отключение кэширования вычислений.
     """
 
     calculation_type: CalculationType = CalculationType.MPMATH
+    disable_cache: bool = False
 
 
 @dataclass

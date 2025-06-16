@@ -70,17 +70,11 @@ def calculation_config() -> (
         config.precision = precision
         config.tolerance = tolerance
 
-    def toggle_caching():
-        app_config = ConfigLoader.get_config()
-        app_config.disable_cache = not app_config.disable_cache
-        ConfigLoader.init(app_config)
-
     app_config = ConfigLoader.get_config()
-    if app_config.disable_cache:
-        st.markdown("🗑 Кэширование **выключено**")
-        st.button("Включить кэширование", on_click=toggle_caching)
-    else:
-        st.markdown("🗃 Кэширование **включено**")
-        st.button("Выключить кэширование", on_click=toggle_caching)
+    if not app_config.disable_cache:
+        disable_cache = st.checkbox("Выключить кэширование", value=config.disable_cache)
+
+        if disable_cache != config.disable_cache:
+            config.disable_cache = disable_cache
 
     return config

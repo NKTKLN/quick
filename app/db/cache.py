@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, TypeVar, cast
 
 from app.common import PickleSerializer
 from app.db.client import DuckDBClient
+from app.domain import ComputationConfig
 from app.settings import ConfigLoader
 
 # Настройка логгера
@@ -34,30 +35,36 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
     """
 
     def decorator(method: T) -> T:
+        """Обёртка, которая реализует кэширование результата метода.
+
+        Args:
+            method (Callable): Метод экземпляра класса для кэширования.
+
+        Returns:
+            Callable: Метод, обёрнутый логикой кэширования.
+        """
+
         @functools.wraps(method)
         def wrapper(self, *args: Any, **kwargs: Any) -> Any:
-            def extract_nested_attribute(obj: Any, path: str) -> Any:
-                """Извлекает значение вложенного атрибута по точечной нотации.
+            """Выполняет кэширование вызова метода.
 
-                Args:
-                    obj (Any): Объект, у которого нужно извлечь значение.
-                    path (str): Путь к атрибуту в формате 'config.name.value'.
+            Формирует ключ на основе аргументов метода и указанных атрибутов self,
+            пытается загрузить результат из DuckDB. Если результат отсутствует,
+            вызывает исходный метод, сохраняет результат и возвращает его.
 
-                Returns:
-                    Any: Значение атрибута.
+            Кэширование может быть отключено через конфигурацию.
 
-                Raises:
-                    AttributeError: Если путь к атрибуту недоступен.
-                """
-                try:
-                    for attr in path.split("."):
-                        obj = getattr(obj, attr)
-                    return obj
-                except AttributeError as e:
-                    raise AttributeError(f"Не удалось получить '{path}': {e}") from e
+            Args:
+                self: Экземпляр класса, метод которого вызывается.
+                *args: Позиционные аргументы метода.
+                **kwargs: Именованные аргументы метода.
 
+            Returns:
+                Любое: Результат выполнения метода, либо загруженный из кэша.
+            """
             config = ConfigLoader.get_config()
-            if config.disable_cache:
+            computation_config: ComputationConfig = self.config
+            if computation_config.disable_cache or config.disable_cache:
                 result = method(self, *args, **kwargs)
                 return result
 
@@ -67,7 +74,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
             # Формирование части ключа из self
             try:
                 self_cache_info: Dict[str, Any] = {
-                    path: extract_nested_attribute(self, path)
+                    path: _extract_nested_attribute(self, path)
                     for path in attribute_paths
                 }
             except AttributeError as e:
@@ -80,31 +87,69 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 f"Формирование кэш-ключа для метода {method.__name__}: {cache_key_data}"
             )
 
-            key_blob = serializer.dump_key_to_pickle(cache_key_data)
+            try:
+                key_blob = serializer.dump_key_to_pickle(cache_key_data)
+            except Exception as e:
+                logger.warning(f"Ошибка сериализации ключа для {method.__name__}: {e}")
+                return method(self, *args, **kwargs)
+
+            key_hash = key_blob[:8].hex()
 
             # Попытка загрузить результат из кэша
-            data = db_client.get_by_key(method.__name__, key_blob)
-            if data is not None:
-                logger.info(
-                    "Кэш найден для %s, возвращаем сохранённый результат.",
-                    method.__name__,
-                )
-                return serializer.load_result_from_pickle(
-                    data, getattr(self, "_precision", None)
+            try:
+                data = db_client.get_by_key(method.__name__, key_blob)
+                if data is not None:
+                    logger.info(
+                        f"Кэш найден для {method.__name__} (key={key_hash}), "
+                        "возвращаем результат."
+                    )
+                    return serializer.load_result_from_pickle(
+                        data, getattr(self, "_precision", None)
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Ошибка при загрузке кэша для {method.__name__} "
+                    f"(key={key_hash}): {e}"
                 )
 
             logger.debug(f"Кэш не найден для {method.__name__}, выполняем метод.")
-
             result = method(self, *args, **kwargs)
 
-            logger.debug(f"Сохраняем результат метода {method.__name__} в кэш.")
-            result_blob = serializer.dump_to_pickle(result)
-            db_client.insert_result(
-                datetime.now(), method.__name__, key_blob, result_blob
-            )
+            try:
+                logger.debug(f"Сохраняем результат метода {method.__name__} в кэш.")
+                result_blob = serializer.dump_to_pickle(result)
+                db_client.insert_result(
+                    datetime.now(), method.__name__, key_blob, result_blob
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Ошибка при сохранении результата в кэш для {method.__name__} "
+                    f"(key={key_hash}): {e}"
+                )
 
             return result
 
         return cast(T, wrapper)
 
     return decorator
+
+
+def _extract_nested_attribute(obj: Any, path: str) -> Any:
+    """Извлекает значение вложенного атрибута по точечной нотации.
+
+    Args:
+        obj (Any): Объект, у которого нужно извлечь значение.
+        path (str): Путь к атрибуту в формате 'config.name.value'.
+
+    Returns:
+        Any: Значение атрибута.
+
+    Raises:
+        AttributeError: Если путь к атрибуту недоступен.
+    """
+    try:
+        for attr in path.split("."):
+            obj = getattr(obj, attr)
+        return obj
+    except AttributeError as e:
+        raise AttributeError(f"Не удалось получить '{path}': {e}") from e
