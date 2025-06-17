@@ -1,4 +1,9 @@
-"""Пакет с утилитами приложения."""
+"""Пакет с утилитами приложения.
+
+Экспортирует основные компоненты:
+    setup_logger — функция конфигурации вывода логов.
+    PickleSerializer — класс для серилизации и десериализации объектов.
+"""
 
 from .logger import setup_logger
 from .serialization import PickleSerializer
