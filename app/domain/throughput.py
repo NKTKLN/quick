@@ -10,12 +10,17 @@ from dataclasses import dataclass, fields
 import numpy as np
 from numpy.typing import NDArray
 
-from app.models.iterators import ParamsNuIterator
-from app.models.probability import MultiServerParams, SingleServerParams
+from app.domain.iterators import ParamsNuIterator
+from app.domain.probability import (
+    BasicMultiServerParams,
+    BasicSingleServerParams,
+    MultiServerParams,
+    SingleServerParams,
+)
 
 
 @dataclass
-class SingleServerThroughputParams(SingleServerParams):
+class SingleServerThroughputParams(BasicSingleServerParams):
     """Параметры однолинейной СМО для анализа пропускной способности по массиву ν.
 
     Позволяет задать массив значений интенсивности ухода (ν) и организовать
@@ -46,7 +51,7 @@ class SingleServerThroughputParams(SingleServerParams):
 
 
 @dataclass
-class MultiServerThroughputParams(MultiServerParams):
+class MultiServerThroughputParams(BasicMultiServerParams):
     """Параметры многолинейной СМО для анализа пропускной способности по массиву ν.
 
     Позволяет задавать массив значений интенсивности ухода заявок (ν) итерироваться

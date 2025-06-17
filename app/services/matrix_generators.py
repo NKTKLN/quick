@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import NDArray
 
-from app.models import MultiServerParams, SingleServerParams
+from app.domain import MultiServerParams, SingleServerParams
 
 # Инициализация логгирования
 logger = logging.getLogger(__name__)
@@ -164,6 +164,9 @@ class MultiServerMatrixBuilder(MatrixBuilder):
                                  в системе, m - количество обслуживающих приборов.
                                  Матрица имеет трехдиагональную структуру.
         """
+        if not isinstance(self.params, MultiServerParams):
+            raise  # TODO
+
         n, m = self.params.max_customers, self.params.processor_count
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate
 

@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass
 
-from app.models.base_params import BasicMultiServerParams, BasicSingleServerParams
+from app.domain.base_params import BasicMultiServerParams, BasicSingleServerParams
 
 
 @dataclass

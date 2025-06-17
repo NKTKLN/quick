@@ -7,29 +7,24 @@
 
 import logging
 
+from app.settings import ConfigLoader
 
-def setup_logger(
-    disable_logging: bool = False, log_level: int = logging.INFO, log_file: str = ""
-) -> None:
+
+def setup_logger() -> None:
     """Настраивает систему логгирования для приложения.
 
     Конфигурирует базовые настройки логирования с возможностью вывода как в консоль,
     так и в файл. Поддерживает полное отключение логирования при необходимости.
-
-    Args:
-        disable_logging: Флаг отключения логирования. Если True, все логи будут
-                         отключены на уровне CRITICAL. Default: False.
-        log_level: Уровень детализации логирования. Допустимые значения:
-                   logging.DEBUG, INFO, WARNING, ERROR, CRITICAL. Default: INFO.
-        log_file: Путь к файлу для записи логов. Если None, вывод будет направлен
-                  в стандартный поток вывода (консоль). Default: ''.
     """
-    if disable_logging:
+    config = ConfigLoader.get_config()
+
+    if config.disable_logging:
         logging.disable(logging.CRITICAL)
         return
 
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
     logging.basicConfig(
-        level=log_level, format=log_format, filename=log_file, filemode="a"
+        level=config.log_level,
+        format=config.log_format,
+        filename=config.log_path,
+        filemode="a",
     )

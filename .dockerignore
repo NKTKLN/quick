@@ -1,34 +1,107 @@
-# Ignore .gitignore, LICENSE, and README files (common documentation and config files)
+# ========================
+# Documentation and config files
+# ========================
 .gitignore
 LICENSE.md
 README.md
 
-# Ignore specific directories that aren't needed in the image
+# ========================
+# Directories not needed in the image
+# ========================
 utils/
 notebooks/
 data/
 
-# Ignore any Python-related cache files
-pycache/
-*.pyc
+# ========================
+# Python bytecode and caches
+# ========================
+__pycache__/
+*.pyс
 *.pyo
 *.pyd
+*.so
 
-# Ignore virtual environment directory (if exists)
+# ========================
+# Virtual environments
+# ========================
 .venv/
-.env/
+venv/
+env/
 
-# Ignore any IDE or editor-specific files
+# ========================
+# Build artifacts and packages
+# ========================
+build/
+dist/
+*.egg-info/
+*.whl
+
+# ========================
+# IDEs and editors
+# ========================
 .idea/
 .vscode/
+*.sublime-project
+*.sublime-workspace
 
-# OS-specific files
+# ========================
+# Logs and temporary files
+# ========================
+*.log
+tmp/
+tmp.*
+
+# ========================
+# Jupyter notebooks and artifacts
+# ========================
+.ipynb_checkpoints/
+test.ipynb
+*.nbconvert.ipynb
+
+# ========================
+# Testing and coverage
+# ========================
+.coverage
+coverage.xml
+.cache/
+.hypothesis/
+
+# ========================
+# Type checkers and linters
+# ========================
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# ========================
+# Training / ML outputs
+# ========================
+checkpoints/
+output/
+model/
+runs/
+
+# ========================
+# nbQA cache
+# ========================
+__nbqa_cache__/
+
+# ========================
+# Exceptions (keep files)
+# ========================
+!data/raw/*.json
+!example*.*
+
+# ========================
+# System files
+# ========================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Ignore Docker-related files
+# ========================
+# Docker-related files
+# ========================
 docker-compose.override.yml
 docker-compose.local.yml
 
-# Ignore log files
-*.log

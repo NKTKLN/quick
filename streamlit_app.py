@@ -7,7 +7,7 @@
 
 import streamlit as st
 
-from app.utils.logger import setup_logger
+from app.common.logger import setup_logger
 
 setup_logger()
 
