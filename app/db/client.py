@@ -34,6 +34,8 @@ class DuckDBClient:
 
     def __init__(self) -> None:
         """Инициализирует подключение к DuckDB и схему базы."""
+        if hasattr(self, "_initialized") and self._initialized:
+            return
         config = ConfigLoader.get_config()
         self.connection = duckdb.connect(database=config.duckdb_path, read_only=False)
         self.connection.execute("PRAGMA threads=4")
@@ -66,8 +68,7 @@ class DuckDBClient:
                 f"Ошибка при инициализации схемы из {schema_path}"
             ) from exc
 
-    @classmethod
-    def get_instance(cls) -> "DuckDBClient":
+    def __new__(cls, *args, **kwargs) -> "DuckDBClient":
         """Возвращает singleton-экземпляр DuckDBClient.
 
         Создаёт новый экземпляр, если он ещё не был создан.
@@ -78,8 +79,11 @@ class DuckDBClient:
         with cls._lock:
             if cls._instance is None:
                 logger.debug("Создание нового singleton-экземпляра DuckDBClient.")
-                cls._instance = cls()
-            logger.debug("Используется существующий singleton-экземпляр DuckDBClient.")
+                cls._instance = super().__new__(cls)
+            else:
+                logger.debug(
+                    "Используется существующий singleton-экземпляр DuckDBClient."
+                )
             return cls._instance
 
     @classmethod
@@ -128,6 +132,7 @@ class DuckDBClient:
             """,
             (timestamp, func_name, key_blob, result_blob),
         )
+        self.connection.commit()
 
     def close(self) -> None:
         """Закрывает соединение с базой DuckDB."""

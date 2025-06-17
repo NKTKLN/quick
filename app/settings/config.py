@@ -49,6 +49,7 @@ class AppConfig(BaseSettings):
 class ConfigLoader:
     """Потокобезопасный загрузчик и кешировщик конфигурации приложения."""
 
+    _instance: AppConfig = None
     _lock = threading.Lock()
 
     @classmethod
@@ -58,13 +59,14 @@ class ConfigLoader:
         Устанавливает переменные окружения из переданных параметров,
         очищает кеш get_config для повторной загрузки с новыми значениями.
 
-        Аргументы:
+        Args:
             params (ConfigInitParams): Объект с параметрами конфигурации.
         """
         with cls._lock:
             for key, value in params.dict(exclude_none=True).items():
                 env_key = key.upper()
                 os.environ[env_key] = str(value)
+            cls._instance = None
             cls.get_config.cache_clear()
 
     @classmethod
@@ -74,7 +76,10 @@ class ConfigLoader:
 
         Использует кеширование для избежания повторных загрузок конфигурации.
 
-        Возвращает:
+        Returns:
             AppConfig: Объект с конфигурацией приложения.
         """
-        return AppConfig()
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = AppConfig()
+            return cls._instance
