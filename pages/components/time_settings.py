@@ -11,16 +11,17 @@ import streamlit as st
 def time_settings() -> np.ndarray[np.float64]:
     """Отображает UI-компонент для ввода временных параметров.
 
-    UI включает поля для:
-      - начального времени (t_start),
-      - конечного времени (t_end),
-      - количества временных шагов (t_steps).
+    Пользователь задаёт:
+      - начальное время моделирования (t_start),
+      - конечное время моделирования (t_end),
+      - количество временных шагов (t_steps).
 
     Returns:
-        np.ndarray: Массив временных отсечек времени (np.linspace).
+        np.ndarray: Массив временных равномерно распределённых отсечек.
     """
     st.subheader("⏳ Временные параметры")
     col_t1, col_t2, col_t3 = st.columns(3)
+
     with col_t1:
         t_start = st.number_input(
             "Начальное время", min_value=0.0, value=0.0, format="%.10f"

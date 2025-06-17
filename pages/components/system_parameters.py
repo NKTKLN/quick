@@ -46,12 +46,12 @@ def intensity_parameters() -> tuple[float, float, float]:
 
 
 def throughput_intensity_parameters() -> tuple[float, float, np.ndarray[np.float64]]:
-    """Отображает UI-компонент с тремя полями ввода параметров интенсивности: λ, μ и ν.
+    """Отображает UI-компонент с параметрами интенсивности: λ, μ и массивом ν.
 
     Returns:
         tuple[float, float, np.ndarray[np.float64]]: Значения интенсивности поступления
         заявок (λ), интенсивности обслуживания (μ) и интенсивности ухода нетерпеливых
-        заявок (ν).
+        заявок (ν) в виде массива.
     """
     col1, col2 = st.columns(2)
 
@@ -72,15 +72,18 @@ def throughput_intensity_parameters() -> tuple[float, float, np.ndarray[np.float
 
     nu_rate_str = st.text_input(
         "Интенсивность ухода нетерпеливых заявок (ν) — *введите через запятую*",
-        "1000, 10833, 10e5",
+        value="1000, 10833, 1e6",
+        placeholder="Например: 1000, 10833, 100000",
     )
-    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",")])
+
+    # Преобразуем введённую строку в массив float, игнорируя пустые элементы
+    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",") if x.strip()])
 
     return lambda_rate, mu_rate, nu_rate
 
 
 def system_capacity_inputs(system_type: str) -> tuple[int, Optional[int]]:
-    """Отображает UI-компонент для ввода для емкости системы и количества процессоров.
+    """Отображает UI-компонент для ввода емкости системы и количества процессоров.
 
     Args:
         system_type (str): Тип системы. Если "Многолинейная", появляется поле
@@ -88,8 +91,7 @@ def system_capacity_inputs(system_type: str) -> tuple[int, Optional[int]]:
 
     Returns:
         tuple[int, Optional[int]]: Максимальное количество заявок (n) и количество
-                                   процессоров (m),
-        если применимо.
+                                   процессоров (m), если применимо.
     """
     max_customers = st.number_input(
         "Максимальное количество заявок в системе (n)",
