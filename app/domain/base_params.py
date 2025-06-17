@@ -1,6 +1,6 @@
 """Базовые классы параметров систем массового обслуживания (СМО).
 
-Содержит абстрактные классы с общими параметрами для одно- и многолинейных
+Содержит абстрактные классы с общими параметрами для одно- и многоканальных
 систем массового обслуживания без параметра интенсивности ухода заявок (ν).
 """
 
@@ -8,44 +8,42 @@ from abc import ABC
 from dataclasses import dataclass
 
 import numpy as np
-from numpy.typing import NDArray
 
 
 @dataclass
 class BasicSingleServerParams(ABC):
-    """Базовый класс параметров системы массового обслуживания.
+    """Параметры одноканальной СМО без учета ухода заявок.
 
-    Содержит основные атрибуты, необходимые для описания однолинейной системы
-    массового обслуживания без учета ухода нетерпеливых заявок.
+    Содержит базовые параметры, описывающие входной поток, обслуживание,
+    ограничения по числу заявок и начальные условия системы.
 
-    Атрибуты:
-        lambda_rate (float): Интенсивность входящего потока заявок (λ > 0).
+    Attributes:
+        lambda_rate (float): Интенсивность поступления заявок (λ > 0).
         mu_rate (float): Интенсивность обслуживания заявок (μ > 0).
-        max_customers (int): Максимальное число заявок (n > 0).
-        time_array (NDArray[np.float64]): Упорядоченный массив временных точек.
-        state_variables (NDArray[np.float64]): Вектор переменных состояния системы.
-        initial_probabilities (NDArray[np.float64]): Начальное распределение
-                                                     вероятностей состояний.
+        max_customers (int): Максимальное допустимое число заявок в системе (n > 0).
+        time_array (np.ndarray[np.float64]): Массив временных точек расчета.
+        state_variables (np.ndarray[np.float64]): Переменные состояния системы.
+        initial_probabilities (np.ndarray[np.float64]): Начальные вероятности состояний.
     """
 
-    lambda_rate: float  # Интенсивность поступления заявок (λ)
-    mu_rate: float  # Интенсивность обслуживания заявок (μ)
-    max_customers: int  # Максимальное количество заявок в системе (n)
-    time_array: NDArray[np.float64]  # Массив времени
-    state_variables: NDArray[np.float64]  # Массив переменных состояния
-    initial_probabilities: NDArray[np.float64]  # Массив начальных вероятностей
+    lambda_rate: float
+    mu_rate: float
+    max_customers: int
+    time_array: np.ndarray[np.float64]
+    state_variables: np.ndarray[np.float64]
+    initial_probabilities: np.ndarray[np.float64]
 
 
 @dataclass
 class BasicMultiServerParams(BasicSingleServerParams):
-    """Базовый класс параметров многолинейной системы массового обслуживания.
+    """Параметры многоканальной СМО без учета ухода заявок.
 
-    Расширяет базовый класс параметров СМО, добавляя количество обслуживающих
-    приборов (процессоров) в системе.
+    Расширяет параметры одноканальной системы, добавляя количество
+    обслуживающих каналов (процессоров).
 
-    Атрибуты:
-        processor_count (int): Количество обслуживающих приборов в системе.
-        Остальные атрибуты наследуются от BasicSingleServerParams.
+    Attributes:
+        processor_count (int): Количество обслуживающих каналов (m).
+        Остальные параметры наследуются от BasicSingleServerParams.
     """
 
-    processor_count: int  # Количество обслуживающих процессоров (m)
+    processor_count: int

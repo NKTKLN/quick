@@ -1,7 +1,7 @@
 """Модуль параметров инициализации конфигурации.
 
 Содержит класс ConfigInitParams — структуру данных с параметрами,
-которые можно передать для инициализации конфигурации приложения.
+которые можно передать при запуске для настройки конфигурации приложения.
 """
 
 from dataclasses import dataclass
@@ -12,15 +12,15 @@ from typing import Optional
 class ConfigInitParams:
     """Параметры инициализации конфигурации приложения.
 
-    Все поля опциональны, используются для установки соответствующих
-    переменных окружения в ConfigLoader.
+    Используются для предварительной установки переменных окружения
+    и параметров поведения при инициализации конфигурации в ConfigLoader.
 
-    Атрибуты:
-        disable_cache (Optional[bool]): Отключение кэширования.
-        duckdb_path (Optional[str]): Путь к DuckDB базе данных.
-        disable_logging (Optional[bool]): Отключение логирования.
-        log_level (Optional[str]): Уровень логирования.
-        log_path (Optional[str]): Путь для логов.
+    Attributes:
+        disable_cache (Optional[bool]): Признак отключения кэширования.
+        duckdb_path (Optional[str]): Путь до файла базы данных DuckDB.
+        disable_logging (Optional[bool]): Признак отключения логирования.
+        log_level (Optional[int]): Целочисленный уровень логирования.
+        log_path (Optional[str]): Путь к файлу логов, если логирование включено.
     """
 
     disable_cache: Optional[bool] = None

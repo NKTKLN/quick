@@ -8,7 +8,6 @@
 from dataclasses import dataclass, fields
 
 import numpy as np
-from numpy.typing import NDArray
 
 from app.domain.iterators import ParamsNuIterator
 from app.domain.probability import (
@@ -21,25 +20,25 @@ from app.domain.probability import (
 
 @dataclass
 class SingleServerThroughputParams(BasicSingleServerParams):
-    """Параметры однолинейной СМО для анализа пропускной способности по массиву ν.
+    """Параметры однолинейной СМО для анализа пропускной способности с перебором ν.
 
-    Позволяет задать массив значений интенсивности ухода (ν) и организовать
-    итерацию по ним с генерацией параметров для каждой интенсивности.
+    Позволяет задавать массив значений интенсивности ухода заявок (ν) итерироваться
+    по ним, создавая на каждой итерации объект SingleServerParams.
 
-    Атрибуты:
-        nu_rate (NDArray[np.float64]): Массив значений интенсивности ухода заявок (ν).
+    Attributes:
+        nu_rate (np.ndarray[np.float64]): Массив значений интенсивности ухода заявок.
         Остальные параметры наследуются от BasicSingleServerParams.
     """
 
-    nu_rate: NDArray[np.float64]  # Массив интенсивностей ухода заявок (ν)
+    nu_rate: np.ndarray[np.float64]
 
     def __iter__(self) -> ParamsNuIterator:
         """Создаёт итератор по значениям ν из массива nu_rate.
 
-        Итератор возвращает на каждой итерации экземпляр SingleServerParams
-        с текущим значением ν и остальными параметрами.
+        Возвращает итератор, который на каждой итерации выдаёт
+        SingleServerParams с текущим ν и базовыми параметрами.
 
-        Возвращает:
+        Returns:
             ParamsNuIterator: Итератор параметров СМО с разными значениями ν.
         """
         base_params = {
@@ -52,25 +51,25 @@ class SingleServerThroughputParams(BasicSingleServerParams):
 
 @dataclass
 class MultiServerThroughputParams(BasicMultiServerParams):
-    """Параметры многолинейной СМО для анализа пропускной способности по массиву ν.
+    """Параметры многолинейной СМО для анализа пропускной способности с перебором ν.
 
     Позволяет задавать массив значений интенсивности ухода заявок (ν) итерироваться
-    по ним, возвращая на каждой итерации экземпляр MultiServerParams.
+    по ним, создавая на каждой итерации объект MultiServerParams.
 
-    Атрибуты:
-        nu_rate (NDArray[np.float64]): Массив значений интенсивности ухода заявок (ν).
-        Остальные параметры наследуются от MultiServerParams.
+    Attributes:
+        nu_rate (np.ndarray[np.float64]): Массив значений интенсивности ухода заявок.
+        Остальные параметры наследуются от BasicMultiServerParams.
     """
 
-    nu_rate: NDArray[np.float64]  # Массив интенсивностей ухода заявок (ν)
+    nu_rate: np.ndarray[np.float64]
 
     def __iter__(self) -> ParamsNuIterator:
         """Создаёт итератор по значениям ν из массива nu_rate.
 
-        Итератор возвращает на каждой итерации экземпляр MultiServerParams
-        с текущим значением ν и остальными параметрами.
+        Возвращает итератор, который на каждой итерации выдаёт
+        MultiServerParams с текущим ν и базовыми параметрами.
 
-        Возвращает:
+        Returns:
             ParamsNuIterator: Итератор параметров СМО с разными значениями ν.
         """
         base_params = {

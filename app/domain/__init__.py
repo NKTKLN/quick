@@ -1,7 +1,15 @@
-"""Пакет моделей параметров систем массового обслуживания.
+"""Пакет с параметрами моделей систем массового обслуживания (СМО).
 
-Импортирует и предоставляет основные классы параметров для одно- и многолинейных
-систем массового обслуживания с учетом интенсивности ухода заявок.
+Экспортирует основные компоненты:
+    - BasicSingleServerParams, BasicMultiServerParams — базовые параметры без ν.
+    - SingleServerParams,
+        MultiServerParams — параметры СМО с учетом интенсивности ухода (ν).
+    - SingleServerThroughputParams,
+        MultiServerThroughputParams — параметры для анализа пропускной способности.
+    - ParamsNuIterator — итератор по значениям ν.
+    - CalculationType, ComputationConfig,
+        MpmathComputationConfig, MergedComputationConfig — конфигурации вычислений.
+    - ConfigInitParams — параметры инициализации конфигурации модели.
 """
 
 from .base_params import BasicMultiServerParams, BasicSingleServerParams
@@ -17,13 +25,13 @@ from .settings import (
 from .throughput import MultiServerThroughputParams, SingleServerThroughputParams
 
 __all__ = [
-    "ParamsNuIterator",
+    "BasicSingleServerParams",
+    "BasicMultiServerParams",
     "SingleServerParams",
     "MultiServerParams",
     "SingleServerThroughputParams",
     "MultiServerThroughputParams",
-    "BasicSingleServerParams",
-    "BasicMultiServerParams",
+    "ParamsNuIterator",
     "CalculationType",
     "ComputationConfig",
     "MpmathComputationConfig",
