@@ -52,3 +52,11 @@ tasks:
     desc: Run the application
     cmds:
       - poetry run streamlit run streamlit_app.py
+
+  docker:
+    desc: Run the application in docker
+    cmds:
+      - docker build -t quick-system .
+      - docker run -it --rm -p 8501:8501
+          -v $(pwd)/cache:/app/cache
+          quick-system

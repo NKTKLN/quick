@@ -1,28 +1,27 @@
 # ===== Стадия 1: Сборщик =====
 FROM python:3.13-slim AS builder
 
-ENV DEBIAN_FRONTEND=noninteractive \
+ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=2.0.0
+    POETRY_VERSION=2.1.3 \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl
+RUN apt-get update && apt-get install --no-install-recommends -y \
+        build-essential \
+        curl \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-# Установка Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
-
-RUN poetry self add poetry-plugin-export
+RUN curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s $POETRY_HOME/bin/poetry /usr/local/bin/poetry
 
 WORKDIR /app
 
 COPY pyproject.toml poetry.lock* ./
 
-# Экспортируем зависимости в requirements.txt для pip, собираем wheel
-RUN poetry export --without-hashes --format=requirements.txt > requirements.txt && \
-    pip wheel --no-deps --wheel-dir /wheels -r requirements.txt
-
-RUN apt-get purge -y build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN poetry install --no-root --only main --no-interaction --no-ansi
 
 # ===== Стадия 2: Финальная =====
 FROM python:3.13-slim AS final
@@ -31,23 +30,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DUCKDB_PATH=cache/data.duck_db
 
-# Создаем непривилегированного пользователя
+# Создаем непривилегированного пользователя заранее, чтобы избежать проблем с правами
 RUN groupadd -g 10000 shrimp && \
     useradd -m -u 10000 -g shrimp shrimp
 
-USER shrimp
 WORKDIR /app
 
-ENV PATH="/home/shrimp/.local/bin:${PATH}"
+# Копируем только необходимые файлы из билдера
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin/poetry /usr/local/bin/poetry
+COPY --from=builder /app /app
 
-# Копируем зависимости и requirements из builder
-COPY --from=builder /wheels /wheels
-COPY --from=builder /app/requirements.txt ./requirements.txt
+# Копируем остальное
+COPY . .
 
-# Устанавливаем зависимости из wheel
-RUN pip install --user --no-index --find-links=/wheels -r requirements.txt
+# Устанавливаем права сразу после копирования
+RUN chown -R shrimp:shrimp /app
 
-COPY --chown=shrimp:shrimp . .
+USER shrimp
 
 EXPOSE 8501
 

@@ -93,24 +93,18 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 logger.warning(f"Ошибка сериализации ключа для {method.__name__}: {e}")
                 return method(self, *args, **kwargs)
 
-            key_hash = key_blob[:8].hex()
-
             # Попытка загрузить результат из кэша
             try:
                 data = db_client.get_by_key(method.__name__, key_blob)
                 if data is not None:
                     logger.info(
-                        f"Кэш найден для {method.__name__} (key={key_hash}), "
-                        "возвращаем результат."
+                        f"Кэш найден для {method.__name__}, возвращаем результат."
                     )
                     return serializer.load_result_from_pickle(
                         data, getattr(self, "_precision", None)
                     )
             except Exception as e:
-                logger.warning(
-                    f"Ошибка при загрузке кэша для {method.__name__} "
-                    f"(key={key_hash}): {e}"
-                )
+                logger.warning(f"Ошибка при загрузке кэша для {method.__name__}: {e}")
 
             logger.debug(f"Кэш не найден для {method.__name__}, выполняем метод.")
             result = method(self, *args, **kwargs)
@@ -121,10 +115,9 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 db_client.insert_result(
                     datetime.now(), method.__name__, key_blob, result_blob
                 )
-            except Exception as e:
+            except Exception:
                 logger.warning(
-                    f"Ошибка при сохранении результата в кэш для {method.__name__} "
-                    f"(key={key_hash}): {e}"
+                    f"Ошибка при сохранении результата в кэш для {method.__name__}"
                 )
 
             return result
