@@ -19,7 +19,6 @@ def time_settings() -> np.ndarray[np.float64]:
     Returns:
         np.ndarray: Массив временных равномерно распределённых отсечек.
     """
-    st.subheader("⏳ Временные параметры")
     col_t1, col_t2, col_t3 = st.columns(3)
 
     with col_t1:

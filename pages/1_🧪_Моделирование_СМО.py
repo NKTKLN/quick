@@ -4,20 +4,25 @@
 производить расчет вероятностей и визуализировать результаты.
 """
 
-import numpy as np
+from dataclasses import asdict
+
 import streamlit as st
 
 from app.domain import (
+    BasicSingleServerParams,
     ComputationConfig,
+    MAPServerParams,
     MergedComputationConfig,
     MpmathComputationConfig,
     MultiServerParams,
     SingleServerParams,
 )
-from app.services import MultiServerSystem, SingleServerSystem
+from app.services import MAPServerSystem, MultiServerSystem, SingleServerSystem
 from pages.components import (
     calculation_config,
     intensity_parameters,
+    map_intensity_matrices,
+    map_intensity_parameters,
     plot_probabilities,
     render_initial_probabilities,
     render_state_variables,
@@ -45,110 +50,87 @@ def render_description() -> None:
 
 def get_user_inputs() -> tuple[
     ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    SingleServerParams | MultiServerParams | MAPServerParams,
     str,
-    float,
-    float,
-    float,
-    int,
-    int | None,
-    np.ndarray[np.float64],
-    np.ndarray[np.float64],
-    np.ndarray[np.float64],
 ]:
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
         tuple: Кортеж с параметрами:
-            - config (ComputationConfig | MpmathComputationConfig |
-                MergedComputationConfig): Конфигурация вычислений.
-            - system_type (str): Тип системы — "Однолинейная" или "Многолинейная".
-            - lambda_rate (float): Интенсивность входящего потока λ.
-            - mu_rate (float): Интенсивность обслуживания μ.
-            - nu_rate (float): Интенсивность ухода ν.
-            - max_customers (int): Максимальное число заявок в системе (размер буфера).
-            - processor_count (int | None): Количество процессоров (если задано).
-            - time_array (np.ndarray[np.float64]): Массив временных точек.
-            - state_variables (np.ndarray[np.float64]): Массив переменных состояния.
-            - initial_probabilities (np.ndarray[np.float64]): Начальные вероятности.
+            - config: Конфигурация вычислений.
+            - params: Параметры СМО.
+            - system_type (str): Тип системы — "Однолинейная", "Многолинейная"
+                или "С MAP-потоками".
     """
     config = calculation_config()
     st.markdown("---")
 
     st.subheader("🔬 Тип системы")
-    system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
+    system_type = st.selectbox(
+        "Выберите тип СМО:", ["Однолинейная", "Многолинейная", "С MAP-потоками"]
+    )
 
     st.subheader("⚙️ Параметры системы")
-    lambda_rate, mu_rate, nu_rate = intensity_parameters()
-    max_customers, processor_count = system_capacity_inputs(system_type)
-    time_array = time_settings()
+    if system_type == "С MAP-потоками":
+        lambda_rate, mu_rate, nu_rate = map_intensity_parameters()
+        max_customers, processor_count = system_capacity_inputs(
+            system_type, default_max_customers=3
+        )
+        st.markdown("---")
+        p_rate, q_rate = map_intensity_matrices(max_customers)
+    else:
+        lambda_rate, mu_rate, nu_rate = intensity_parameters()
+        max_customers, processor_count = system_capacity_inputs(system_type)
 
     count = max_customers
     if system_type == "Многолинейная":
         count += processor_count
+    elif system_type == "С MAP-потоками":
+        count **= 2
 
+    st.markdown("---")
     state_variables = render_state_variables(count)
     initial_probabilities = render_initial_probabilities(count)
 
-    return (
-        config,
-        system_type,
-        lambda_rate,
-        mu_rate,
-        nu_rate,
-        max_customers,
-        processor_count,
-        time_array,
-        state_variables,
-        initial_probabilities,
+    st.markdown("---")
+    time_array = time_settings()
+
+    base_params = asdict(
+        BasicSingleServerParams(
+            lambda_rate=lambda_rate,
+            mu_rate=mu_rate,
+            max_customers=max_customers,
+            time_array=time_array,
+            state_variables=state_variables,
+            initial_probabilities=initial_probabilities,
+        )
     )
 
-
-def validate_inputs(
-    initial_probabilities: np.ndarray[np.float64],
-    state_variables: np.ndarray[np.float64],
-    lambda_rate: float,
-    mu_rate: float,
-    nu_rate: float,
-    time_array: np.ndarray[np.float64],
-) -> bool:
-    """Проверяет корректность введённых пользователем параметров.
-
-    Args:
-        initial_probabilities (np.ndarray[np.float64]): Начальные вероятности состояний.
-        state_variables (np.ndarray[np.float64]): Переменные состояния.
-        lambda_rate (float): Интенсивность входящего потока λ.
-        mu_rate (float): Интенсивность обслуживания μ.
-        nu_rate (float): Интенсивность ухода нетерпеливых заявок ν.
-        time_array (np.ndarray[np.float64]): Массив временных точек моделирования.
-
-    Returns:
-        bool: True, если все параметры корректны, иначе False.
-    """
-    if not np.isclose(np.sum(initial_probabilities), 1.0):
-        st.error("Сумма начальных вероятностей должна быть равна 1.")
-        return False
-
-    if len(state_variables) != len(initial_probabilities):
-        st.error("Размер переменных состояния должен совпадать с числом вероятностей.")
-        return False
-
-    if np.any(initial_probabilities < 0) or np.any(initial_probabilities > 1):
-        st.error("Начальные вероятности должны находиться в диапазоне [0, 1].")
-        return False
-
-    if np.any(state_variables < 0):
-        st.error("Переменные состояния не могут быть отрицательными.")
-        return False
-
-    if time_array is None or len(time_array) == 0:
-        st.error("Временной массив не задан.")
-        return False
-
-    if lambda_rate <= 0 or mu_rate <= 0 or nu_rate <= 0:
-        st.error("Интенсивности λ, μ и ν должны быть положительными.")
-        return False
-
-    return True
+    match system_type:
+        case "Однолинейная":
+            return (
+                config,
+                SingleServerParams(**base_params, nu_rate=nu_rate),
+                system_type,
+            )
+        case "Многолинейная":
+            return (
+                config,
+                MultiServerParams(
+                    **base_params, nu_rate=nu_rate, processor_count=processor_count
+                ),
+                system_type,
+            )
+        case "С MAP-потоками":
+            return (
+                config,
+                MAPServerParams(
+                    **base_params, nu_rate=nu_rate, p_rate=p_rate, q_rate=q_rate
+                ),
+                system_type,
+            )
+        case _:
+            raise
 
 
 def main() -> None:
@@ -157,58 +139,26 @@ def main() -> None:
     render_description()
     st.markdown("---")
 
-    (
-        config,
-        system_type,
-        lambda_rate,
-        mu_rate,
-        nu_rate,
-        max_customers,
-        processor_count,
-        time_array,
-        state_variables,
-        initial_probabilities,
-    ) = get_user_inputs()
+    config, params, system_type = get_user_inputs()
 
     if st.button("🚀 Применить параметры"):
-        if not validate_inputs(
-            initial_probabilities,
-            state_variables,
-            lambda_rate,
-            mu_rate,
-            nu_rate,
-            time_array,
-        ):
+        try:
+            params.validate()
+        except Exception as e:
+            st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
-        system: SingleServerSystem | MultiServerSystem
-        if system_type == "Многолинейная":
-            system = MultiServerSystem(
-                MultiServerParams(
-                    lambda_rate=lambda_rate,
-                    mu_rate=mu_rate,
-                    nu_rate=nu_rate,
-                    max_customers=max_customers,
-                    processor_count=processor_count,
-                    time_array=time_array,
-                    state_variables=state_variables,
-                    initial_probabilities=initial_probabilities,
-                ),
-                config,
-            )
-        else:
-            system = SingleServerSystem(
-                SingleServerParams(
-                    lambda_rate=lambda_rate,
-                    mu_rate=mu_rate,
-                    nu_rate=nu_rate,
-                    max_customers=max_customers,
-                    time_array=time_array,
-                    state_variables=state_variables,
-                    initial_probabilities=initial_probabilities,
-                ),
-                config,
-            )
+        system: SingleServerSystem | MultiServerSystem | MAPServerSystem
+        match system_type:
+            case "Однолинейная":
+                system = SingleServerSystem(params, config)
+            case "Многолинейная":
+                system = MultiServerSystem(params, config)
+            case "С MAP-потоками":
+                system = MAPServerSystem(params, config)
+            case _:
+                st.error("❌ Некорректный тип системы")
+                st.stop()
 
         st.success("✅ Параметры успешно заданы!")
 
@@ -221,7 +171,7 @@ def main() -> None:
 
         st.markdown("---")
         st.subheader("📊 Графики вероятностей состояний системы")
-        fig = plot_probabilities(probabilities, time_array)
+        fig = plot_probabilities(probabilities, params.time_array)
         st.plotly_chart(fig, use_container_width=True)
 
 

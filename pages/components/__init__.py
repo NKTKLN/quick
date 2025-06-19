@@ -9,6 +9,8 @@ from .initial_conditions import render_initial_probabilities, render_state_varia
 from .plot import plot_probabilities, plot_throughput
 from .system_parameters import (
     intensity_parameters,
+    map_intensity_matrices,
+    map_intensity_parameters,
     system_capacity_inputs,
     throughput_intensity_parameters,
 )
@@ -24,4 +26,6 @@ __all__ = [
     "system_capacity_inputs",
     "intensity_parameters",
     "throughput_intensity_parameters",
+    "map_intensity_parameters",
+    "map_intensity_matrices",
 ]

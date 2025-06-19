@@ -78,14 +78,17 @@ def get_user_inputs() -> tuple[
     system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
     lambda_rate, mu_rate, nu_rate = throughput_intensity_parameters()
     max_customers, processor_count = system_capacity_inputs(system_type)
-    time_array = time_settings()
 
     count = max_customers
     if system_type == "Многолинейная":
         count += processor_count
 
+    st.markdown("---")
     state_variables = render_state_variables(count)
     initial_probabilities = render_initial_probabilities(count)
+
+    st.markdown("---")
+    time_array = time_settings()
 
     return (
         config,

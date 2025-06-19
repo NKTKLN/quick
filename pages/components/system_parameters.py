@@ -8,6 +8,7 @@
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import streamlit as st
 
 
@@ -83,12 +84,57 @@ def throughput_intensity_parameters() -> tuple[float, float, np.ndarray[np.float
     return lambda_rate, mu_rate, nu_rate
 
 
-def system_capacity_inputs(system_type: str) -> tuple[int, Optional[int]]:
+def map_intensity_parameters() -> tuple[np.ndarray[np.float64], float, float]:
+    """Отображает UI-компонент с параметрами интенсивности: ν, μ и массивом λ.
+
+    Returns:
+        tuple[np.ndarray[np.float64], float, float]: Значения интенсивности поступления
+            заявок (λ) в виде массива, интенсивности обслуживания (μ) и интенсивности
+            ухода нетерпеливых заявок (ν).
+    """
+    col1, col2 = st.columns(2)
+
+    with col1:
+        mu_rate = st.number_input(
+            "Интенсивность обслуживания заявок (μ)",
+            min_value=0.0,
+            value=500.0,
+            format="%.10f",
+        )
+    with col2:
+        nu_rate = st.number_input(
+            "Интенсивность ухода нетерпеливых заявок (ν)",
+            min_value=0.0,
+            value=100.0,
+            format="%.10f",
+        )
+
+    lambda_rate_str = st.text_input(
+        "Интенсивность поступления заявок (λ) — *введите через запятую*",
+        value="850, 8000, 67400",
+        placeholder="Например: 850, 8000, 67400",
+    )
+
+    # Преобразуем введённую строку в массив float, игнорируя пустые элементы
+    lambda_rate = np.array(
+        [float(x.strip()) for x in lambda_rate_str.split(",") if x.strip()]
+    )
+
+    return lambda_rate, mu_rate, nu_rate
+
+
+def system_capacity_inputs(
+    system_type: str, default_max_customers: int = 4, default_processor_count: int = 2
+) -> tuple[int, Optional[int]]:
     """Отображает UI-компонент для ввода емкости системы и количества процессоров.
 
     Args:
         system_type (str): Тип системы. Если "Многолинейная", появляется поле
             для количества процессоров.
+        default_max_customers (int, optional): Значение по умолчанию для максимального
+            количества заявок в системе. По умолчанию 4.
+        default_processor_count (int, optional): Значение по умолчанию для количества
+            процессоров в многолинейной системе. По умолчанию 2.
 
     Returns:
         tuple[int, Optional[int]]: Максимальное количество заявок (n) и количество
@@ -98,7 +144,7 @@ def system_capacity_inputs(system_type: str) -> tuple[int, Optional[int]]:
         "Максимальное количество заявок в системе (n)",
         min_value=1,
         max_value=100,
-        value=4,
+        value=default_max_customers,
     )
 
     processor_count = None
@@ -107,6 +153,63 @@ def system_capacity_inputs(system_type: str) -> tuple[int, Optional[int]]:
             "Количество обслуживающих процессоров (m)",
             min_value=1,
             max_value=100,
-            value=2,
+            value=default_processor_count,
         )
     return max_customers, processor_count
+
+
+def _generate_matrix(
+    n: int,
+    title: str,
+    key: str,
+    default_matrix: Optional[np.ndarray[np.float64]] = None,
+) -> np.ndarray[np.float64]:
+    """Отображает UI-компонент с матрицей для редактирования пользователем.
+
+    Args:
+        n (int): Размерность квадратной матрицы (n x n).
+        title (str): Заголовок для компонента разворачиваемого блока.
+        key (str): Уникальный ключ для Streamlit компонента редактирования таблицы.
+        default_matrix (Optional[np.ndarray[np.float64]], optional): Начальная матрица
+            значений. Если None, используется матрица из нулей размером n x n.
+            По умолчанию None.
+
+    Returns:
+        np.ndarray[np.float64]: Матрица интенсивностей размером n x n.
+    """
+    if default_matrix is None:
+        default_matrix = np.zeros((n, n), dtype=int)
+
+    matrix = pd.DataFrame(default_matrix)
+    with st.expander(title):
+        matrix = st.data_editor(matrix, num_rows="fixed", hide_index=True, key=key)
+
+    return matrix
+
+
+def map_intensity_matrices(
+    max_customers: int,
+) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
+    """Отображает UI-компоненты для ввода двух матриц интенсивностей.
+
+    Args:
+        max_customers (int): Максимальное количество заявок в
+            системе (размерность матриц).
+
+    Returns:
+        tuple[np.ndarray[np.float64], np.ndarray[np.float64]]: Две матрицы
+            интенсивностей размера max_customers x max_customers:
+            - Матрица интенсивностей обслуживания (p_rate);
+            - Матрица интенсивностей поступления (q_rate).
+    """
+    p_rate = _generate_matrix(
+        max_customers, "Матрица интенсивностей обслуживания", "p_rate"
+    )
+    q_rate = _generate_matrix(
+        max_customers, "Матрица интенсивностей поступления", "q_rate"
+    )
+
+    if st.button("🔄 Сгенерировать матрицы интенсивностей случайно"):
+        pass
+
+    return p_rate, q_rate
