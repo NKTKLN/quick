@@ -54,7 +54,7 @@ class SingleServerThroughputParams(BasicSingleServerParams):
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
         super().validate()
-        if np.any(self.nu_rate <= 0):
+        if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
         if self.initial_probabilities.shape[0] != self.max_customers:
             raise ValueError(
@@ -99,13 +99,13 @@ class MultiServerThroughputParams(BasicMultiServerParams):
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
         super().validate()
-        if np.any(self.nu_rate <= 0):
+        if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
         if (
             self.initial_probabilities.shape[0]
-            != self.max_customers + self.processor_count
+            != self.max_customers + self.processor_count + 1
         ):
             raise ValueError(
                 "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе + колличество процессоров."
+                "заявок в системе + колличество процессоров + 1."
             )

@@ -4,10 +4,12 @@
 производить расчет пропускной способности и визуализировать результаты.
 """
 
-import numpy as np
+from dataclasses import asdict
+
 import streamlit as st
 
 from app.domain import (
+    BasicSingleServerParams,
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
@@ -45,43 +47,30 @@ def render_description() -> None:
 
 def get_user_inputs() -> tuple[
     ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    SingleServerThroughputParams | MultiServerThroughputParams,
     str,
-    float,
-    float,
-    np.ndarray[np.float64],
-    int,
-    int | None,
-    np.ndarray[np.float64],
-    np.ndarray[np.float64],
-    np.ndarray[np.float64],
 ]:
-    """Собирает все входные параметры от пользователя через Streamlit UI.
+    """Собирает все входные параметры от пользователя через UI.
 
     Returns:
-        tuple: Кортеж, содержащий:
-            - config (ComputationConfig | MpmathComputationConfig |
-                MergedComputationConfig): Конфигурация вычислений.
-            - system_type (str): Тип системы — "Однолинейная" или "Многолинейная".
-            - lambda_rate (float): Интенсивность входящего потока λ.
-            - mu_rate (float): Интенсивность обслуживания μ.
-            - nu_rate (np.ndarray[np.float64]): Массив интенсивностей ухода ν.
-            - max_customers (int): Максимальное число заявок в системе (размер буфера).
-            - processor_count (int | None): Количество процессоров (если задано).
-            - time_array (np.ndarray[np.float64]): Массив временных точек.
-            - state_variables (np.ndarray[np.float64]): Массив переменных состояния.
-            - initial_probabilities (np.ndarray[np.float64]): Начальные вероятности.
+        tuple: Кортеж с параметрами:
+            - config: Конфигурация вычислений.
+            - params: Параметры СМО.
+            - system_type (str): Тип системы — "Однолинейная", "Многолинейная".
     """
     config = calculation_config()
     st.markdown("---")
 
     st.subheader("🔬 Тип системы")
     system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
+
+    st.subheader("⚙️ Параметры системы")
     lambda_rate, mu_rate, nu_rate = throughput_intensity_parameters()
     max_customers, processor_count = system_capacity_inputs(system_type)
 
     count = max_customers
     if system_type == "Многолинейная":
-        count += processor_count
+        count += processor_count + 1
 
     st.markdown("---")
     state_variables = render_state_variables(count)
@@ -90,70 +79,34 @@ def get_user_inputs() -> tuple[
     st.markdown("---")
     time_array = time_settings()
 
-    return (
-        config,
-        system_type,
-        lambda_rate,
-        mu_rate,
-        nu_rate,
-        max_customers,
-        processor_count,
-        time_array,
-        state_variables,
-        initial_probabilities,
+    base_params = asdict(
+        BasicSingleServerParams(
+            lambda_rate=lambda_rate,
+            mu_rate=mu_rate,
+            max_customers=max_customers,
+            time_array=time_array,
+            state_variables=state_variables,
+            initial_probabilities=initial_probabilities,
+        )
     )
 
-
-def validate_inputs(
-    initial_probabilities: np.ndarray[np.float64],
-    state_variables: np.ndarray[np.float64],
-    lambda_rate: float,
-    mu_rate: float,
-    nu_rate: np.ndarray[np.float64],
-    time_array: np.ndarray[np.float64],
-) -> bool:
-    """Проверяет корректность введённых пользователем параметров.
-
-    Args:
-        initial_probabilities (np.ndarray[np.float64]): Начальные вероятности состояний.
-        state_variables (np.ndarray[np.float64]): Переменные состояния.
-        lambda_rate (float): Интенсивность входящего потока λ.
-        mu_rate (float): Интенсивность обслуживания μ.
-        nu_rate (np.ndarray[np.float64]): Интенсивность ухода нетерпеливых заявок ν.
-        time_array (np.ndarray[np.float64]): Массив временных точек моделирования.
-
-    Returns:
-        bool: True, если параметры валидны; False — если найдены ошибки.
-    """
-    if not np.isclose(np.sum(initial_probabilities), 1.0):
-        st.error("Сумма начальных вероятностей должна быть равна 1.")
-        return False
-
-    if len(nu_rate) == 0:
-        st.error("Интенсивность ухода (ν) не задана.")
-        return False
-
-    if len(state_variables) != len(initial_probabilities):
-        st.error("Размер переменных состояния должен совпадать с числом вероятностей.")
-        return False
-
-    if np.any(initial_probabilities < 0) or np.any(initial_probabilities > 1):
-        st.error("Начальные вероятности должны находиться в диапазоне [0, 1].")
-        return False
-
-    if np.any(state_variables < 0):
-        st.error("Переменные состояния не могут быть отрицательными.")
-        return False
-
-    if time_array is None or len(time_array) == 0:
-        st.error("Временной массив не задан.")
-        return False
-
-    if lambda_rate <= 0 or mu_rate <= 0:
-        st.error("Интенсивности λ и μ должны быть положительными.")
-        return False
-
-    return True
+    match system_type:
+        case "Однолинейная":
+            return (
+                config,
+                SingleServerThroughputParams(**base_params, nu_rate=nu_rate),
+                system_type,
+            )
+        case "Многолинейная":
+            return (
+                config,
+                MultiServerThroughputParams(
+                    **base_params, nu_rate=nu_rate, processor_count=processor_count
+                ),
+                system_type,
+            )
+        case _:
+            raise
 
 
 def main() -> None:
@@ -164,57 +117,26 @@ def main() -> None:
 
     (
         config,
+        params,
         system_type,
-        lambda_rate,
-        mu_rate,
-        nu_rate,
-        max_customers,
-        processor_count,
-        time_array,
-        state_variables,
-        initial_probabilities,
     ) = get_user_inputs()
 
     if st.button("🚀 Применить параметры"):
-        if not validate_inputs(
-            initial_probabilities,
-            state_variables,
-            lambda_rate,
-            mu_rate,
-            nu_rate,
-            time_array,
-        ):
+        try:
+            params.validate()
+        except Exception as e:
+            st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
         system: SingleServerThroughputSystem | MultiServerThroughputSystem
-        if system_type == "Многолинейная":
-            system = MultiServerThroughputSystem(
-                MultiServerThroughputParams(
-                    lambda_rate=lambda_rate,
-                    mu_rate=mu_rate,
-                    nu_rate=nu_rate,
-                    max_customers=max_customers,
-                    processor_count=processor_count,
-                    time_array=time_array,
-                    state_variables=state_variables,
-                    initial_probabilities=initial_probabilities,
-                ),
-                config,
-            )
-        else:
-            system = SingleServerThroughputSystem(
-                SingleServerThroughputParams(
-                    lambda_rate=lambda_rate,
-                    mu_rate=mu_rate,
-                    nu_rate=nu_rate,
-                    max_customers=max_customers,
-                    time_array=time_array,
-                    state_variables=state_variables,
-                    initial_probabilities=initial_probabilities,
-                ),
-                config,
-            )
-
+        match system_type:
+            case "Однолинейная":
+                system = SingleServerThroughputSystem(params, config)
+            case "Многолинейная":
+                system = MultiServerThroughputSystem(params, config)
+            case _:
+                st.error("❌ Некорректный тип системы")
+                st.stop()
         st.success("✅ Параметры успешно заданы!")
 
         try:
@@ -226,7 +148,7 @@ def main() -> None:
 
         st.markdown("---")
         st.subheader("📊 График пропускной способности системы")
-        fig = plot_throughput(probabilities, time_array)
+        fig = plot_throughput(probabilities, params.time_array)
         st.plotly_chart(fig, use_container_width=True)
 
 

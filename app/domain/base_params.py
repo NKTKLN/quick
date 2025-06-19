@@ -11,14 +11,13 @@ import numpy as np
 
 
 @dataclass
-class BasicSingleServerParams(ABC):
-    """Параметры одноканальной СМО без учета ухода заявок.
+class BasicServerParams(ABC):
+    """Параметры СМО без учета поступления и ухода заявок.
 
     Содержит базовые параметры, описывающие входной поток, обслуживание,
     ограничения по числу заявок и начальные условия системы.
 
     Attributes:
-        lambda_rate (float): Интенсивность поступления заявок (λ > 0).
         mu_rate (float): Интенсивность обслуживания заявок (μ > 0).
         max_customers (int): Максимальное допустимое число заявок в системе (n > 0).
         time_array (np.ndarray[np.float64]): Массив временных точек расчета.
@@ -26,7 +25,6 @@ class BasicSingleServerParams(ABC):
         initial_probabilities (np.ndarray[np.float64]): Начальные вероятности состояний.
     """
 
-    lambda_rate: float
     mu_rate: float
     max_customers: int
     time_array: np.ndarray[np.float64]
@@ -38,8 +36,6 @@ class BasicSingleServerParams(ABC):
 
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
-        if self.lambda_rate <= 0:
-            raise ValueError("Интенсивность λ должна быть положительна.")
         if self.mu_rate <= 0:
             raise ValueError("Интенсивность μ должна быть положительна.")
         if self.max_customers <= 0:
@@ -60,6 +56,30 @@ class BasicSingleServerParams(ABC):
             raise ValueError(
                 "Начальные вероятности должны находиться в диапазоне [0, 1]."
             )
+
+
+@dataclass
+class BasicSingleServerParams(BasicServerParams):
+    """Параметры одноканальной СМО без учета ухода заявок.
+
+    Содержит базовые параметры, описывающие входной поток, обслуживание,
+    ограничения по числу заявок и начальные условия системы.
+
+    Attributes:
+        lambda_rate (float): Интенсивность поступления заявок (λ > 0).
+        Остальные параметры наследуются от BasicServerParams.
+    """
+
+    lambda_rate: float
+
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if self.lambda_rate <= 0:
+            raise ValueError("Интенсивность λ должна быть положительна.")
 
 
 @dataclass

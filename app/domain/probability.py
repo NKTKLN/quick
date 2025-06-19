@@ -11,7 +11,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from app.domain.base_params import BasicMultiServerParams, BasicSingleServerParams
+from app.domain.base_params import (
+    BasicMultiServerParams,
+    BasicServerParams,
+    BasicSingleServerParams,
+)
 
 
 @dataclass
@@ -67,16 +71,16 @@ class MultiServerParams(BasicMultiServerParams):
             raise ValueError("Интенсивность ν должна быть положительна.")
         if (
             self.initial_probabilities.shape[0]
-            != self.max_customers + self.processor_count
+            != self.max_customers + self.processor_count + 1
         ):
             raise ValueError(
                 "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе + колличество процессоров."
+                "заявок в системе + колличество процессоров + 1."
             )
 
 
 @dataclass
-class MAPServerParams(BasicSingleServerParams):
+class MAPServerParams(BasicServerParams):
     """Параметры СМО с MAP-потоками и уходом нетерпеливых заявок.
 
     Описывает систему с марковским модулированным пуассоновским входным потоком,
@@ -90,6 +94,7 @@ class MAPServerParams(BasicSingleServerParams):
     """  # TODO: Проверить корректность описания p_rate и q_rate
 
     nu_rate: float
+    lambda_rate: np.ndarray[np.float64]
     p_rate: np.ndarray[np.float64]
     q_rate: np.ndarray[np.float64]
 
@@ -101,26 +106,28 @@ class MAPServerParams(BasicSingleServerParams):
         super().validate()
         if self.nu_rate <= 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
-        if self.initial_probabilities.shape[0] != self.max_customers:
+        if np.any(self.lambda_rate <= 0) or self.lambda_rate.shape[0] == 0:
+            raise ValueError("Интенсивность λ должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers**2:
             raise ValueError(
                 "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе."
+                "заявок в системе возведенных в квадрат."
             )
         if self.p_rate.shape != self.q_rate.shape:
             raise ValueError(
                 "Размер начальных вероятностей должен совпадать с максимальным числом "
                 "заявок в системе."
             )
-        if self.p_rate.ndim == 2 and self.p_rate.shape[0] == self.p_rate.shape[1]:
+        if self.p_rate.ndim != 2 or self.p_rate.shape[0] != self.p_rate.shape[1]:
             raise ValueError(
                 "Матрицы интенсивностей должны быть размерности 2D и быть квадратными."
             )
-        if np.any(self.p_rate < 0 or self.p_rate > 1):
+        if np.any((self.p_rate < 0) | (self.p_rate > 1)):
             raise ValueError(
                 "Значения матрицы интенсивности обслуживания должны находиться в "
                 "диапазоне [0, 1]."
             )
-        if np.any(self.q_rate < 0 or self.q_rate > 1):
+        if np.any((self.q_rate < 0) | (self.q_rate > 1)):
             raise ValueError(
                 "Значения матрицы интенсивности поступления должны находиться в "
                 "диапазоне [0, 1]."

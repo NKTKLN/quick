@@ -6,6 +6,7 @@
 
 from dataclasses import asdict
 
+import numpy as np
 import streamlit as st
 
 from app.domain import (
@@ -84,7 +85,7 @@ def get_user_inputs() -> tuple[
 
     count = max_customers
     if system_type == "Многолинейная":
-        count += processor_count
+        count += processor_count + 1
     elif system_type == "С MAP-потоками":
         count **= 2
 
@@ -125,7 +126,10 @@ def get_user_inputs() -> tuple[
             return (
                 config,
                 MAPServerParams(
-                    **base_params, nu_rate=nu_rate, p_rate=p_rate, q_rate=q_rate
+                    **base_params,
+                    nu_rate=nu_rate,
+                    p_rate=p_rate.to_numpy().astype(dtype=np.float64),
+                    q_rate=q_rate.to_numpy().astype(dtype=np.float64),
                 ),
                 system_type,
             )
