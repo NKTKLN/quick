@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from app.services.rate_generator import generate_p_q
+
 
 def intensity_parameters() -> tuple[float, float, float]:
     """Отображает UI-компонент с тремя полями ввода параметров интенсивности: λ, μ и ν.
@@ -180,9 +182,15 @@ def _generate_matrix(
     if default_matrix is None:
         default_matrix = np.zeros((n, n), dtype=int)
 
-    matrix = pd.DataFrame(default_matrix)
+    if key not in st.session_state:
+        st.session_state[key] = pd.DataFrame(default_matrix)
+
     with st.expander(title):
-        matrix = st.data_editor(matrix, num_rows="fixed", hide_index=True, key=key)
+        matrix = st.data_editor(
+            st.session_state[key], num_rows="fixed", hide_index=True, key=f"{key}_table"
+        )
+
+    st.session_state[key] = matrix
 
     return matrix
 
@@ -202,14 +210,16 @@ def map_intensity_matrices(
             - Матрица интенсивностей обслуживания (p_rate);
             - Матрица интенсивностей поступления (q_rate).
     """
+    if st.button("🔄 Сгенерировать матрицы интенсивностей случайно"):
+        numpy_p_rate, numpy_q_rate = generate_p_q(max_customers)
+        st.session_state["p_rate"] = pd.DataFrame(numpy_p_rate)
+        st.session_state["q_rate"] = pd.DataFrame(numpy_q_rate)
+
     p_rate = _generate_matrix(
         max_customers, "Матрица интенсивностей обслуживания", "p_rate"
     )
     q_rate = _generate_matrix(
         max_customers, "Матрица интенсивностей поступления", "q_rate"
     )
-
-    if st.button("🔄 Сгенерировать матрицы интенсивностей случайно"):
-        pass
 
     return p_rate, q_rate
