@@ -51,6 +51,14 @@ class MpmathComputationConfig(ComputationConfig):
 
     precision: int = 50
 
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        if self.precision <= 0:
+            raise ValueError("Переменная precision должна быть положительна.")
+
 
 @dataclass
 class MergedComputationConfig(MpmathComputationConfig):
@@ -62,3 +70,11 @@ class MergedComputationConfig(MpmathComputationConfig):
     """
 
     tolerance: float = 1e-12
+
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        if self.tolerance <= 0:
+            raise ValueError("Переменная tolerance должна быть положительна.")

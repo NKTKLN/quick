@@ -28,6 +28,20 @@ class SingleServerParams(BasicSingleServerParams):
 
     nu_rate: float
 
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if self.nu_rate <= 0:
+            raise ValueError("Интенсивность ν должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе."
+            )
+
 
 @dataclass
 class MultiServerParams(BasicMultiServerParams):
@@ -42,6 +56,23 @@ class MultiServerParams(BasicMultiServerParams):
     """
 
     nu_rate: float
+
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if self.nu_rate <= 0:
+            raise ValueError("Интенсивность ν должна быть положительна.")
+        if (
+            self.initial_probabilities.shape[0]
+            != self.max_customers + self.processor_count
+        ):
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе + колличество процессоров."
+            )
 
 
 @dataclass
@@ -61,3 +92,37 @@ class MAPServerParams(BasicSingleServerParams):
     nu_rate: float
     p_rate: np.ndarray[np.float64]
     q_rate: np.ndarray[np.float64]
+
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if self.nu_rate <= 0:
+            raise ValueError("Интенсивность ν должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе."
+            )
+        if self.p_rate.shape != self.q_rate.shape:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе."
+            )
+        if self.p_rate.ndim == 2 and self.p_rate.shape[0] == self.p_rate.shape[1]:
+            raise ValueError(
+                "Матрицы интенсивностей должны быть размерности 2D и быть квадратными."
+            )
+        if np.any(self.p_rate < 0 or self.p_rate > 1):
+            raise ValueError(
+                "Значения матрицы интенсивности обслуживания должны находиться в "
+                "диапазоне [0, 1]."
+            )
+        if np.any(self.q_rate < 0 or self.q_rate > 1):
+            raise ValueError(
+                "Значения матрицы интенсивности поступления должны находиться в "
+                "диапазоне [0, 1]."
+            )
+        # TODO: Спросить про корректность матриц интенсивности

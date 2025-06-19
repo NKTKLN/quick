@@ -48,6 +48,20 @@ class SingleServerThroughputParams(BasicSingleServerParams):
         }
         return ParamsNuIterator(self.nu_rate, base_params, SingleServerParams)
 
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if np.any(self.nu_rate <= 0):
+            raise ValueError("Интенсивность ν должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе."
+            )
+
 
 @dataclass
 class MultiServerThroughputParams(BasicMultiServerParams):
@@ -78,3 +92,20 @@ class MultiServerThroughputParams(BasicMultiServerParams):
             if field.name != "nu_rate"
         }
         return ParamsNuIterator(self.nu_rate, base_params, MultiServerParams)
+
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if np.any(self.nu_rate <= 0):
+            raise ValueError("Интенсивность ν должна быть положительна.")
+        if (
+            self.initial_probabilities.shape[0]
+            != self.max_customers + self.processor_count
+        ):
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе + колличество процессоров."
+            )
