@@ -200,12 +200,14 @@ class MAPServerMatrixBuilder(MatrixBuilder):
             elif index == n - 1:
                 # Конечное состояние
                 coefficients_matrix[index, index - 1] = d_1_t
-                coefficients_matrix[index, index] = d_0_t + d_1_t - (μ + ν) * np.eye(n)
+                coefficients_matrix[index, index] = (
+                    d_0_t + d_1_t - (μ + (index - 1) * ν) * np.eye(n)
+                )
             else:
                 # Промежуточные состояния
                 coefficients_matrix[index, index - 1] = d_1_t
                 coefficients_matrix[index, index] = d_0_t - (
-                    μ + ν * (0 if index in (0, 1) else 1)
+                    μ + ν * max(0, index - 1)
                 ) * np.eye(n)
                 coefficients_matrix[index, index + 1] = (μ + index * ν) * np.eye(n)
 

@@ -14,7 +14,7 @@ from app.domain import (
     MultiServerParams,
     SingleServerParams,
 )
-from app.services.probability import MultiServerSystem, SingleServerSystem
+from app.services import MultiServerSystem, SingleServerSystem
 from pages.components import (
     calculation_config,
     intensity_parameters,

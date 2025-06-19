@@ -14,10 +14,7 @@ from app.domain import (
     MultiServerThroughputParams,
     SingleServerThroughputParams,
 )
-from app.services.throughput import (
-    MultiServerThroughputSystem,
-    SingleServerThroughputSystem,
-)
+from app.services import MultiServerThroughputSystem, SingleServerThroughputSystem
 from pages.components import (
     calculation_config,
     plot_throughput,
