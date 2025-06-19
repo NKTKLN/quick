@@ -10,7 +10,7 @@ from typing import Optional
 import numpy as np
 import streamlit as st
 
-from app.services.rate_generator import generate_p_q
+from app.services import map_intensity_matrix_generator
 
 
 def intensity_parameters() -> tuple[float, float, float]:
@@ -201,7 +201,7 @@ def _generate_matrix(
     return matrix
 
 
-def map_intensity_matrices(
+def map_intensity_matrix(
     max_customers: int,
 ) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
     """Отображает UI-компоненты для ввода двух матриц интенсивностей.
@@ -217,9 +217,12 @@ def map_intensity_matrices(
             - Матрица интенсивностей поступления (q_rate).
     """
     if st.button("🔄 Сгенерировать матрицы интенсивностей случайно"):
-        numpy_p_rate, numpy_q_rate = generate_p_q(max_customers)
-        st.session_state["p_rate"] = numpy_p_rate
-        st.session_state["q_rate"] = numpy_q_rate
+        try:
+            numpy_p_rate, numpy_q_rate = map_intensity_matrix_generator(max_customers)
+            st.session_state["p_rate"] = numpy_p_rate
+            st.session_state["q_rate"] = numpy_q_rate
+        except ValueError:
+            st.error("❌ Ошибка при генерации матриц")
 
     p_rate = _generate_matrix(
         max_customers, "Матрица интенсивностей обслуживания", "p_rate"

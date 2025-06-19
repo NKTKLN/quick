@@ -12,6 +12,7 @@ from .probability import (
     MultiServerSystem,
     SingleServerSystem,
 )
+from .rate_generator import map_intensity_matrix_generator
 from .solver import (
     BasicProbabilitySolver,
     MergedProbabilitySolver,
@@ -40,4 +41,5 @@ __all__ = [
     "BaseThroughputSystem",
     "SingleServerThroughputSystem",
     "MultiServerThroughputSystem",
+    "map_intensity_matrix_generator",
 ]

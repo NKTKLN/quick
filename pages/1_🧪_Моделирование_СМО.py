@@ -22,7 +22,7 @@ from app.services import MAPServerSystem, MultiServerSystem, SingleServerSystem
 from pages.components import (
     calculation_config,
     intensity_parameters,
-    map_intensity_matrices,
+    map_intensity_matrix,
     map_intensity_parameters,
     plot_probabilities,
     render_initial_probabilities,
@@ -78,7 +78,7 @@ def get_user_inputs() -> tuple[
             system_type, default_max_customers=3
         )
         st.markdown("---")
-        p_rate, q_rate = map_intensity_matrices(max_customers)
+        p_rate, q_rate = map_intensity_matrix(max_customers)
     else:
         lambda_rate, mu_rate, nu_rate = intensity_parameters()
         max_customers, processor_count = system_capacity_inputs(system_type)
