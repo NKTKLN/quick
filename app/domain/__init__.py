@@ -2,8 +2,9 @@
 
 Экспортирует основные компоненты:
     - BasicSingleServerParams, BasicMultiServerParams — базовые параметры без ν.
-    - SingleServerParams,
-        MultiServerParams — параметры СМО с учетом интенсивности ухода (ν).
+    - SingleServerParams, MultiServerParams,
+        MAPServerParams — параметры СМО с учетом интенсивности ухода (ν),
+                          включая модели с MAP-потоками.
     - SingleServerThroughputParams,
         MultiServerThroughputParams — параметры для анализа пропускной способности.
     - ParamsNuIterator — итератор по значениям ν.
@@ -15,7 +16,7 @@
 from .base_params import BasicMultiServerParams, BasicSingleServerParams
 from .config_params import ConfigInitParams
 from .iterators import ParamsNuIterator
-from .probability import MultiServerParams, SingleServerParams
+from .probability import MAPServerParams, MultiServerParams, SingleServerParams
 from .settings import (
     CalculationType,
     ComputationConfig,
@@ -29,6 +30,7 @@ __all__ = [
     "BasicMultiServerParams",
     "SingleServerParams",
     "MultiServerParams",
+    "MAPServerParams",
     "SingleServerThroughputParams",
     "MultiServerThroughputParams",
     "ParamsNuIterator",
