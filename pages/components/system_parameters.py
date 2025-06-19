@@ -8,7 +8,6 @@
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 import streamlit as st
 
 from app.services.rate_generator import generate_p_q
@@ -180,10 +179,17 @@ def _generate_matrix(
         np.ndarray[np.float64]: Матрица интенсивностей размером n x n.
     """
     if default_matrix is None:
-        default_matrix = np.zeros((n, n), dtype=int)
+        default_matrix = np.zeros((n, n), dtype=np.float64)
 
     if key not in st.session_state:
-        st.session_state[key] = pd.DataFrame(default_matrix)
+        st.session_state[key] = default_matrix
+
+    if len(st.session_state[key]) != n:
+        old_matrix = st.session_state[key]
+        new_matrix = np.zeros((n, n), dtype=np.float64)
+        min_n = min(len(st.session_state[key]), n)
+        new_matrix[:min_n, :min_n] = old_matrix[:min_n, :min_n]
+        st.session_state[key] = new_matrix
 
     with st.expander(title):
         matrix = st.data_editor(
@@ -212,8 +218,8 @@ def map_intensity_matrices(
     """
     if st.button("🔄 Сгенерировать матрицы интенсивностей случайно"):
         numpy_p_rate, numpy_q_rate = generate_p_q(max_customers)
-        st.session_state["p_rate"] = pd.DataFrame(numpy_p_rate)
-        st.session_state["q_rate"] = pd.DataFrame(numpy_q_rate)
+        st.session_state["p_rate"] = numpy_p_rate
+        st.session_state["q_rate"] = numpy_q_rate
 
     p_rate = _generate_matrix(
         max_customers, "Матрица интенсивностей обслуживания", "p_rate"

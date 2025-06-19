@@ -6,6 +6,8 @@
 # class RandomMAPRateGenerator(BaseRateGenerator):
 #     pass
 
+from typing import Optional
+
 import numpy as np
 
 
@@ -48,7 +50,7 @@ def generate_p_q_from_params(lambda_array, mu, nu, n_states=3, n_events=3):
 
 
 def generate_p_q(
-    n: int, p_max: int = 0.5, q_max: int = 0.5, depth: int = 3
+    n: int, p_max: Optional[int] = None, q_max: Optional[int] = None, depth: int = 3
 ) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
     """Генерирует случайные матрицы p и q с нормировкой строк.
 
@@ -67,6 +69,11 @@ def generate_p_q(
     if depth <= 0:
         raise
 
+    if p_max is None:
+        p_max = 1 / n
+    if q_max is None:
+        q_max = 1 / n
+
     p = np.random.uniform(0, p_max, size=(n, n))
     np.fill_diagonal(p, 0)
 
@@ -79,6 +86,6 @@ def generate_p_q(
 
     for i in range(n):
         if q[i, -1] < 0:
-            return generate_p_q(n, p_max, q_max)
+            return generate_p_q(n, p_max, q_max, depth - 1)
 
     return p, q

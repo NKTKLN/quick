@@ -128,8 +128,8 @@ def get_user_inputs() -> tuple[
                 MAPServerParams(
                     **base_params,
                     nu_rate=nu_rate,
-                    p_rate=p_rate.to_numpy().astype(dtype=np.float64),
-                    q_rate=q_rate.to_numpy().astype(dtype=np.float64),
+                    p_rate=p_rate.astype(dtype=np.float64),
+                    q_rate=q_rate.astype(dtype=np.float64),
                 ),
                 system_type,
             )
