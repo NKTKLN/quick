@@ -1,8 +1,8 @@
 """Модуль для моделирования систем массового обслуживания с нетерпеливыми заявками.
 
-Содержит классы для расчёта вероятностных характеристик однолинейных и многолинейных СМО
-с использованием матричных методов. Поддерживает вычисления как с обычной точностью
-(numpy), так и с повышенной точностью (mpmath).
+Включает классы для вычисления вероятностных характеристик одно- и многолинейных СМО,
+в том числе с MAP-потоками поступления. Используются матричные методы. Поддерживаются
+вычисления с обычной точностью (numpy) и повышенной точностью (mpmath).
 """
 
 import logging
@@ -11,18 +11,19 @@ from typing import Any
 
 import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
-from numpy.typing import NDArray
-from scipy.linalg import eig
+from scipy.linalg import eig as scipy_eig
 
 from app.domain import (
     CalculationType,
     ComputationConfig,
+    MAPServerParams,
     MergedComputationConfig,
     MpmathComputationConfig,
     MultiServerParams,
     SingleServerParams,
 )
 from app.services.matrix_generators import (
+    MAPServerMatrixBuilder,
     MultiServerMatrixBuilder,
     SingleServerMatrixBuilder,
 )
@@ -37,55 +38,39 @@ logger = logging.getLogger(__name__)
 
 
 class BaseProbabilitySystem(ABC):
-    """Абстрактный базовый класс для моделирования систем массового обслуживания (СМО).
+    """Базовый абстрактный класс для моделирования СМО с нетерпеливыми заявками.
 
-    Предоставляет общий интерфейс и базовую реализацию для расчёта вероятностных
-    характеристик СМО с нетерпеливыми заявками. Классы-наследники должны реализовать
-    специфичную логику построения матриц переходов для конкретных типов систем.
-
-    Основные функции:
-        - Управление процессом расчёта вероятностей состояний системы
-        - Координация работы компонентов (построение матриц, решение уравнений)
-        - Предоставление единого интерфейса для различных типов СМО
-
-    Методы:
-        - calculate(): основной метод для выполнения полного расчёта
-        - _build_transition_matrix(): абстрактный метод построения матрицы переходов
-        - _compute_eigenvalues(): вычисление собственных значений матрицы
-        - _solve_probability_system(): решение системы уравнений для вероятностей
+    Определяет интерфейс и общую логику расчёта вероятностей состояний СМО.
+    Наследники реализуют специфичные методы построения матриц переходов.
     """
 
     def __init__(
         self,
-        params: Any,
+        params: SingleServerParams | MultiServerParams | MAPServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params: Объект параметров системы, содержащий:
-                   - Интенсивности потоков (входящий, обслуживания, ухода)
-                   - Структурные параметры системы (количество каналов, емкость очереди)
-                   - Другие специфичные параметры конкретной СМО
-            config: Конфигурация вычислений
+            params (SingleServerParams | MultiServerParams | MAPServerParams):
+                Параметры СМО (интенсивности, структура, др.).
+            config: Конфигурация вычислений.
         """
         self.params = params
         self.config = config
 
-    def calculate(self) -> NDArray[np.float64]:
+    def calculate(self) -> np.ndarray[np.float64]:
         """Выполняет полный расчёт вероятностей состояний системы.
 
-        Процесс расчёта включает:
-        1. Построение матрицы переходов системы
-        2. Вычисление собственных значений матрицы
-        3. Решение системы уравнений для вероятностей
-        4. Построение итоговой матрицы вероятностей состояний
+        Этапы:
+            1. Построение матрицы переходов системы
+            2. Вычисление собственных значений матрицы
+            3. Решение системы уравнений для вероятностей
+            4. Построение итоговой матрицы вероятностей состояний
 
         Returns:
-            NDArray[np.float64]: Матрица вероятностей размерностью (N+1)x(M+1),
-                               где N — ёмкость системы, M — число источников.
-                               P[i,j] — вероятность состояния с i заявками в системе
-                               и j занятыми источниками.
+            np.ndarray[np.float64]: Матрица вероятностей состояний (размерность
+                                    зависит от параметров СМО).
         """
         transition_matrix = self._build_transition_matrix()
         eigenvalues, xsi_matrix = self._compute_eigenvalues(transition_matrix)
@@ -95,26 +80,25 @@ class BaseProbabilitySystem(ABC):
         return probability_matrix
 
     @abstractmethod
-    def _build_transition_matrix(self) -> NDArray[np.float64]:
-        """Абстрактный метод построения матрицы переходов между состояниями СМО.
+    def _build_transition_matrix(self) -> np.ndarray[np.float64]:
+        """Строит матрицу переходов между состояниями СМО.
 
         Returns:
-            NDArray[np.float64]: Матрица переходов между состояниями системы.
+            np.ndarray[np.float64]: Матрица переходов.
         """
         pass
 
     def _compute_eigenvalues(
-        self, transition_matrix: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | tuple[Any, Any]:
-        """Вычисляет собственные значения матрицы переходов.
+        self, transition_matrix: np.ndarray[np.float64]
+    ) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]] | tuple[Any, Any]:
+        """Вычисляет собственные значения и собственные векторы матрицы переходов.
 
         Args:
-            transition_matrix: Матрица переходов между состояниями системы.
+            transition_matrix (np.ndarray[np.float64]): Матрица переходов.
 
         Returns:
-            tuple: Кортеж из двух элементов:
-                - Массив собственных значений матрицы
-                - Матрица собственных векторов
+            tuple[np.ndarray[np.float64], np.ndarray[np.float64]] | tuple[Any, Any]:
+                Кортеж из массива собственных значений и матрицы собственных векторов.
         """
         if self.config.calculation_type in [
             CalculationType.MPMATH,
@@ -127,24 +111,24 @@ class BaseProbabilitySystem(ABC):
                 eigenvalues, xsi_matrix = mp.eig(mp_matrix)
             return eigenvalues, xsi_matrix
 
-        eigenvalues, xsi_matrix = eig(transition_matrix)
+        eigenvalues, xsi_matrix = scipy_eig(transition_matrix)
         return eigenvalues, xsi_matrix
 
     def _solve_probability_system(
         self,
-        transition_matrix: NDArray[np.float64],
-        eigenvalues: NDArray[np.float64] | Any,
-        xsi_matrix: NDArray[np.float64] | Any,
-    ) -> NDArray[np.float64]:
-        """Решает систему уравнений для нахождения стационарных вероятностей.
+        transition_matrix: np.ndarray[np.float64],
+        eigenvalues: np.ndarray[np.float64] | Any,
+        xsi_matrix: np.ndarray[np.float64] | Any,
+    ) -> np.ndarray[np.float64]:
+        """Решает систему уравнений для стационарных вероятностей состояний.
 
         Args:
-            transition_matrix: Матрица переходов системы.
-            eigenvalues: Собственные значения матрицы переходов.
-            xsi_matrix: Матрица собственных векторов.
+            transition_matrix (np.ndarray[np.float64]): Матрица переходов.
+            eigenvalues (np.ndarray[np.float64] | Any): Собственные значения.
+            xsi_matrix (np.ndarray[np.float64] | Any): Собственные векторы.
 
         Returns:
-            NDArray[np.float64]: Матрица стационарных вероятностей состояний системы.
+            np.ndarray[np.float64]: Матрица стационарных вероятностей.
         """
         prob_solver: (
             NumpyProbabilitySolver | MpmathProbabilitySolver | MergedProbabilitySolver
@@ -174,9 +158,10 @@ class BaseProbabilitySystem(ABC):
 
 
 class SingleServerSystem(BaseProbabilitySystem):
-    """Класс для моделирования однолинейной СМО с нетерпеливыми заявками.
+    """Класс моделирования однолинейной СМО с нетерпеливыми заявками.
 
-    Реализует расчёт вероятностных характеристик системы с одним обслуживающим прибором.
+    Реализует методы построения матрицы переходов и расчёта вероятностей
+    для системы с одним каналом обслуживания.
     """
 
     def __init__(
@@ -184,33 +169,29 @@ class SingleServerSystem(BaseProbabilitySystem):
         params: SingleServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
-        """Инициализирует систему массового обслуживания с заданными параметрами.
+        """Инициализирует однолинейную систему массового обслуживания.
 
         Args:
-            params: Объект SingleServerParams, содержащий параметры системы:
-                    - lambda_rate: интенсивность входящего потока
-                    - mu_rate: интенсивность обслуживания
-                    - nu_rate: интенсивность ухода заявок из очереди
-                    - channel_count: количество каналов обслуживания
-                    - queue_capacity: максимальная длина очереди
-            config: Конфигурация вычислений
+            params (SingleServerParams): Параметры системы.
+            config: Конфигурация вычислений.
         """
         super().__init__(params, config)
 
-    def _build_transition_matrix(self) -> NDArray[np.float64]:
-        """Строит матрицу переходов системы массового обслуживания.
+    def _build_transition_matrix(self) -> np.ndarray[np.float64]:
+        """Строит матрицу переходов однолинейной системы.
 
         Returns:
-            NDArray[np.float64]: Матрица переходов между состояниями системы.
+            np.ndarray[np.float64]: Матрица переходов между состояниями системы.
         """
         transition_matrix = SingleServerMatrixBuilder(self.params).build()
         return transition_matrix
 
 
 class MultiServerSystem(BaseProbabilitySystem):
-    """Класс для моделирования многолинейной СМО с нетерпеливыми заявками.
+    """Класс моделирования многолинейной СМО с нетерпеливыми заявками.
 
-    Реализует расчёт вероятостей системы с несколькими обслуживающими приборами.
+    Реализует методы построения матрицы переходов и расчёта вероятностей
+    для системы с несколькими каналами обслуживания.
     """
 
     def __init__(
@@ -218,25 +199,49 @@ class MultiServerSystem(BaseProbabilitySystem):
         params: MultiServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
-        """Инициализирует систему массового обслуживания с заданными параметрами.
+        """Инициализирует многолинейную систему массового обслуживания.
 
         Args:
-            params: Объект MultiServerParams, содержащий параметры системы:
-                    - lambda_rate: интенсивность входящего потока
-                    - mu_rate: интенсивность обслуживания
-                    - nu_rate: интенсивность ухода заявок из очереди
-                    - channel_count: количество каналов обслуживания
-                    - queue_capacity: максимальная длина очереди
-                    - processor_count: количество обслуживающих приборов в системе
-            config: Конфигурация вычислений
+            params (MultiServerParams): Параметры системы.
+            config: Конфигурация вычислений.
         """
         super().__init__(params, config)
 
-    def _build_transition_matrix(self) -> NDArray[np.float64]:
+    def _build_transition_matrix(self) -> np.ndarray[np.float64]:
         """Строит матрицу переходов многолинейной системы массового обслуживания.
 
         Returns:
-            NDArray[np.float64]: Матрица переходов между состояниями системы.
+            np.ndarray[np.float64]: Матрица переходов между состояниями системы.
         """
         transition_matrix = MultiServerMatrixBuilder(self.params).build()
+        return transition_matrix
+
+
+class MAPServerSystem(BaseProbabilitySystem):
+    """Класс моделирования СМО с MAP-потоками и нетерпеливыми заявками.
+
+    Реализует методы построения матрицы переходов и расчёта вероятностей
+    для систем с MAP-потоками поступления заявок.
+    """
+
+    def __init__(
+        self,
+        params: MAPServerParams,
+        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    ) -> None:
+        """Инициализирует систему массового обслуживания с MAP-потоками.
+
+        Args:
+            params (MAPServerParams): Параметры системы.
+            config: Конфигурация вычислений.
+        """
+        super().__init__(params, config)
+
+    def _build_transition_matrix(self) -> np.ndarray[np.float64]:
+        """Строит матрицу переходов СМО с MAP-потоками.
+
+        Returns:
+            np.ndarray[np.float64]: Матрица переходов между состояниями системы.
+        """
+        transition_matrix = MAPServerMatrixBuilder(self.params).build()
         return transition_matrix
