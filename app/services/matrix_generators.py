@@ -108,7 +108,7 @@ class MultiServerMatrixBuilder(MatrixBuilder):
 
         Returns:
             np.ndarray[np.float64]: Квадратная матрица коэффициентов
-                                    размера (n+m+1) x (n+m+1).
+                размера (n+m+1) x (n+m+1).
         """
         if not isinstance(self.params, MultiServerParams):
             raise TypeError("Ожидались параметры типа MultiServerParams")

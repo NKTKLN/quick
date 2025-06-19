@@ -11,7 +11,6 @@ from typing import Any, Optional, cast
 
 import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
-from numpy.typing import NDArray
 from tqdm import tqdm  # type: ignore[import-untyped]
 
 from app.db import duckdb_cache
@@ -36,17 +35,19 @@ class BasicProbabilitySolver(ABC):
     def __init__(
         self,
         params: SingleServerParams,
-        coefficients_matrix: NDArray[np.float64],
-        eigenvalues: NDArray[np.float64] | Any,
+        coefficients_matrix: np.ndarray[np.float64],
+        eigenvalues: np.ndarray[np.float64] | Any,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует базовый решатель.
 
-        Аргументы:
-            params: Параметры системы массового обслуживания.
-            coefficients_matrix: Матрица коэффициентов системы уравнений (n x n).
-            eigenvalues: Массив собственных значений матрицы коэффициентов (n,).
-            config (ComputationConfig): Конфигурация вычислений.
+        Args:
+            params (SingleServerParams): Параметры системы массового обслуживания.
+            coefficients_matrix (np.ndarray[np.float64]): Матрица коэффициентов системы
+                уравнений размером (n x n).
+            eigenvalues (np.ndarray[np.float64] | Any): Массив собственных значений
+                матрицы коэффициентов (n,).
+            config: Конфигурация вычислений.
         """
         self.params = params
         self.coefficients_matrix = coefficients_matrix
@@ -55,38 +56,36 @@ class BasicProbabilitySolver(ABC):
 
     @abstractmethod
     def generate_m_matrix(
-        self, xsi_matrix: NDArray[np.float64] | Any
-    ) -> NDArray[np.float64]:
+        self, xsi_matrix: np.ndarray[np.float64] | Any
+    ) -> np.ndarray[np.float64]:
         """Генерирует матрицу M(t), зависящую от времени.
 
         M(t) описывает временную динамику системы и строится на основе собственных
         векторов и значений.
 
-        Аргументы:
-            xsi_matrix: Матрица собственных векторов размером (n x n)
+        Args:
+            xsi_matrix (np.ndarray[np.float64] | Any): Матрица собственных векторов
+                размером (n x n).
 
-        Возвращает:
-            NDArray: Трехмерная матрица M(t) размером (n x n x t)
+        Returns:
+            np.ndarray[np.float64]: Трехмерная матрица M(t) размером (n x n x t).
         """
         pass
 
     @duckdb_cache("params.initial_probabilities")
     def generate_p_matrix(
-        self, m_matrix: NDArray[np.float64 | Any]
-    ) -> NDArray[np.float64]:
+        self, m_matrix: np.ndarray[np.float64 | Any]
+    ) -> np.ndarray[np.float64]:
         """Вычисляет финальную матрицу вероятностей P(t).
 
         Выполняет умножение начальных вероятностей на матрицу M(t),
         получая вероятности состояний системы в каждый момент времени.
 
-        Аргументы:
-            m_matrix: Матрица M размером (n x n x t)
+        Args:
+            m_matrix (np.ndarray[np.float64 | Any]): Матрица M размером (n x n x t).
 
-        Возвращает:
-            NDArray[np.float64]: Матрица вероятностей P размером (n x t)
-
-        Исключения:
-            ValueError: Если размерности начальных вероятностей и матрицы M не совпадают
+        Returns:
+            np.ndarray[np.float64]: Матрица вероятностей P размером (n x t).
         """
         if self.params.initial_probabilities.shape[0] != m_matrix.shape[0]:
             raise ValueError(
@@ -97,7 +96,7 @@ class BasicProbabilitySolver(ABC):
             np.float64
         )
         logger.info("Вычисление матрицы p завершено.")
-        return cast(NDArray[np.float64], p_matrix)
+        return cast(np.ndarray[np.float64], p_matrix)
 
 
 class NumpyProbabilitySolver(BasicProbabilitySolver):
@@ -109,37 +108,38 @@ class NumpyProbabilitySolver(BasicProbabilitySolver):
     def __init__(
         self,
         params: SingleServerParams,
-        coefficients_matrix: NDArray[np.float64],
-        eigenvalues: NDArray[np.float64],
+        coefficients_matrix: np.ndarray[np.float64],
+        eigenvalues: np.ndarray[np.float64],
         config: ComputationConfig,
     ) -> None:
         """Инициализирует решатель вероятностей.
 
-        Аргументы:
-            params: Параметры системы массового обслуживания
-            coefficients_matrix: Матрица коэффициентов системы уравнений
-                                 размером (n x n)
-            eigenvalues: Массив собственных значений матрицы коэффициентов размером (n,)
+        Args:
+            params (SingleServerParams): Параметры системы массового обслуживания.
+            coefficients_matrix (np.ndarray[np.float64]): Матрица коэффициентов системы
+                уравнений размером (n x n).
+            eigenvalues (np.ndarray[np.float64]): Массив собственных значений матрицы
+                коэффициентов размером (n,).
             config (ComputationConfig): Конфигурация вычислений.
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
     @duckdb_cache("params.time_array", "eigenvalues")
-    def generate_m_matrix(self, xsi_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
+    def generate_m_matrix(
+        self, xsi_matrix: np.ndarray[np.float64]
+    ) -> np.ndarray[np.float64]:
         """Генерирует матрицу M, объединяя временные и пространственные характеристики.
 
         Вычисляет трехмерную матрицу M(t), которая учитывает вклад каждого собственного
         значения и соответствующих векторов в динамику вероятностной системы.
 
-        Аргументы:
-            xsi_matrix: Матрица собственных векторов размером (n x n)
+        Args:
+            xsi_matrix (np.ndarray[np.float64]): Матрица собственных векторов
+                размером (n x n).
 
-        Возвращает:
-            NDArray[np.float64]: 3D матрица M размером (n x n x t),
-                                где t — количество временных точек
-
-        Исключения:
-            ValueError: Если размерности входных матриц не согласованы
+        Returns:
+            np.ndarray[np.float64]: 3D матрица M размером (n x n x t),
+                где t — количество временных точек.
         """
         matrix_size = xsi_matrix.shape[0]
         time_steps = len(self.params.time_array)
@@ -167,31 +167,32 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
     def __init__(
         self,
         params: SingleServerParams,
-        coefficients_matrix: NDArray[np.float64],
+        coefficients_matrix: np.ndarray[np.float64],
         eigenvalues: Any,
         config: MpmathComputationConfig,
     ) -> None:
         """Инициализирует решатель вероятностей с повышенной точностью.
 
-        Аргументы:
-            params: Параметры системы массового обслуживания
-            coefficients_matrix: Матрица коэффициентов системы уравнений
-                                 размером (n x n)
-            eigenvalues: Массив собственных значений матрицы коэффициентов размером (n,)
+        Args:
+            params (SingleServerParams): Параметры системы массового обслуживания.
+            coefficients_matrix (np.ndarray[np.float64]): Матрица коэффициентов системы
+                уравнений размером (n x n).
+            eigenvalues (Any): Массив собственных значений матрицы коэффициентов
+                размером (n,).
             config (MpmathComputationConfig): Конфигурация вычислений.
         """
         self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
     @duckdb_cache("_precision", "params.time_array", "eigenvalues")
-    def _generate_exp_matrix(self) -> NDArray[Any]:
+    def _generate_exp_matrix(self) -> np.ndarray[Any]:
         """Генерирует матрицу экспонент exp(λ_k * t).
 
         Внутренний метод для построения матрицы экспоненциального поведения
         собственных значений во времени.
 
-        Возвращает:
-            list[list[Any]]: Двумерная матрица exp(λ_k * t) для всех λ и t
+        Returns:
+            np.ndarray[Any]: Двумерная матрица exp(λ_k * t) для всех λ и t.
         """
         with mp.workdps(self._precision):
             time_array = mp.matrix(self.params.time_array)
@@ -206,19 +207,21 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
         self,
         xsi_matrix: Any,
         xsi_matrix_inv: Any,
-        exp_g_t: NDArray[Any],
-        invalid_indices: Optional[NDArray[np.int64]] = None,
-    ) -> NDArray[Any]:
+        exp_g_t: np.ndarray[Any],
+        invalid_indices: Optional[np.ndarray[np.int64]] = None,
+    ) -> np.ndarray[Any]:
         """Вычисляет матрицу M(t) по слоям с использованием mpmath.
 
-        Аргументы:
-            xsi_matrix: Матрица собственных векторов.
-            xsi_matrix_inv: Обратная матрица собственных векторов.
-            exp_g_t: Матрица экспонент exp(λ_k * t).
-            invalid_indices: Индексы временных точек для корректировки вычислений.
+        Args:
+            xsi_matrix (Any): Матрица собственных векторов.
+            xsi_matrix_inv (Any): Обратная матрица собственных векторов.
+            exp_g_t (np.ndarray[Any]): Матрица экспонент exp(λ_k * t).
+            invalid_indices (Optional[np.ndarray[np.int64]]): Индексы временных точек
+                для корректировки вычислений.
 
-        Возвращает:
-            3D numpy-массив с типом object, содержащий вычисленные значения M(t).
+        Returns:
+            np.ndarray[Any]: 3D numpy-массив с типом object, содержащий вычисленные
+                значения M(t).
         """
         matrix_size = len(xsi_matrix)
         time_steps = len(self.params.time_array)
@@ -242,18 +245,18 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
 
             return m_matrix
 
-    def generate_m_matrix(self, xsi_matrix: Any) -> NDArray[Any]:
+    def generate_m_matrix(self, xsi_matrix: Any) -> np.ndarray[Any]:
         """Генерирует матрицу M(t) с повышенной точностью.
 
         Вычисляет трехмерную матрицу M(t) на основе собственных векторов и значений,
         используя библиотеку mpmath для обеспечения высокой точности.
 
-        Аргументы:
-            xsi_matrix: Матрица собственных векторов размером (n x n)
+        Args:
+            xsi_matrix (Any): Матрица собственных векторов размером (n x n).
 
-        Возвращает:
-            NDArray[mp.mpf]: 3D матрица M размером (n x n x t),
-                            где t — количество временных точек
+        Returns:
+            np.ndarray[mp.mpf]: 3D матрица M размером (n x n x t),
+                где t — количество временных точек.
         """
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
@@ -264,41 +267,40 @@ class MpmathProbabilitySolver(BasicProbabilitySolver):
 
 
 class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
-    """Гибридный решатель, сочетающий точность mpmath и производительность numpy.
-
-    Автоматически переключается между методами для оптимизации вычислений.
-    """
+    """Гибридный решатель, сочетающий точность mpmath и производительность numpy."""
 
     def __init__(
         self,
         params: SingleServerParams,
-        coefficients_matrix: NDArray[np.float64],
+        coefficients_matrix: np.ndarray[np.float64],
         eigenvalues: Any,
         config: MergedComputationConfig,
     ) -> None:
         """Инициализирует решатель вероятностей с повышенной точностью.
 
-        Аргументы:
-            params: Параметры системы массового обслуживания
-            coefficients_matrix: Матрица коэффициентов системы уравнений
-                                 размером (n x n)
-            eigenvalues: Массив собственных значений матрицы коэффициентов размером (n,)
+        Args:
+            params (SingleServerParams): Параметры системы массового обслуживания.
+            coefficients_matrix (np.ndarray[np.float64]): Матрица коэффициентов системы
+                уравнений размером (n x n).
+            eigenvalues (Any): Массив собственных значений матрицы коэффициентов
+                размером (n,).
             config (MergedComputationConfig): Конфигурация вычислений.
         """
         super().__init__(params, coefficients_matrix, eigenvalues, config)
 
     @duckdb_cache("config.tolerance")
     def _get_invalid_indices(
-        self, data_matrix: NDArray[np.float64 | Any], check_sum: bool = True
-    ) -> NDArray[np.int64]:
+        self, data_matrix: np.ndarray[np.float64 | Any], check_sum: bool = True
+    ) -> np.ndarray[np.int64]:
         """Определяет индексы временных точек с некорректными значениями.
 
-        Аргументы:
-            data_matrix: Трехмерный массив значений M(t).
-            check_sum: Флаг проверки суммы по графикам (по умолчанию True).
+        Args:
+            data_matrix (np.ndarray[np.float64 | Any]): Трехмерный массив значений M(t).
+            check_sum (bool): Флаг проверки суммы по графикам (по умолчанию True).
 
-        Возвращает:
-            Массив индексов последних некорректных временных точек для каждой пары.
+        Returns:
+            np.ndarray[np.int64]: Массив индексов последних некорректных временных
+                точек для каждой пары.
         """
         if not isinstance(self.config, MergedComputationConfig):
             raise
@@ -331,17 +333,17 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
 
         return invalid_indices
 
-    def generate_m_matrix(self, xsi_matrix: Any) -> NDArray[np.float64]:
+    def generate_m_matrix(self, xsi_matrix: Any) -> np.ndarray[np.float64]:
         """Генерирует матрицу M(t) с улучшенной точностью, комбинируя numpy и mpmath.
 
         Производит начальное вычисление с помощью numpy, затем корректирует
         некорректные значения с использованием mpmath.
 
-        Аргументы:
-            xsi_matrix: Матрица собственных векторов (n x n).
+        Args:
+            xsi_matrix (Any): Матрица собственных векторов (n x n).
 
-        Возвращает:
-            3D массив M(t) с исправленными значениями.
+        Returns:
+            np.ndarray[np.float64]: 3D массив M(t) с исправленными значениями.
         """
         solver_copy = deepcopy(self)
         solver_copy.eigenvalues = np.array(
@@ -361,7 +363,7 @@ class MergedProbabilitySolver(MpmathProbabilitySolver, NumpyProbabilitySolver):
             logger.info(
                 "Корректных значений достаточно, использование numpy достаточно."
             )
-            return cast(NDArray[np.float64], numpy_m_matrix)
+            return cast(np.ndarray[np.float64], numpy_m_matrix)
 
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)

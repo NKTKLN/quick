@@ -1,9 +1,4 @@
-"""Пакет для работы с кэшированием в DuckDB.
-
-Экспортирует основные компоненты:
-    duckdb_cache — декоратор для кэширования методов.
-    DuckDBClient — клиент для взаимодействия с DuckDB.
-"""
+"""Пакет для работы с кэшированием в DuckDB."""
 
 from .cache import duckdb_cache
 from .client import DuckDBClient

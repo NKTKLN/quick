@@ -28,7 +28,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
 
     Args:
         *attribute_paths (str): Пути к атрибутам объекта (например, "config.name"),
-                                включаемые в кэш-ключ.
+            включаемые в кэш-ключ.
 
     Returns:
         Callable[[T], T]: Декоратор, оборачивающий метод и реализующий кэширование.

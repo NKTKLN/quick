@@ -46,7 +46,7 @@ class MpmathComputationConfig(ComputationConfig):
 
     Attributes:
         precision (int): Точность вычислений — количество знаков после запятой
-                         (по умолчанию 50).
+            (по умолчанию 50).
     """
 
     precision: int = 50

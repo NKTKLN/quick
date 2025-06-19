@@ -106,8 +106,7 @@ def plot_throughput(
 
     Args:
         throughput_results (List[np.ndarray[np.float64]]): Список массивов пропускной
-                                                           способности для каждого
-                                                           состояния.
+            способности для каждого состояния.
         time_array (np.ndarray[np.float64]): Массив значений параметра.
 
     Returns:

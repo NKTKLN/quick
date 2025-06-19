@@ -63,7 +63,7 @@ def get_user_inputs() -> tuple[
     Returns:
         tuple: Кортеж, содержащий:
             - config (ComputationConfig | MpmathComputationConfig |
-                        MergedComputationConfig): Конфигурация вычислений.
+                MergedComputationConfig): Конфигурация вычислений.
             - system_type (str): Тип системы — "Однолинейная" или "Многолинейная".
             - lambda_rate (float): Интенсивность входящего потока λ.
             - mu_rate (float): Интенсивность обслуживания μ.

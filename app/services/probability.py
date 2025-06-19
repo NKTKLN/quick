@@ -70,7 +70,7 @@ class BaseProbabilitySystem(ABC):
 
         Returns:
             np.ndarray[np.float64]: Матрица вероятностей состояний (размерность
-                                    зависит от параметров СМО).
+                зависит от параметров СМО).
         """
         transition_matrix = self._build_transition_matrix()
         eigenvalues, xsi_matrix = self._compute_eigenvalues(transition_matrix)
