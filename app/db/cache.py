@@ -69,7 +69,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 return result
 
             serializer = PickleSerializer()
-            db_client = DuckDBClient.get_instance()
+            db_client = DuckDBClient()
 
             # Формирование части ключа из self
             try:
