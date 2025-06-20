@@ -57,7 +57,7 @@ class MpmathComputationConfig(ComputationConfig):
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
         if self.precision <= 0:
-            raise ValueError("Переменная precision должна быть положительна.")
+            raise ValueError("Точность вычислений должна быть положительна.")
 
 
 @dataclass
@@ -77,4 +77,6 @@ class MergedComputationConfig(MpmathComputationConfig):
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
         if self.tolerance <= 0:
-            raise ValueError("Переменная tolerance должна быть положительна.")
+            raise ValueError(
+                "Допустимая погрешность должна находиться в диапазоне [0, 1]."
+            )

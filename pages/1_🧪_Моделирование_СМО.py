@@ -167,7 +167,7 @@ def main() -> None:
         st.success("✅ Параметры успешно заданы!")
 
         try:
-            with st.spinner("⏳ Идёт расчёт пропускной способности..."):
+            with st.spinner("⏳ Идёт расчёт вероятностей состояния..."):
                 probabilities = system.calculate()
         except Exception as e:
             st.error(f"❌ Ошибка при вычислении: {e}")

@@ -58,3 +58,41 @@ def map_intensity_matrix_generator(
         return map_intensity_matrix_generator(n, p_max, q_max, eps, depth - 1)
 
     return p, q
+
+
+def generate_p_q_from_params(lambda_array, mu, nu, n_states=3, n_events=3):
+    """Генерирует матрицы p и q для MAP по параметрам интенсивностей.
+
+    Args:
+        lambda_array (np.ndarray): Массив интенсивностей поступления заявок.
+        mu (float): Интенсивность обслуживания.
+        nu (float): Интенсивность ухода заявок.
+        n_states (int, optional): Число состояний. По умолчанию 3.
+        n_events (int, optional): Число событий в каждом состоянии. По умолчанию 3.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Кортеж из матриц p и q.
+    """
+    total_rate = lambda_array.sum() + mu + nu
+
+    # Задаём базовые вероятности в p и q, чтобы строки были нормированы в 1
+    # Сначала генерируем случайные веса для p и q, нормируем по строкам
+    alpha = np.random.rand(n_states, n_events)
+    beta = np.random.rand(n_states, n_events - 1)  # q имеет на 1 меньше столбцов
+
+    # Нормируем так, чтобы по строкам суммы были 1
+    alpha /= alpha.sum(axis=1, keepdims=True)
+    beta /= beta.sum(axis=1, keepdims=True)
+
+    # Теперь масштабируем p и q пропорционально доле lambda и (mu+nu)
+    # p и q должны суммироваться по строке к 1, поэтому зададим:
+    p = alpha * (lambda_array[:, None] / total_rate)
+    q_partial = beta * ((mu + nu) / total_rate)
+
+    # Вычисляем последний столбец q как остаток для нормировки
+    q_last_col = 1 - p.sum(axis=1) - q_partial.sum(axis=1)
+    q_last_col[q_last_col < 0] = 0  # если отрицательное, корректируем
+
+    q = np.hstack([q_partial[:, :-1], q_last_col[:, None]])
+
+    return p, q

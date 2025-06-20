@@ -38,7 +38,7 @@ WORKDIR /app
 
 # Копируем только необходимые файлы из билдера
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin/poetry /usr/local/bin/poetry
+COPY --from=builder /usr/local/bin/streamlit /usr/local/bin/streamlit
 COPY --from=builder /app /app
 
 # Копируем остальное

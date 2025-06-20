@@ -68,7 +68,7 @@ def calculation_config() -> (
     else:
         config = MergedComputationConfig(calculation_type=CalculationType.MERGED)
         config.precision = precision
-        config.tolerance = tolerance
+        config.tolerance = 10 ** (-tolerance)
 
     app_config = ConfigLoader.get_config()
     if not app_config.disable_cache:
