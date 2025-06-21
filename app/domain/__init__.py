@@ -1,6 +1,7 @@
 """Пакет с параметрами моделей систем массового обслуживания (СМО)."""
 
 from .base_params import (
+    BasicMAPServerParams,
     BasicMultiServerParams,
     BasicServerParams,
     BasicSingleServerParams,
@@ -21,6 +22,7 @@ __all__ = [
     "BasicServerParams",
     "BasicSingleServerParams",
     "BasicMultiServerParams",
+    "BasicMAPServerParams",
     "SingleServerParams",
     "MultiServerParams",
     "MAPServerParams",
