@@ -39,8 +39,9 @@ class DuckDBClient:
         config = ConfigLoader.get_config()
         self.connection = duckdb.connect(database=config.duckdb_path, read_only=False)
         self.connection.execute("PRAGMA threads=4")
-        logger.debug("Установлено соединение с DuckDB, инициализация схемы.")
+        logger.info("Установлено соединение с DuckDB, инициализация схемы.")
         self._init_schema()
+        self._initialized = True
 
     def _init_schema(self) -> None:
         """Инициализирует схему базы данных, выполняя SQL из файла schema.sql.

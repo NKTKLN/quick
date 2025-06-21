@@ -7,7 +7,7 @@
 import streamlit as st
 
 from app.domain import (
-    CalculationType,
+    CalculationEngine,
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
@@ -61,12 +61,12 @@ def calculation_config() -> (
         )
 
     if calculation_type == "Numpy (быстрое, для небольших систем)":
-        config = ComputationConfig(calculation_type=CalculationType.NUMPY)
+        config = ComputationConfig(calculation_engine=CalculationEngine.NUMPY)
     elif calculation_type == "Mpmath (точное, для больших систем)":
-        config = MpmathComputationConfig(calculation_type=CalculationType.MPMATH)
+        config = MpmathComputationConfig(calculation_engine=CalculationEngine.MPMATH)
         config.precision = precision
     else:
-        config = MergedComputationConfig(calculation_type=CalculationType.MERGED)
+        config = MergedComputationConfig(calculation_engine=CalculationEngine.MERGED)
         config.precision = precision
         config.tolerance = 10 ** (-tolerance)
 

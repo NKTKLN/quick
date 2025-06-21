@@ -14,7 +14,7 @@ import numpy as np
 from scipy.linalg import eig as scipy_eig
 
 from app.domain import (
-    CalculationType,
+    CalculationEngine,
     ComputationConfig,
     MAPServerParams,
     MergedComputationConfig,
@@ -100,9 +100,9 @@ class BaseProbabilitySystem(ABC):
             tuple[np.ndarray[np.float64], np.ndarray[np.float64]] | tuple[Any, Any]:
                 Кортеж из массива собственных значений и матрицы собственных векторов.
         """
-        if self.config.calculation_type in [
-            CalculationType.MPMATH,
-            CalculationType.MERGED,
+        if self.config.calculation_engine in [
+            CalculationEngine.MPMATH,
+            CalculationEngine.MERGED,
         ] and isinstance(
             self.config, MpmathComputationConfig | MergedComputationConfig
         ):
@@ -133,18 +133,18 @@ class BaseProbabilitySystem(ABC):
         prob_solver: (
             NumpyProbabilitySolver | MpmathProbabilitySolver | MergedProbabilitySolver
         )
-        match self.config.calculation_type:
-            case CalculationType.NUMPY if isinstance(self.config, ComputationConfig):
+        match self.config.calculation_engine:
+            case CalculationEngine.NUMPY if isinstance(self.config, ComputationConfig):
                 prob_solver = NumpyProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
-            case CalculationType.MPMATH if isinstance(
+            case CalculationEngine.MPMATH if isinstance(
                 self.config, MpmathComputationConfig
             ):
                 prob_solver = MpmathProbabilitySolver(
                     self.params, transition_matrix, eigenvalues, self.config
                 )
-            case CalculationType.MERGED if isinstance(
+            case CalculationEngine.MERGED if isinstance(
                 self.config, MergedComputationConfig
             ):
                 prob_solver = MergedProbabilitySolver(

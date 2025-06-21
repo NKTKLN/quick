@@ -9,7 +9,8 @@ from .config_params import ConfigInitParams
 from .iterators import ParamsNuIterator
 from .probability import MAPServerParams, MultiServerParams, SingleServerParams
 from .settings import (
-    CalculationType,
+    CalculationEngine,
+    CalculationMode,
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
@@ -26,7 +27,8 @@ __all__ = [
     "SingleServerThroughputParams",
     "MultiServerThroughputParams",
     "ParamsNuIterator",
-    "CalculationType",
+    "CalculationEngine",
+    "CalculationMode",
     "ComputationConfig",
     "MpmathComputationConfig",
     "MergedComputationConfig",

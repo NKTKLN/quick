@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from enum import Flag, auto
 
 
-class CalculationType(Flag):
-    """Флаги типов вычислений, используемых в системе.
+class CalculationEngine(Flag):
+    """Флаги движков вычислений, используемых в системе.
 
     Позволяют комбинировать методы вычислений через побитовые операции:
         - NUMPY: стандартные вычисления с помощью библиотеки NumPy
@@ -27,16 +27,25 @@ class CalculationType(Flag):
     """Комбинированный режим вычислений с применением NumPy и mpmath."""
 
 
+class CalculationMode(Flag):
+    """Флаги режимов вычисления."""
+
+    PROBABILITY = auto()
+    THROUGHPUT = auto()
+
+
 @dataclass
 class ComputationConfig:
     """Базовая конфигурация вычислений.
 
     Attributes:
-        calculation_type (CalculationType): Тип вычислений для использования.
+        calculation_engine (CalculationEngine): Движок вычислений.
+        calculation_mode (CalculationMode): Режим вычисления.
         disable_cache (bool): Флаг отключения кэширования вычислений.
     """
 
-    calculation_type: CalculationType = CalculationType.MPMATH
+    calculation_engine: CalculationEngine = CalculationEngine.MPMATH
+    calculation_mode: CalculationMode = CalculationMode.PROBABILITY
     disable_cache: bool = False
 
 

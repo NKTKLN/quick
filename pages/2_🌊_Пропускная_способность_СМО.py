@@ -123,6 +123,7 @@ def main() -> None:
 
     if st.button("🚀 Применить параметры"):
         try:
+            config.validate()
             params.validate()
         except Exception as e:
             st.error(f"❌ Ошибка в параметрах: {e}")
