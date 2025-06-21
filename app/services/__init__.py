@@ -21,6 +21,7 @@ from .solver import (
 )
 from .throughput import (
     BaseThroughputSystem,
+    MAPServerThroughputSystem,
     MultiServerThroughputSystem,
     SingleServerThroughputSystem,
 )
@@ -41,5 +42,6 @@ __all__ = [
     "BaseThroughputSystem",
     "SingleServerThroughputSystem",
     "MultiServerThroughputSystem",
+    "MAPServerThroughputSystem",
     "map_intensity_matrix_generator",
 ]

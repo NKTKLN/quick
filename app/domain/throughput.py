@@ -11,8 +11,10 @@ import numpy as np
 
 from app.domain.iterators import ParamsNuIterator
 from app.domain.probability import (
+    BasicMAPServerParams,
     BasicMultiServerParams,
     BasicSingleServerParams,
+    MAPServerParams,
     MultiServerParams,
     SingleServerParams,
 )
@@ -56,11 +58,6 @@ class SingleServerThroughputParams(BasicSingleServerParams):
         super().validate()
         if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
-        if self.initial_probabilities.shape[0] != self.max_customers:
-            raise ValueError(
-                "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе."
-            )
 
 
 @dataclass
@@ -101,11 +98,43 @@ class MultiServerThroughputParams(BasicMultiServerParams):
         super().validate()
         if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
-        if (
-            self.initial_probabilities.shape[0]
-            != self.max_customers + self.processor_count + 1
-        ):
-            raise ValueError(
-                "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе + колличество процессоров + 1."
-            )
+
+
+@dataclass
+class MAPServerThroughputParams(BasicMAPServerParams):
+    """Параметры СМО с MAP-потоками для анализа пропускной способности с перебором ν.
+
+    Позволяет задавать массив значений интенсивности ухода заявок (ν) итерироваться
+    по ним, создавая на каждой итерации объект BasicMAPServerParams.
+
+    Attributes:
+        nu_rate (np.ndarray[np.float64]): Массив значений интенсивности ухода заявок.
+        Остальные параметры наследуются от BasicMAPServerParams.
+    """
+
+    nu_rate: np.ndarray[np.float64]
+
+    def __iter__(self) -> ParamsNuIterator:
+        """Создаёт итератор по значениям ν из массива nu_rate.
+
+        Возвращает итератор, который на каждой итерации выдаёт
+        MAPServerParams с текущим ν и базовыми параметрами.
+
+        Returns:
+            ParamsNuIterator: Итератор параметров СМО с разными значениями ν.
+        """
+        base_params = {
+            field.name: getattr(self, field.name)
+            for field in fields(self)
+            if field.name != "nu_rate"
+        }
+        return ParamsNuIterator(self.nu_rate, base_params, MAPServerParams)
+
+    def validate(self):
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        super().validate()
+        if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
+            raise ValueError("Интенсивность ν должна быть положительна.")

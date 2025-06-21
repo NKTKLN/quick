@@ -13,6 +13,22 @@ import streamlit as st
 from app.services import map_intensity_matrix_generator
 
 
+def get_system_mode_type() -> tuple[str, str]:
+    """Отображает UI-компонент с двумя полями выбора (тип системы и режим вычисления).
+
+    Returns:
+        tuple[str, str]: Значения типа системы и режима вычисления.
+    """
+    st.subheader("🔬 Тип системы")
+    system_type = st.selectbox(
+        "Выберите тип СМО:", ["Однолинейная", "Многолинейная", "С MAP-потоками"]
+    )
+    calculation_mode = st.selectbox(
+        "Выберите режим расчёта:", ["Вероятностный", "Пропускная способность"]
+    )
+    return system_type, calculation_mode
+
+
 def intensity_parameters() -> tuple[float, float, float]:
     """Отображает UI-компонент с тремя полями ввода параметров интенсивности: λ, μ и ν.
 
@@ -122,6 +138,66 @@ def map_intensity_parameters() -> tuple[np.ndarray[np.float64], float, float]:
     )
 
     return lambda_rate, mu_rate, nu_rate
+
+
+def map_throughput_intensity_parameters() -> tuple[
+    np.ndarray[np.float64], float, np.ndarray[np.float64]
+]:
+    """Отображает UI-компонент с параметрами интенсивности: λ, μ и массивом ν.
+
+    Returns:
+        tuple[np.ndarray[np.float64], float, np.ndarray[np.float64]]: Значения
+            интенсивности поступления заявок (λ), интенсивности обслуживания (μ)
+            и интенсивности ухода нетерпеливых заявок (ν) в виде массива.
+    """
+    mu_rate = st.number_input(
+        "Интенсивность обслуживания заявок (μ)",
+        min_value=0.0,
+        value=10833.0,
+        format="%.10f",
+    )
+
+    nu_rate_str = st.text_input(
+        "Интенсивность ухода нетерпеливых заявок (ν) — *введите через запятую*",
+        value="1000, 10833, 1e6",
+        placeholder="Например: 1000, 10833, 100000",
+    )
+
+    lambda_rate_str = st.text_input(
+        "Интенсивность поступления заявок (λ) — *введите через запятую*",
+        value="850, 8000, 67400",
+        placeholder="Например: 850, 8000, 67400",
+    )
+
+    # Преобразуем введённую строку в массив float, игнорируя пустые элементы
+    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",") if x.strip()])
+    lambda_rate = np.array(
+        [float(x.strip()) for x in lambda_rate_str.split(",") if x.strip()]
+    )
+
+    return lambda_rate, mu_rate, nu_rate
+
+
+def get_intensity_parameters(system_type: str, calculation_mode: str) -> tuple:
+    """Возвращает параметры интенсивности в зависимости от параметров системы.
+
+    Args:
+        system_type (str): Тип системы. Может быть с MAP-потоками или без.
+        calculation_mode (str): Режим расчета. Может быть "Пропускная способность"
+            или другой режим, использующий интенсивности.
+
+    Returns:
+        tuple: Параметры интенсивности, соответствующие выбранному типу системы
+            и режиму расчета.
+    """
+    if calculation_mode == "Пропускная способность":
+        if system_type == "С MAP-потоками":
+            return map_throughput_intensity_parameters()
+        return throughput_intensity_parameters()
+    else:
+        if system_type == "С MAP-потоками":
+            return map_intensity_parameters()
+        return intensity_parameters()
 
 
 def system_capacity_inputs(

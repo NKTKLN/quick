@@ -8,18 +8,16 @@ import numpy as np
 import streamlit as st
 
 from app.domain import (
-    ComputationConfig,
     MAPServerParams,
-    MergedComputationConfig,
-    MpmathComputationConfig,
+    MAPServerThroughputParams,
     MultiServerParams,
     MultiServerThroughputParams,
     SingleServerParams,
     SingleServerThroughputParams,
-    # MAPServerThroughputParams
 )
 from app.services import (
     MAPServerSystem,
+    MAPServerThroughputSystem,
     MultiServerSystem,
     MultiServerThroughputSystem,
     SingleServerSystem,
@@ -27,72 +25,44 @@ from app.services import (
 )
 from pages.components import (
     calculation_config,
-    intensity_parameters,
+    get_intensity_parameters,
+    get_system_mode_type,
     map_intensity_matrix,
-    map_intensity_parameters,
     plot_probabilities,
     plot_throughput,
     render_initial_conditions,
     system_capacity_inputs,
-    throughput_intensity_parameters,
     time_settings,
 )
 
 
-def get_user_inputs() -> tuple[
-    ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
-    SingleServerParams
-    | MultiServerParams
-    | MAPServerParams
-    | SingleServerThroughputParams
-    | MultiServerThroughputParams,  # | MAPServerThroughputParams,
-    str,
-    str,
-]:
+def get_user_inputs() -> tuple:
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
         tuple:
-            - config:
-                Конфигурация для выполнения вычислений.
-            - params:
-                Параметры выбранной системы массового обслуживания (СМО),
+            - config: Конфигурация для выполнения вычислений.
+            - params: Параметры выбранной системы массового обслуживания (СМО),
                 включая структуру, интенсивности, параметры обслуживания и т.д.
             - system_type (str): Тип модели СМО, выбранный пользователем.
-                Возможные значения:
-                    - "Однолинейная"
-                    - "Многолинейная"
-                    - "С MAP-потоками"
             - calculation_mode (str): Режим вычислений, выбранный пользователем.
-                Возможные значения:
-                    - "Вероятностный"
-                    - "Пропускная способность"
     """
     config = calculation_config()
     st.markdown("---")
-
-    st.subheader("🔬 Тип системы")
-    system_type = st.selectbox(
-        "Выберите тип СМО:", ["Однолинейная", "Многолинейная", "С MAP-потоками"]
-    )
-
-    calculation_mode = st.selectbox(
-        "Выберите режим расчёта:", ["Вероятностный", "Пропускная способность"]
-    )
+    system_type, calculation_mode = get_system_mode_type()
 
     st.subheader("⚙️ Параметры системы")
+    lambda_rate, mu_rate, nu_rate = get_intensity_parameters(
+        system_type, calculation_mode
+    )
+
     if system_type == "С MAP-потоками":
-        lambda_rate, mu_rate, nu_rate = map_intensity_parameters()
         max_customers, processor_count = system_capacity_inputs(
             system_type, default_max_customers=3
         )
         st.markdown("---")
         p_rate, q_rate = map_intensity_matrix(max_customers)
     else:
-        if calculation_mode == "Пропускная способность":
-            lambda_rate, mu_rate, nu_rate = throughput_intensity_parameters()
-        else:
-            lambda_rate, mu_rate, nu_rate = intensity_parameters()
         max_customers, processor_count = system_capacity_inputs(system_type)
 
     count = max_customers
@@ -135,7 +105,7 @@ def get_user_inputs() -> tuple[
         ("Вероятностный", "С MAP-потоками"): MAPServerParams,
         ("Пропускная способность", "Однолинейная"): SingleServerThroughputParams,
         ("Пропускная способность", "Многолинейная"): MultiServerThroughputParams,
-        # ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputParams,
+        ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputParams,
     }
 
     key = (calculation_mode, system_type)
@@ -164,7 +134,7 @@ def main() -> None:
         ("Вероятностный", "С MAP-потоками"): MAPServerSystem,
         ("Пропускная способность", "Однолинейная"): SingleServerThroughputSystem,
         ("Пропускная способность", "Многолинейная"): MultiServerThroughputSystem,
-        # ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputSystem,
+        ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputSystem,
     }
 
     if st.button("🚀 Применить параметры"):
@@ -184,12 +154,12 @@ def main() -> None:
         system = SystemClass(params, config)
         st.success("✅ Параметры успешно заданы!")
 
-        try:
-            with st.spinner("⏳ Идёт расчёт значений..."):
-                probabilities = system.calculate()
-        except Exception as e:
-            st.error(f"❌ Ошибка при вычислении: {e}")
-            st.stop()
+        # try:
+        with st.spinner("⏳ Идёт расчёт значений..."):
+            probabilities = system.calculate()
+        # except Exception as e:
+        #     st.error(f"❌ Ошибка при вычислении: {e}")
+        #     st.stop()
 
         st.markdown("---")
         match calculation_mode:

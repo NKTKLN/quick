@@ -14,6 +14,8 @@ import numpy as np
 
 from app.domain import (
     ComputationConfig,
+    MAPServerParams,
+    MAPServerThroughputParams,
     MergedComputationConfig,
     MpmathComputationConfig,
     MultiServerParams,
@@ -21,7 +23,11 @@ from app.domain import (
     SingleServerParams,
     SingleServerThroughputParams,
 )
-from app.services.probability import MultiServerSystem, SingleServerSystem
+from app.services.probability import (
+    MAPServerSystem,
+    MultiServerSystem,
+    SingleServerSystem,
+)
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
@@ -37,14 +43,17 @@ class BaseThroughputSystem(ABC):
 
     def __init__(
         self,
-        params: SingleServerThroughputParams | MultiServerThroughputParams,
+        params: (
+            SingleServerThroughputParams
+            | MultiServerThroughputParams
+            | MAPServerThroughputParams
+        ),
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует анализатор пропускной способности с заданными параметрами.
 
         Args:
-            params (SingleServerThroughputParams | MultiServerThroughputParams):
-                Параметры СМО с диапазоном значений интенсивности ухода заявок.
+            params: Параметры СМО с диапазоном значений интенсивности ухода заявок.
             config: Конфигурация вычислений.
         """
         self.params = params
@@ -158,5 +167,41 @@ class MultiServerThroughputSystem(BaseThroughputSystem):
             np.ndarray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
         queue_system = MultiServerSystem(params, self.config)
+        probabilities = queue_system.calculate()
+        return probabilities
+
+
+class MAPServerThroughputSystem(BaseThroughputSystem):
+    """Класс анализа пропускной способности СМО с MAP-потоками.
+
+    Реализует расчёты пропускной способности для различных значений ν с использованием
+    вероятностной модели СМО с MAP-потоками.
+    """
+
+    def __init__(
+        self,
+        params: MAPServerThroughputParams,
+        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    ) -> None:
+        """Инициализирует анализатор с параметрами однолинейной системы.
+
+        Args:
+            params (MAPServerThroughputParams): Параметры СМО.
+            config: Конфигурация вычислений.
+        """
+        super().__init__(params, config)
+
+    def _calculate_probabilities(
+        self, params: MAPServerParams
+    ) -> np.ndarray[np.float64]:
+        """Строит модель СМО и вычисляет вероятности состояний системы.
+
+        Args:
+            params (MAPServerParams): Параметры СМО с MAP-потоками.
+
+        Returns:
+            np.ndarray[np.float64]: Массив вероятностей, включая вероятность потери.
+        """
+        queue_system = MAPServerSystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities

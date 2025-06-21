@@ -12,9 +12,12 @@ from .initial_conditions import (
 )
 from .plot import plot_probabilities, plot_throughput
 from .system_parameters import (
+    get_intensity_parameters,
+    get_system_mode_type,
     intensity_parameters,
     map_intensity_matrix,
     map_intensity_parameters,
+    map_throughput_intensity_parameters,
     system_capacity_inputs,
     throughput_intensity_parameters,
 )
@@ -29,8 +32,11 @@ __all__ = [
     "render_initial_conditions",
     "time_settings",
     "system_capacity_inputs",
+    "get_system_mode_type",
     "intensity_parameters",
     "throughput_intensity_parameters",
     "map_intensity_parameters",
+    "map_throughput_intensity_parameters",
+    "get_intensity_parameters",
     "map_intensity_matrix",
 ]

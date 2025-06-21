@@ -16,7 +16,11 @@ from .settings import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from .throughput import MultiServerThroughputParams, SingleServerThroughputParams
+from .throughput import (
+    MAPServerThroughputParams,
+    MultiServerThroughputParams,
+    SingleServerThroughputParams,
+)
 
 __all__ = [
     "BasicServerParams",
@@ -28,6 +32,7 @@ __all__ = [
     "MAPServerParams",
     "SingleServerThroughputParams",
     "MultiServerThroughputParams",
+    "MAPServerThroughputParams",
     "ParamsNuIterator",
     "CalculationEngine",
     "CalculationMode",

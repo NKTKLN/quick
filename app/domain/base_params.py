@@ -80,6 +80,11 @@ class BasicSingleServerParams(BasicServerParams):
         super().validate()
         if self.lambda_rate <= 0:
             raise ValueError("Интенсивность λ должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе."
+            )
 
 
 @dataclass
@@ -104,6 +109,14 @@ class BasicMultiServerParams(BasicSingleServerParams):
         super().validate()
         if self.processor_count <= 0:
             raise ValueError("Переменная processor_count должна быть положительна.")
+        if (
+            self.initial_probabilities.shape[0]
+            != self.max_customers + self.processor_count + 1
+        ):
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе + колличество процессоров + 1."
+            )
 
 
 @dataclass
