@@ -182,9 +182,8 @@ def get_intensity_parameters(system_type: str, calculation_mode: str) -> tuple:
     """Возвращает параметры интенсивности в зависимости от параметров системы.
 
     Args:
-        system_type (str): Тип системы. Может быть с MAP-потоками или без.
-        calculation_mode (str): Режим расчета. Может быть "Пропускная способность"
-            или другой режим, использующий интенсивности.
+        system_type (str): Тип системы.
+        calculation_mode (str): Режим расчета.
 
     Returns:
         tuple: Параметры интенсивности, соответствующие выбранному типу системы

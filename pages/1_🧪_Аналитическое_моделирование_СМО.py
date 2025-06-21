@@ -154,12 +154,12 @@ def main() -> None:
         system = SystemClass(params, config)
         st.success("✅ Параметры успешно заданы!")
 
-        # try:
-        with st.spinner("⏳ Идёт расчёт значений..."):
-            probabilities = system.calculate()
-        # except Exception as e:
-        #     st.error(f"❌ Ошибка при вычислении: {e}")
-        #     st.stop()
+        try:
+            with st.spinner("⏳ Идёт расчёт значений..."):
+                probabilities = system.calculate()
+        except Exception as e:
+            st.error(f"❌ Ошибка при вычислении: {e}")
+            st.stop()
 
         st.markdown("---")
         match calculation_mode:
