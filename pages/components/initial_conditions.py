@@ -49,6 +49,9 @@ def render_state_variables(count: int) -> np.ndarray[np.float64]:
         "Переменные состояния — *введите через запятую* (например: 1, 2, 3)",
         st.session_state.state_variables,
         key="state_variables_input",
+        on_change=lambda: st.session_state.update(
+            state_variables=st.session_state.state_variables_input
+        ),
     )
 
     try:
@@ -76,10 +79,13 @@ def render_initial_probabilities(count: int) -> np.ndarray[np.float64]:
     ):
         st.session_state.initial_probabilities = "1" + ", 0" * (count - 1)
 
-    st.session_state.initial_probabilities = st.text_input(
+    st.text_input(
         "Начальные вероятности — *введите через запятую* (например: 1, 0, 0, 0)",
         st.session_state.initial_probabilities,
         key="initial_probabilities_input",
+        on_change=lambda: st.session_state.update(
+            initial_probabilities=st.session_state.initial_probabilities_input
+        ),
     )
 
     try:
@@ -94,3 +100,41 @@ def render_initial_probabilities(count: int) -> np.ndarray[np.float64]:
         return np.zeros(count)
 
     return initial_probabilities
+
+
+def render_initial_conditions(
+    count: int,
+) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
+    """Отображает оба поля ввода: переменные состояния и начальные вероятности.
+
+    Также предоставляет кнопку для сброса значений к состоянию по умолчанию.
+
+    Args:
+        count (int): Количество переменных состояния и вероятностей.
+
+    Returns:
+        tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
+            Кортеж из двух массивов:
+                - массив переменных состояния,
+                - массив начальных вероятностей.
+    """
+
+    def reset_initial_conditions(count: int) -> None:
+        """Сбрасывает переменные состояния и вероятности к значениям по умолчанию.
+
+        Args:
+            count (int): Количество переменных состояния и вероятностей.
+        """
+        st.session_state.state_variables = ", ".join(["1"] * count)
+        st.session_state.initial_probabilities = "1" + ", 0" * (count - 1)
+
+    state_variables = render_state_variables(count)
+    initial_probabilities = render_initial_probabilities(count)
+
+    st.button(
+        "🔄 Сбросить начальные значения",
+        on_click=reset_initial_conditions,
+        args=(count,),
+    )
+
+    return state_variables, initial_probabilities

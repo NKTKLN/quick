@@ -25,8 +25,7 @@ from pages.components import (
     map_intensity_matrix,
     map_intensity_parameters,
     plot_probabilities,
-    render_initial_probabilities,
-    render_state_variables,
+    render_initial_conditions,
     system_capacity_inputs,
     time_settings,
 )
@@ -90,8 +89,7 @@ def get_user_inputs() -> tuple[
         count **= 2
 
     st.markdown("---")
-    state_variables = render_state_variables(count)
-    initial_probabilities = render_initial_probabilities(count)
+    state_variables, initial_probabilities = render_initial_conditions(count)
 
     st.markdown("---")
     time_array = time_settings()

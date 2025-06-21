@@ -5,7 +5,11 @@
 """
 
 from .calculation_config import calculation_config
-from .initial_conditions import render_initial_probabilities, render_state_variables
+from .initial_conditions import (
+    render_initial_conditions,
+    render_initial_probabilities,
+    render_state_variables,
+)
 from .plot import plot_probabilities, plot_throughput
 from .system_parameters import (
     intensity_parameters,
@@ -22,6 +26,7 @@ __all__ = [
     "plot_throughput",
     "render_state_variables",
     "render_initial_probabilities",
+    "render_initial_conditions",
     "time_settings",
     "system_capacity_inputs",
     "intensity_parameters",
