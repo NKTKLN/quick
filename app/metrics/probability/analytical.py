@@ -6,28 +6,28 @@
 """
 
 import logging
-from abc import ABC, abstractmethod
 from typing import Any
 
-import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
-from scipy.linalg import eig as scipy_eig
 
 from app.domain import (
     CalculationEngine,
     ComputationConfig,
-    MAPServerParams,
     MergedComputationConfig,
     MpmathComputationConfig,
+)
+from app.domain.models import (
+    MAPServerParams,
     MultiServerParams,
     SingleServerParams,
 )
+from app.metrics.probability.base import BaseProbabilitySystem
 from app.services.matrix_generators import (
     MAPServerMatrixBuilder,
     MultiServerMatrixBuilder,
     SingleServerMatrixBuilder,
 )
-from app.services.solver import (
+from app.services.solvers.analytical import (
     MergedProbabilitySolver,
     MpmathProbabilitySolver,
     NumpyProbabilitySolver,
@@ -37,82 +37,12 @@ from app.services.solver import (
 logger = logging.getLogger(__name__)
 
 
-class BaseProbabilitySystem(ABC):
-    """Базовый абстрактный класс для моделирования СМО с нетерпеливыми заявками.
+class BaseAnalyticalProbabilitySystem(BaseProbabilitySystem):
+    """Базовый класс для аналитического моделирования СМО с нетерпеливыми заявками.
 
     Определяет интерфейс и общую логику расчёта вероятностей состояний СМО.
     Наследники реализуют специфичные методы построения матриц переходов.
     """
-
-    def __init__(
-        self,
-        params: SingleServerParams | MultiServerParams | MAPServerParams,
-        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
-    ) -> None:
-        """Инициализирует систему массового обслуживания с заданными параметрами.
-
-        Args:
-            params (SingleServerParams | MultiServerParams | MAPServerParams):
-                Параметры СМО (интенсивности, структура, др.).
-            config: Конфигурация вычислений.
-        """
-        self.params = params
-        self.config = config
-
-    def calculate(self) -> np.ndarray[np.float64]:
-        """Выполняет полный расчёт вероятностей состояний системы.
-
-        Этапы:
-            1. Построение матрицы переходов системы
-            2. Вычисление собственных значений матрицы
-            3. Решение системы уравнений для вероятностей
-            4. Построение итоговой матрицы вероятностей состояний
-
-        Returns:
-            np.ndarray[np.float64]: Матрица вероятностей состояний (размерность
-                зависит от параметров СМО).
-        """
-        transition_matrix = self._build_transition_matrix()
-        eigenvalues, xsi_matrix = self._compute_eigenvalues(transition_matrix)
-        probability_matrix = self._solve_probability_system(
-            transition_matrix, eigenvalues, xsi_matrix
-        )
-        return probability_matrix
-
-    @abstractmethod
-    def _build_transition_matrix(self) -> np.ndarray[np.float64]:
-        """Строит матрицу переходов между состояниями СМО.
-
-        Returns:
-            np.ndarray[np.float64]: Матрица переходов.
-        """
-        pass
-
-    def _compute_eigenvalues(
-        self, transition_matrix: np.ndarray[np.float64]
-    ) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]] | tuple[Any, Any]:
-        """Вычисляет собственные значения и собственные векторы матрицы переходов.
-
-        Args:
-            transition_matrix (np.ndarray[np.float64]): Матрица переходов.
-
-        Returns:
-            tuple[np.ndarray[np.float64], np.ndarray[np.float64]] | tuple[Any, Any]:
-                Кортеж из массива собственных значений и матрицы собственных векторов.
-        """
-        if self.config.calculation_engine in [
-            CalculationEngine.MPMATH,
-            CalculationEngine.MERGED,
-        ] and isinstance(
-            self.config, MpmathComputationConfig | MergedComputationConfig
-        ):
-            with mp.workdps(self.config.precision):
-                mp_matrix = mp.matrix(transition_matrix.tolist())
-                eigenvalues, xsi_matrix = mp.eig(mp_matrix)
-            return eigenvalues, xsi_matrix
-
-        eigenvalues, xsi_matrix = scipy_eig(transition_matrix)
-        return eigenvalues, xsi_matrix
 
     def _solve_probability_system(
         self,
@@ -151,13 +81,13 @@ class BaseProbabilitySystem(ABC):
                     self.params, transition_matrix, eigenvalues, self.config
                 )
             case _:
-                raise ValueError("Unsupported calculation type")
+                raise ValueError("Неподдерживаемый тип расчета")
 
         m_matrix = prob_solver.generate_m_matrix(xsi_matrix)
         return prob_solver.generate_p_matrix(m_matrix)
 
 
-class SingleServerSystem(BaseProbabilitySystem):
+class AnalyticalSingleServerSystem(BaseAnalyticalProbabilitySystem):
     """Класс моделирования однолинейной СМО с нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей
@@ -187,7 +117,7 @@ class SingleServerSystem(BaseProbabilitySystem):
         return transition_matrix
 
 
-class MultiServerSystem(BaseProbabilitySystem):
+class AnalyticalMultiServerSystem(BaseAnalyticalProbabilitySystem):
     """Класс моделирования многолинейной СМО с нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей
@@ -217,7 +147,7 @@ class MultiServerSystem(BaseProbabilitySystem):
         return transition_matrix
 
 
-class MAPServerSystem(BaseProbabilitySystem):
+class AnalyticalMAPServerSystem(BaseAnalyticalProbabilitySystem):
     """Класс моделирования СМО с MAP-потоками и нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей

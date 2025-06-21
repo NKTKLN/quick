@@ -7,7 +7,8 @@
 import numpy as np
 import streamlit as st
 
-from app.domain import (
+from app.domain import CalculationMethod, SystemType
+from app.domain.models import (
     MAPServerParams,
     MAPServerThroughputParams,
     MultiServerParams,
@@ -15,14 +16,8 @@ from app.domain import (
     SingleServerParams,
     SingleServerThroughputParams,
 )
-from app.services import (
-    MAPServerSystem,
-    MAPServerThroughputSystem,
-    MultiServerSystem,
-    MultiServerThroughputSystem,
-    SingleServerSystem,
-    SingleServerThroughputSystem,
-)
+from app.metrics.probability import probability_system_factory
+from app.metrics.throughput import throughput_system_factory
 from pages.components import (
     calculation_config,
     get_intensity_parameters,
@@ -128,13 +123,10 @@ def main() -> None:
         st.error(f"❌ Ошибка в вводных данных: {e}")
         st.stop()
 
-    system_classes = {
-        ("Вероятностный", "Однолинейная"): SingleServerSystem,
-        ("Вероятностный", "Многолинейная"): MultiServerSystem,
-        ("Вероятностный", "С MAP-потоками"): MAPServerSystem,
-        ("Пропускная способность", "Однолинейная"): SingleServerThroughputSystem,
-        ("Пропускная способность", "Многолинейная"): MultiServerThroughputSystem,
-        ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputSystem,
+    system_type_options = {
+        "Однолинейная": SystemType.SINGLE,
+        "Многолинейная": SystemType.MULTI,
+        "С MAP-потоками": SystemType.MAP,
     }
 
     if st.button("🚀 Применить параметры"):
@@ -145,13 +137,23 @@ def main() -> None:
             st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
-        key = (calculation_mode, system_type)
-        SystemClass = system_classes.get(key)
-        if not SystemClass:
+        if calculation_mode == "Пропускная способность":
+            system = throughput_system_factory(
+                system_type_options[system_type],
+                CalculationMethod.ANALYTICAL,
+                params,
+                config,
+            )
+        elif calculation_mode == "Вероятностный":
+            system = probability_system_factory(
+                system_type_options[system_type],
+                CalculationMethod.ANALYTICAL,
+                params,
+                config,
+            )
+        else:
             st.error("❌ Некорректный режим/тип системы")
             st.stop()
-
-        system = SystemClass(params, config)
         st.success("✅ Параметры успешно заданы!")
 
         try:

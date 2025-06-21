@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from app.domain import MAPServerParams, MultiServerParams, SingleServerParams
+from app.domain.models import MAPServerParams, MultiServerParams, SingleServerParams
 
 # Инициализация логгирования
 logger = logging.getLogger(__name__)

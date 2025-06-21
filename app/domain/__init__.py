@@ -1,43 +1,25 @@
-"""Пакет с параметрами моделей систем массового обслуживания (СМО)."""
+"""Пакет с параметрами и вспомогательными модулями системы."""
 
-from .base_params import (
-    BasicMAPServerParams,
-    BasicMultiServerParams,
-    BasicServerParams,
-    BasicSingleServerParams,
-)
 from .config_params import ConfigInitParams
 from .iterators import ParamsNuIterator
-from .probability import MAPServerParams, MultiServerParams, SingleServerParams
 from .settings import (
     CalculationEngine,
+    CalculationMethod,
     CalculationMode,
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
-)
-from .throughput import (
-    MAPServerThroughputParams,
-    MultiServerThroughputParams,
-    SingleServerThroughputParams,
+    SystemType,
 )
 
 __all__ = [
-    "BasicServerParams",
-    "BasicSingleServerParams",
-    "BasicMultiServerParams",
-    "BasicMAPServerParams",
-    "SingleServerParams",
-    "MultiServerParams",
-    "MAPServerParams",
-    "SingleServerThroughputParams",
-    "MultiServerThroughputParams",
-    "MAPServerThroughputParams",
+    "ConfigInitParams",
     "ParamsNuIterator",
     "CalculationEngine",
     "CalculationMode",
+    "CalculationMethod",
+    "SystemType",
     "ComputationConfig",
-    "MpmathComputationConfig",
     "MergedComputationConfig",
-    "ConfigInitParams",
+    "MpmathComputationConfig",
 ]

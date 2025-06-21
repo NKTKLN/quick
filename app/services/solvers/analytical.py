@@ -1,4 +1,4 @@
-"""Модуль для численного решения системы вероятностей СМО с нетерпеливыми заявками.
+"""Модуль для аналитического решения системы вероятностей СМО с нетерпеливыми заявками.
 
 Содержит реализации решателей, основанных на NumPy и mpmath, для вычисления динамики
 вероятностных состояний системы массового обслуживания (СМО) в переходном режиме.
@@ -18,8 +18,8 @@ from app.domain import (
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
-    SingleServerParams,
 )
+from app.domain.models import SingleServerParams
 
 # Инициализация логгирования
 logger = logging.getLogger(__name__)
