@@ -8,7 +8,7 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -20,11 +20,8 @@ from app.domain import (
 )
 from app.domain.models import (
     MAPServerParams,
-    MAPServerThroughputParams,
     MultiServerParams,
-    MultiServerThroughputParams,
     SingleServerParams,
-    SingleServerThroughputParams,
 )
 from app.services.systems.probability import (
     MAPServerSystem,
@@ -46,11 +43,7 @@ class BaseThroughputSystem(ABC):
 
     def __init__(
         self,
-        params: (
-            SingleServerThroughputParams
-            | MultiServerThroughputParams
-            | MAPServerThroughputParams
-        ),
+        params: SingleServerParams | MultiServerParams | MAPServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует анализатор пропускной способности с заданными параметрами.
@@ -62,31 +55,31 @@ class BaseThroughputSystem(ABC):
         self.params = params
         self.config = config
 
-    def calculate(self) -> list[NDArray[np.float64]]:
+    def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
         """Выполняет полный расчёт пропускной способности системы.
 
         Этапы:
-            1. Итерация по значениям интенсивности ухода заявок (ν)
-            2. Расчёт вероятностей состояний системы
-            3. Вычисление пропускной способности: (1 - p_loss) * λ
-            4. Формирование массива итоговых значений
+            1. Расчёт вероятностей состояний системы
+            2. Вычисление пропускной способности: (1 - p_loss) * λ
+            3. Формирование массива итоговых значений
 
         Returns:
-            list[NDArray[np.float64]]: Список значений пропускной способности
-                для каждого ν из заданного диапазона.
+            NDArray[np.float64]: Список значений пропускной способности.
+
+        Raises:
+            ValueError: Если параметры системы являются MAPServerParams.
         """
-        throughput_results = []
+        if isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры не должны быть экземпляром MAPServerParams")
 
-        for single_param in self.params:
-            probabilities = self._calculate_probabilities(single_param)
-            current_throughput = (1 - probabilities[-1]) * single_param.lambda_rate
-            throughput_results.append(current_throughput)
+        probabilities = self._calculate_probabilities(self.params)
+        throughput = (1 - probabilities[-1]) * self.params.lambda_rate
 
-            logger.info(
-                "Рассчитана пропускная способность для ν = %.3f", single_param.nu_rate
-            )
+        logger.info(
+            "Рассчитана пропускная способность для ν = %.3f", self.params.nu_rate
+        )
 
-        return throughput_results
+        return cast(NDArray, throughput)
 
     @abstractmethod
     def _calculate_probabilities(self, params: Any) -> NDArray[np.float64]:
@@ -111,13 +104,13 @@ class SingleServerThroughputSystem(BaseThroughputSystem):
 
     def __init__(
         self,
-        params: SingleServerThroughputParams,
+        params: SingleServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует анализатор с параметрами однолинейной системы.
 
         Args:
-            params (SingleServerThroughputParams): Параметры СМО.
+            params (SingleServerParams): Параметры СМО.
             config: Конфигурация вычислений.
         """
         super().__init__(params, config)
@@ -147,13 +140,13 @@ class MultiServerThroughputSystem(BaseThroughputSystem):
 
     def __init__(
         self,
-        params: MultiServerThroughputParams,
+        params: MultiServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует анализатор с параметрами многолинейной системы.
 
         Args:
-            params (MultiServerThroughputParams): Параметры СМО.
+            params (MultiServerParams): Параметры СМО.
             config: Конфигурация вычислений.
         """
         super().__init__(params, config)
@@ -183,7 +176,7 @@ class MAPServerThroughputSystem(BaseThroughputSystem):
 
     def __init__(
         self,
-        params: MAPServerThroughputParams,
+        params: MAPServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует анализатор с параметрами однолинейной системы.
@@ -193,6 +186,38 @@ class MAPServerThroughputSystem(BaseThroughputSystem):
             config: Конфигурация вычислений.
         """
         super().__init__(params, config)
+
+    def calculate(self) -> list[NDArray[np.float64]]:
+        """Выполняет полный расчёт пропускной способности системы.
+
+        Этапы:
+            1. Итерация по значениям интенсивности поступления заявок (λ)
+            2. Расчёт вероятностей состояний системы
+            3. Вычисление пропускной способности: (1 - p_loss) * λ
+            4. Формирование массива итоговых значений
+
+        Returns:
+            list[NDArray[np.float64]]: Список значений пропускной способности
+                для каждого ν из заданного диапазона.
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
+        """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
+        throughput_results = []
+
+        for lambda_rate in self.params.lambda_rate:
+            probabilities = self._calculate_probabilities(self.params)
+            current_throughput = (1 - probabilities[-1]) * lambda_rate
+            throughput_results.append(current_throughput)
+
+            logger.info(
+                "Рассчитана пропускная способность для ν = %.3f", self.params.nu_rate
+            )
+
+        return throughput_results
 
     def _calculate_probabilities(self, params: MAPServerParams) -> NDArray[np.float64]:
         """Строит модель СМО и вычисляет вероятности состояний системы.

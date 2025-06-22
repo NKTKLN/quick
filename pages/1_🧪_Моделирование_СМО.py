@@ -41,9 +41,7 @@ def get_user_inputs() -> tuple[
     system_type, calculation_mode = get_system_mode_type()
 
     st.subheader("⚙️ Параметры системы")
-    lambda_rate, mu_rate, nu_rate = get_intensity_parameters(
-        system_type, calculation_mode
-    )
+    lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
 
     if system_type == SystemType.MAP:
         max_customers, processor_count = system_capacity_inputs(
@@ -86,7 +84,7 @@ def get_user_inputs() -> tuple[
                 q_rate=q_rate.astype(np.float64),
             )
 
-    params = model_factory(system_type, calculation_mode, **base_params)
+    params = model_factory(system_type, **base_params)
     return config, params, system_type, calculation_mode
 
 
@@ -135,9 +133,7 @@ def main() -> None:
         ):
             st.subheader("📊 Графики вероятностей состояний системы")
             fig = plot_probabilities(probabilities, params.time_array)
-        elif calculation_mode == CalculationMode.THROUGHPUT and isinstance(
-            probabilities, list
-        ):
+        elif calculation_mode == CalculationMode.THROUGHPUT:
             st.subheader("📊 График пропускной способности системы")
             fig = plot_throughput(probabilities, params.time_array)
         else:

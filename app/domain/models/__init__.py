@@ -5,17 +5,14 @@ from .factory import model_factory
 from .map import (
     BasicMAPServerParams,
     MAPServerParams,
-    MAPServerThroughputParams,
 )
 from .multi import (
     BasicMultiServerParams,
     MultiServerParams,
-    MultiServerThroughputParams,
 )
 from .single import (
     BasicSingleServerParams,
     SingleServerParams,
-    SingleServerThroughputParams,
 )
 
 __all__ = [
@@ -23,11 +20,8 @@ __all__ = [
     "model_factory",
     "BasicMAPServerParams",
     "MAPServerParams",
-    "MAPServerThroughputParams",
     "BasicMultiServerParams",
     "MultiServerParams",
-    "MultiServerThroughputParams",
     "BasicSingleServerParams",
     "SingleServerParams",
-    "SingleServerThroughputParams",
 ]

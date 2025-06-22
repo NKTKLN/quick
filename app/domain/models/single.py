@@ -4,12 +4,8 @@
 с фиксированной интенсивностью ухода, а также для перебора интенсивности ухода (ν).
 """
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 
-import numpy as np
-from numpy.typing import NDArray
-
-from app.domain.iterators import ParamsNuIterator
 from app.domain.models.base import BasicServerParams
 
 
@@ -58,51 +54,6 @@ class SingleServerParams(BasicSingleServerParams):
         """
         super().validate()
         if self.nu_rate <= 0:
-            raise ValueError("Интенсивность ν должна быть положительна.")
-        if self.initial_probabilities.shape[0] != self.max_customers:
-            raise ValueError(
-                "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе."
-            )
-
-
-@dataclass
-class SingleServerThroughputParams(BasicSingleServerParams):
-    """Параметры однолинейной СМО для анализа пропускной способности с перебором ν.
-
-    Позволяет задавать массив значений интенсивности ухода заявок (ν) итерироваться
-    по ним, создавая на каждой итерации объект SingleServerParams.
-
-    Attributes:
-        nu_rate (NDArray[np.float64]): Массив значений интенсивности ухода заявок.
-        Остальные параметры наследуются от BasicSingleServerParams.
-    """
-
-    nu_rate: NDArray[np.float64]
-
-    def __iter__(self) -> ParamsNuIterator:
-        """Создаёт итератор по значениям ν из массива nu_rate.
-
-        Возвращает итератор, который на каждой итерации выдаёт
-        SingleServerParams с текущим ν и базовыми параметрами.
-
-        Returns:
-            ParamsNuIterator: Итератор параметров СМО с разными значениями ν.
-        """
-        base_params = {
-            field.name: getattr(self, field.name)
-            for field in fields(self)
-            if field.name != "nu_rate"
-        }
-        return ParamsNuIterator(self.nu_rate, base_params, SingleServerParams)
-
-    def validate(self) -> None:
-        """Проверяет корректность параметров.
-
-        Выбрасывает исключение ValueError при некорректных параметрах.
-        """
-        super().validate()
-        if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
         if self.initial_probabilities.shape[0] != self.max_customers:
             raise ValueError(

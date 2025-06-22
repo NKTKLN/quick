@@ -103,13 +103,14 @@ def plot_probabilities(
 
 
 def plot_throughput(
-    throughput_results: list[NDArray[np.float64]], time_array: NDArray[np.float64]
+    throughput_results: list[NDArray[np.float64]] | NDArray[np.float64],
+    time_array: NDArray[np.float64],
 ) -> Any:
     """Создает график пропускной способности системы по состояниям.
 
     Args:
-        throughput_results (List[NDArray[np.float64]]): Список массивов пропускной
-            способности для каждого состояния.
+        throughput_results (list[NDArray[np.float64]] | NDArray[np.float64]):
+            Список массивов пропускной способности для каждого состояния.
         time_array (NDArray[np.float64]): Массив значений параметра.
 
     Returns:
@@ -118,6 +119,9 @@ def plot_throughput(
     fig = go.Figure()
 
     colors = px.colors.qualitative.D3
+
+    if not isinstance(throughput_results, list):
+        throughput_results = [throughput_results]
 
     for state, throughput in enumerate(throughput_results):
         fig.add_trace(
@@ -132,7 +136,7 @@ def plot_throughput(
 
     fig.update_layout(
         title=dict(
-            text="System Throughput vs Impatience Rate",
+            text="System Throughput",
             font=dict(size=20, color="black"),
         ),
         xaxis=dict(

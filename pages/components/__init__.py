@@ -17,9 +17,7 @@ from .system_parameters import (
     intensity_parameters,
     map_intensity_matrix,
     map_intensity_parameters,
-    map_throughput_intensity_parameters,
     system_capacity_inputs,
-    throughput_intensity_parameters,
 )
 from .time_settings import render_time_settings
 
@@ -34,9 +32,7 @@ __all__ = [
     "system_capacity_inputs",
     "get_system_mode_type",
     "intensity_parameters",
-    "throughput_intensity_parameters",
     "map_intensity_parameters",
-    "map_throughput_intensity_parameters",
     "get_intensity_parameters",
     "map_intensity_matrix",
 ]

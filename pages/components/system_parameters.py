@@ -66,43 +66,6 @@ def intensity_parameters() -> tuple[float, float, float]:
     return lambda_rate, mu_rate, nu_rate
 
 
-def throughput_intensity_parameters() -> tuple[float, float, NDArray[np.float64]]:
-    """Отображает UI-компонент с параметрами интенсивности: λ, μ и массивом ν.
-
-    Returns:
-        tuple[float, float, NDArray[np.float64]]: Значения интенсивности поступления
-            заявок (λ), интенсивности обслуживания (μ) и интенсивности
-            ухода нетерпеливых заявок (ν) в виде массива.
-    """
-    col1, col2 = st.columns(2)
-
-    with col1:
-        lambda_rate = st.number_input(
-            "Интенсивность поступления заявок (λ)",
-            min_value=0.0,
-            value=8333.0,
-            format="%.10f",
-        )
-    with col2:
-        mu_rate = st.number_input(
-            "Интенсивность обслуживания заявок (μ)",
-            min_value=0.0,
-            value=10833.0,
-            format="%.10f",
-        )
-
-    nu_rate_str = st.text_input(
-        "Интенсивность ухода нетерпеливых заявок (ν) — *введите через запятую*",
-        value="1000, 10833, 1e6",
-        placeholder="Например: 1000, 10833, 100000",
-    )
-
-    # Преобразуем введённую строку в массив float, игнорируя пустые элементы
-    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",") if x.strip()])
-
-    return lambda_rate, mu_rate, nu_rate
-
-
 def map_intensity_parameters() -> tuple[NDArray[np.float64], float, float]:
     """Отображает UI-компонент с параметрами интенсивности: ν, μ и массивом λ.
 
@@ -142,47 +105,7 @@ def map_intensity_parameters() -> tuple[NDArray[np.float64], float, float]:
     return lambda_rate, mu_rate, nu_rate
 
 
-def map_throughput_intensity_parameters() -> tuple[
-    NDArray[np.float64], float, NDArray[np.float64]
-]:
-    """Отображает UI-компонент с параметрами интенсивности: λ, μ и массивом ν.
-
-    Returns:
-        tuple[NDArray[np.float64], float, NDArray[np.float64]]: Значения
-            интенсивности поступления заявок (λ), интенсивности обслуживания (μ)
-            и интенсивности ухода нетерпеливых заявок (ν) в виде массива.
-    """
-    mu_rate = st.number_input(
-        "Интенсивность обслуживания заявок (μ)",
-        min_value=0.0,
-        value=10833.0,
-        format="%.10f",
-    )
-
-    nu_rate_str = st.text_input(
-        "Интенсивность ухода нетерпеливых заявок (ν) — *введите через запятую*",
-        value="1000, 10833, 1e6",
-        placeholder="Например: 1000, 10833, 100000",
-    )
-
-    lambda_rate_str = st.text_input(
-        "Интенсивность поступления заявок (λ) — *введите через запятую*",
-        value="850, 8000, 67400",
-        placeholder="Например: 850, 8000, 67400",
-    )
-
-    # Преобразуем введённую строку в массив float, игнорируя пустые элементы
-    nu_rate = np.array([float(x.strip()) for x in nu_rate_str.split(",") if x.strip()])
-    lambda_rate = np.array(
-        [float(x.strip()) for x in lambda_rate_str.split(",") if x.strip()]
-    )
-
-    return lambda_rate, mu_rate, nu_rate
-
-
-def get_intensity_parameters(
-    system_type: SystemType, calculation_mode: CalculationMode
-) -> tuple:
+def get_intensity_parameters(system_type: SystemType) -> tuple:
     """Возвращает параметры интенсивности в зависимости от параметров системы.
 
     Args:
@@ -193,14 +116,9 @@ def get_intensity_parameters(
         tuple: Параметры интенсивности, соответствующие выбранному типу системы
             и режиму расчета.
     """
-    if calculation_mode == CalculationMode.THROUGHPUT:
-        if system_type == SystemType.MAP:
-            return map_throughput_intensity_parameters()
-        return throughput_intensity_parameters()
-    else:
-        if system_type == SystemType.MAP:
-            return map_intensity_parameters()
-        return intensity_parameters()
+    if system_type == SystemType.MAP:
+        return map_intensity_parameters()
+    return intensity_parameters()
 
 
 def system_capacity_inputs(

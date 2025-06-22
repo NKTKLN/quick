@@ -12,7 +12,6 @@ from .enums import (
     CalculationMode,
     SystemType,
 )
-from .iterators import ParamsNuIterator
 
 __all__ = [
     "ConfigInitParams",
