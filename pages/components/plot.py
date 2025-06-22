@@ -5,19 +5,22 @@
 - Пропускная способность при разных параметрах нетерпения.
 """
 
+from typing import Any
+
 import numpy as np
-import plotly.express as px
-import plotly.graph_objs as go
+import plotly.express as px  # type: ignore[import-untyped]
+import plotly.graph_objs as go  # type: ignore[import-untyped]
+from numpy.typing import NDArray
 
 
 def plot_probabilities(
-    p_matrix: np.ndarray[np.float64], time_array: np.ndarray[np.float64]
-) -> go.Figure:
+    p_matrix: NDArray[np.float64], time_array: NDArray[np.float64]
+) -> Any:
     """Создает график вероятностей по состояниям системы во времени.
 
     Args:
-        p_matrix (np.ndarray[np.float64]): Матрица вероятностей.
-        time_array (np.ndarray[np.float64]): Массив времени, соответствующий оси X.
+        p_matrix (NDArray[np.float64]): Матрица вероятностей.
+        time_array (NDArray[np.float64]): Массив времени, соответствующий оси X.
 
     Returns:
         go.Figure: Объект графика Plotly с отображением вероятностей и их суммы.
@@ -100,14 +103,14 @@ def plot_probabilities(
 
 
 def plot_throughput(
-    throughput_results: list[np.ndarray[np.float64]], time_array: np.ndarray[np.float64]
-) -> go.Figure:
+    throughput_results: list[NDArray[np.float64]], time_array: NDArray[np.float64]
+) -> Any:
     """Создает график пропускной способности системы по состояниям.
 
     Args:
-        throughput_results (List[np.ndarray[np.float64]]): Список массивов пропускной
+        throughput_results (List[NDArray[np.float64]]): Список массивов пропускной
             способности для каждого состояния.
-        time_array (np.ndarray[np.float64]): Массив значений параметра.
+        time_array (NDArray[np.float64]): Массив значений параметра.
 
     Returns:
         go.Figure: Объект графика Plotly с линиями пропускной способности.

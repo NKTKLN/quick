@@ -4,9 +4,10 @@
 различающихся по параметру ν (интенсивность ухода заявок).
 """
 
-from typing import Any, Iterator, Type, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 import numpy as np
+from numpy.typing import NDArray
 
 T = TypeVar("T")  # Обобщённый тип для возвращаемых экземпляров
 
@@ -16,16 +17,16 @@ class ParamsNuIterator(Iterator[T]):
 
     def __init__(
         self,
-        nu_rate: np.ndarray[np.float64],
+        nu_rate: NDArray[np.float64],
         base_params: dict[str, Any],
-        class_type: Type[T],
+        class_type: Callable[..., T],
     ) -> None:
         """Инициализация итератора параметров.
 
         Args:
-            nu_rate (np.ndarray[np.float64]): Массив значений ν.
+            nu_rate (NDArray[np.float64]): Массив значений ν.
             base_params (dict[str, Any]): Общие параметры СМО без ν.
-            class_type (Type[T]): Класс параметров СМО.
+            class_type (Callable[..., T]): Класс параметров СМО.
         """
         self.nu_rate = nu_rate
         self.base_params = base_params

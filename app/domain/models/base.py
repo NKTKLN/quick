@@ -8,6 +8,7 @@ from abc import ABC
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 @dataclass
@@ -20,18 +21,18 @@ class BasicServerParams(ABC):
     Attributes:
         mu_rate (float): Интенсивность обслуживания заявок (μ > 0).
         max_customers (int): Максимальное допустимое число заявок в системе (n > 0).
-        time_array (np.ndarray[np.float64]): Массив временных точек расчета.
-        state_variables (np.ndarray[np.float64]): Переменные состояния системы.
-        initial_probabilities (np.ndarray[np.float64]): Начальные вероятности состояний.
+        time_array (NDArray[np.float64]): Массив временных точек расчета.
+        state_variables (NDArray[np.float64]): Переменные состояния системы.
+        initial_probabilities (NDArray[np.float64]): Начальные вероятности состояний.
     """
 
     mu_rate: float
     max_customers: int
-    time_array: np.ndarray[np.float64]
-    state_variables: np.ndarray[np.float64]
-    initial_probabilities: np.ndarray[np.float64]
+    time_array: NDArray[np.float64]
+    state_variables: NDArray[np.float64]
+    initial_probabilities: NDArray[np.float64]
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.

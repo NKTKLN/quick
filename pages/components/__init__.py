@@ -4,7 +4,7 @@
 начальных условий и построения графиков.
 """
 
-from .calculation_config import calculation_config
+from .calculation_config import render_calculation_config
 from .initial_conditions import (
     render_initial_conditions,
     render_initial_probabilities,
@@ -21,16 +21,16 @@ from .system_parameters import (
     system_capacity_inputs,
     throughput_intensity_parameters,
 )
-from .time_settings import time_settings
+from .time_settings import render_time_settings
 
 __all__ = [
-    "calculation_config",
+    "render_calculation_config",
     "plot_probabilities",
     "plot_throughput",
     "render_state_variables",
     "render_initial_probabilities",
     "render_initial_conditions",
-    "time_settings",
+    "render_time_settings",
     "system_capacity_inputs",
     "get_system_mode_type",
     "intensity_parameters",

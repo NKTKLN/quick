@@ -8,6 +8,7 @@
 from dataclasses import dataclass, fields
 
 import numpy as np
+from numpy.typing import NDArray
 
 from app.domain.iterators import ParamsNuIterator
 from app.domain.models.base import BasicServerParams
@@ -21,18 +22,18 @@ class BasicMAPServerParams(BasicServerParams):
     а также оттоком нетерпеливых заявок. Включает матрицы интенсивностей переходов.
 
     Attributes:
-        lambda_rate (np.ndarray[np.float64]): Массив значений интенсивности
+        lambda_rate (NDArray[np.float64]): Массив значений интенсивности
             поступления заявок (λ > 0).
-        p_rate (np.ndarray[np.float64]): Матрица интенсивностей обслуживания.
-        q_rate (np.ndarray[np.float64]): Матрица интенсивностей поступления.
+        p_rate (NDArray[np.float64]): Матрица интенсивностей обслуживания.
+        q_rate (NDArray[np.float64]): Матрица интенсивностей поступления.
         Остальные параметры наследуются от BasicSingleServerParams.
     """  # TODO: Проверить корректность описания p_rate и q_rate
 
-    lambda_rate: np.ndarray[np.float64]
-    p_rate: np.ndarray[np.float64]
-    q_rate: np.ndarray[np.float64]
+    lambda_rate: NDArray[np.float64]
+    p_rate: NDArray[np.float64]
+    q_rate: NDArray[np.float64]
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.
@@ -81,7 +82,7 @@ class MAPServerParams(BasicMAPServerParams):
 
     nu_rate: float
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.
@@ -99,11 +100,11 @@ class MAPServerThroughputParams(BasicMAPServerParams):
     по ним, создавая на каждой итерации объект BasicMAPServerParams.
 
     Attributes:
-        nu_rate (np.ndarray[np.float64]): Массив значений интенсивности ухода заявок.
+        nu_rate (NDArray[np.float64]): Массив значений интенсивности ухода заявок.
         Остальные параметры наследуются от BasicMAPServerParams.
     """
 
-    nu_rate: np.ndarray[np.float64]
+    nu_rate: NDArray[np.float64]
 
     def __iter__(self) -> ParamsNuIterator:
         """Создаёт итератор по значениям ν из массива nu_rate.
@@ -121,7 +122,7 @@ class MAPServerThroughputParams(BasicMAPServerParams):
         }
         return ParamsNuIterator(self.nu_rate, base_params, MAPServerParams)
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.

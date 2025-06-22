@@ -15,7 +15,7 @@ from app.domain import (
 from app.settings import ConfigLoader
 
 
-def calculation_config() -> (
+def render_calculation_config() -> (
     ComputationConfig | MpmathComputationConfig | MergedComputationConfig
 ):
     """Отображает UI-компонент для конфигурации вычислений.

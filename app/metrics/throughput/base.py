@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 
 from app.domain import (
     ComputationConfig,
@@ -52,7 +53,7 @@ class BaseThroughputSystem(ABC):
         self.params = params
         self.config = config
 
-    def calculate(self) -> list[np.ndarray[np.float64]]:
+    def calculate(self) -> list[NDArray[np.float64]]:
         """Выполняет полный расчёт пропускной способности системы.
 
         Этапы:
@@ -62,7 +63,7 @@ class BaseThroughputSystem(ABC):
             4. Формирование массива итоговых значений
 
         Returns:
-            list[np.ndarray[np.float64]]: Список значений пропускной способности
+            list[NDArray[np.float64]]: Список значений пропускной способности
                 для каждого ν из заданного диапазона.
         """
         throughput_results = []
@@ -79,14 +80,14 @@ class BaseThroughputSystem(ABC):
         return throughput_results
 
     @abstractmethod
-    def _calculate_probabilities(self, params: Any) -> np.ndarray[np.float64]:
+    def _calculate_probabilities(self, params: Any) -> NDArray[np.float64]:
         """Вычисляет вероятности состояний системы для заданных параметров.
 
         Args:
             params (Any): Параметры конкретного расчёта.
 
         Returns:
-            np.ndarray[np.float64]: Массив вероятностей состояний,
+            NDArray[np.float64]: Массив вероятностей состояний,
                 последний элемент — вероятность потери.
         """
         pass

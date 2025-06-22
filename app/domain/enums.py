@@ -1,11 +1,16 @@
-"""Модуль определения типов вычислений и конфигураций для численного моделирования СМО.
+"""Модуль перечислений для конфигурации вычислительных параметров СМО.
 
-Содержит перечисления и dataclass для настройки параметров вычислений,
-включая выбор метода, точность и параметры контроля погрешности.
+Содержит набор Enum и Flag классов, определяющих:
+    - движки вычислений (CalculationEngine).
+    - режимы вычислений (CalculationMode).
+    - методы вычислений (CalculationMethod).
+    - типы СМО (SystemType).
+
+Эти перечисления используются для гибкой настройки и управления процессом моделирования
+и анализа производительности различных видов СМО с нетерпеливыми заявками.
 """
 
-from dataclasses import dataclass
-from enum import Flag, auto
+from enum import Enum, Flag, auto
 
 
 class CalculationEngine(Flag):
@@ -61,8 +66,8 @@ class CalculationMethod(Flag):
     """Численный метод расчёта (приближённый)."""
 
 
-class SystemType(Flag):
-    """Флаги типов систем массового обслуживания (СМО), поддерживаемых системой.
+class SystemType(Enum):
+    """Enum типов систем массового обслуживания (СМО), поддерживаемых системой.
 
     Используется для указания структуры обслуживающей системы.
 
@@ -72,68 +77,11 @@ class SystemType(Flag):
         MAP: СМО с MAP-потоками (марковский модулированный пуассоновский процесс).
     """
 
-    SINGLE = auto()
+    SINGLE = "Однолинейная"
     """Одноканальная система массового обслуживания."""
 
-    MULTI = auto()
+    MULTI = "Многолинейная"
     """Многоканальная система массового обслуживания."""
 
-    MAP = auto()
+    MAP = "С MAP-потоками"
     """Система массового обслуживания с MAP-потоками."""
-
-
-@dataclass
-class ComputationConfig:
-    """Базовая конфигурация вычислений.
-
-    Attributes:
-        calculation_engine (CalculationEngine): Движок вычислений.
-        calculation_mode (CalculationMode): Режим вычисления.
-        disable_cache (bool): Флаг отключения кэширования вычислений.
-    """
-
-    calculation_engine: CalculationEngine = CalculationEngine.MPMATH
-    calculation_mode: CalculationMode = CalculationMode.PROBABILITY
-    disable_cache: bool = False
-
-
-@dataclass
-class MpmathComputationConfig(ComputationConfig):
-    """Конфигурация вычислений с повышенной точностью (mpmath).
-
-    Attributes:
-        precision (int): Точность вычислений — количество знаков после запятой
-            (по умолчанию 50).
-    """
-
-    precision: int = 50
-
-    def validate(self):
-        """Проверяет корректность параметров.
-
-        Выбрасывает исключение ValueError при некорректных параметрах.
-        """
-        if self.precision <= 0:
-            raise ValueError("Точность вычислений должна быть положительна.")
-
-
-@dataclass
-class MergedComputationConfig(MpmathComputationConfig):
-    """Конфигурация смешанного режима вычислений (NumPy + mpmath).
-
-    Attributes:
-        tolerance (float): Допустимая погрешность при сравнении результатов из
-                           разных источников (по умолчанию 1e-12).
-    """
-
-    tolerance: float = 1e-12
-
-    def validate(self):
-        """Проверяет корректность параметров.
-
-        Выбрасывает исключение ValueError при некорректных параметрах.
-        """
-        if self.tolerance <= 0:
-            raise ValueError(
-                "Допустимая погрешность должна находиться в диапазоне [0, 1]."
-            )

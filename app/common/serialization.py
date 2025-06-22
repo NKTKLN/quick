@@ -8,7 +8,7 @@
 import pickle
 from typing import Any, Optional
 
-from mpmath import matrix, mpf, re, workdps
+from mpmath import matrix, mpf, re, workdps  # type: ignore[import-untyped]
 from numpy import array, ndarray
 
 from app.common.safe_unpickler import safe_loads

@@ -8,6 +8,7 @@ import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
+from numpy.typing import NDArray
 
 from app.domain.models import MAPServerParams, MultiServerParams, SingleServerParams
 
@@ -34,11 +35,14 @@ class MatrixBuilder(ABC):
         self.params = params
 
     @abstractmethod
-    def build(self) -> np.ndarray[np.float64]:
+    def build(self) -> NDArray[np.float64]:
         """Абстрактный метод генерации матрицы коэффициентов для системы СМО.
 
         Returns:
-            np.ndarray[np.float64]: Квадратная матрица коэффициентов.
+            NDArray[np.float64]: Квадратная матрица коэффициентов.
+
+        Raises:
+            ValueError: Если параметры системы не являются нужным типом.
         """
         pass
 
@@ -58,12 +62,18 @@ class SingleServerMatrixBuilder(MatrixBuilder):
         """
         super().__init__(params)
 
-    def build(self) -> np.ndarray[np.float64]:
+    def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для одноканальной СМО.
 
         Returns:
-            np.ndarray[np.float64]: Квадратная матрица коэффициентов размера n x n.
+            NDArray[np.float64]: Квадратная матрица коэффициентов размера n x n.
+
+        Raises:
+            ValueError: Если параметры системы не являются SingleServerParams.
         """
+        if not isinstance(self.params, SingleServerParams):
+            raise ValueError("Параметры должны быть экземпляром SingleServerParams")
+
         n = self.params.max_customers
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate
 
@@ -103,15 +113,18 @@ class MultiServerMatrixBuilder(MatrixBuilder):
         """
         super().__init__(params)
 
-    def build(self) -> np.ndarray[np.float64]:
+    def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для многоканальной СМО.
 
         Returns:
-            np.ndarray[np.float64]: Квадратная матрица коэффициентов
+            NDArray[np.float64]: Квадратная матрица коэффициентов
                 размера (n+m+1) x (n+m+1).
+
+        Raises:
+            ValueError: Если параметры системы не являются MultiServerParams.
         """
         if not isinstance(self.params, MultiServerParams):
-            raise TypeError("Ожидались параметры типа MultiServerParams")
+            raise ValueError("Параметры должны быть экземпляром MultiServerParams")
 
         n, m = self.params.max_customers, self.params.processor_count
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate
@@ -157,33 +170,51 @@ class MAPServerMatrixBuilder(MatrixBuilder):
         """
         super().__init__(params)
 
-    def _d_0_matrix_generator(self) -> np.ndarray[np.float64]:
+    def _d_0_matrix_generator(self) -> NDArray[np.float64]:
         """Генерирует матрицу D₀ по MAP-параметрам.
 
         Returns:
-            np.ndarray[np.float64]: Матрица D₀ для текущих параметров потока.
+            NDArray[np.float64]: Матрица D₀ для текущих параметров потока.
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
         """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
         matrix = self.params.p_rate.copy()
         matrix *= self.params.lambda_rate[:, np.newaxis]
         np.fill_diagonal(matrix, -self.params.lambda_rate)
         return matrix
 
-    def _d_1_matrix_generator(self) -> np.ndarray[np.float64]:
+    def _d_1_matrix_generator(self) -> NDArray[np.float64]:
         """Генерирует матрицу D₁ по MAP-параметрам.
 
         Returns:
-            np.ndarray[np.float64]: Матрица D₁ для текущих параметров потока.
+            NDArray[np.float64]: Матрица D₁ для текущих параметров потока.
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
         """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
         matrix = self.params.q_rate.copy()
         matrix *= self.params.lambda_rate[:, np.newaxis]
         return matrix
 
-    def build(self) -> np.ndarray[np.float64]:
+    def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для СМО с MAP-потоками.
 
         Returns:
-            np.ndarray[np.float64]: Квадратная матрица коэффициентов (n² x n²).
+            NDArray[np.float64]: Квадратная матрица коэффициентов (n² x n²).
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
         """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
         n = self.params.max_customers
         μ, ν = self.params.mu_rate, self.params.nu_rate
 
@@ -214,7 +245,7 @@ class MAPServerMatrixBuilder(MatrixBuilder):
         # Преобразование 4D-матрицы в 2D представление
         coefficients_matrix = coefficients_matrix.transpose(0, 2, 1, 3).reshape(
             n * n, n * n
-        )
+        )  # type: ignore
 
         logger.info("Матрица коэффициентов для СМО с MAP-потоками сгенерирована.")
         return coefficients_matrix

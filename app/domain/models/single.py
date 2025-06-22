@@ -7,6 +7,7 @@
 from dataclasses import dataclass, fields
 
 import numpy as np
+from numpy.typing import NDArray
 
 from app.domain.iterators import ParamsNuIterator
 from app.domain.models.base import BasicServerParams
@@ -26,7 +27,7 @@ class BasicSingleServerParams(BasicServerParams):
 
     lambda_rate: float
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.
@@ -50,7 +51,7 @@ class SingleServerParams(BasicSingleServerParams):
 
     nu_rate: float
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.
@@ -73,11 +74,11 @@ class SingleServerThroughputParams(BasicSingleServerParams):
     по ним, создавая на каждой итерации объект SingleServerParams.
 
     Attributes:
-        nu_rate (np.ndarray[np.float64]): Массив значений интенсивности ухода заявок.
+        nu_rate (NDArray[np.float64]): Массив значений интенсивности ухода заявок.
         Остальные параметры наследуются от BasicSingleServerParams.
     """
 
-    nu_rate: np.ndarray[np.float64]
+    nu_rate: NDArray[np.float64]
 
     def __iter__(self) -> ParamsNuIterator:
         """Создаёт итератор по значениям ν из массива nu_rate.
@@ -95,7 +96,7 @@ class SingleServerThroughputParams(BasicSingleServerParams):
         }
         return ParamsNuIterator(self.nu_rate, base_params, SingleServerParams)
 
-    def validate(self):
+    def validate(self) -> None:
         """Проверяет корректность параметров.
 
         Выбрасывает исключение ValueError при некорректных параметрах.

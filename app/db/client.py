@@ -8,7 +8,7 @@ import logging
 import os
 import threading
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import duckdb
 
@@ -41,7 +41,7 @@ class DuckDBClient:
         self.connection.execute("PRAGMA threads=4")
         logger.info("Установлено соединение с DuckDB, инициализация схемы.")
         self._init_schema()
-        self._initialized = True
+        self._initialized: bool = True
 
     def _init_schema(self) -> None:
         """Инициализирует схему базы данных, выполняя SQL из файла schema.sql.
@@ -69,7 +69,7 @@ class DuckDBClient:
                 f"Ошибка при инициализации схемы из {schema_path}"
             ) from exc
 
-    def __new__(cls, *args, **kwargs) -> "DuckDBClient":
+    def __new__(cls, *args: Any, **kwargs: Any) -> "DuckDBClient":
         """Возвращает singleton-экземпляр DuckDBClient.
 
         Создаёт новый экземпляр, если он ещё не был создан.

@@ -12,7 +12,9 @@
 import logging
 import os
 import threading
+from dataclasses import asdict
 from functools import lru_cache
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,12 +46,13 @@ class AppConfig(BaseSettings):
         env_file=".env",
         env_prefix="",  # Без префикса для переменных окружения
     )
+    _ = model_config
 
 
 class ConfigLoader:
     """Потокобезопасный загрузчик и кешировщик конфигурации приложения."""
 
-    _instance: AppConfig = None
+    _instance: Optional[AppConfig] = None
     _lock = threading.Lock()
 
     @classmethod
@@ -63,7 +66,7 @@ class ConfigLoader:
             params (ConfigInitParams): Объект с параметрами конфигурации.
         """
         with cls._lock:
-            for key, value in params.dict(exclude_none=True).items():
+            for key, value in asdict(params).items():
                 env_key = key.upper()
                 os.environ[env_key] = str(value)
             cls._instance = None

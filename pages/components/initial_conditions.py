@@ -6,6 +6,7 @@
 
 import numpy as np
 import streamlit as st
+from numpy.typing import NDArray
 
 
 def _all_values_equal(
@@ -31,14 +32,14 @@ def _all_values_equal(
         return False
 
 
-def render_state_variables(count: int) -> np.ndarray[np.float64]:
+def render_state_variables(count: int) -> NDArray[np.float64]:
     """Отображает UI-компонент для ввода переменных состояния.
 
     Args:
         count (int): Ожидаемое количество переменных.
 
     Returns:
-        np.ndarray[np.float64]: Массив введённых переменных состояния.
+        NDArray[np.float64]: Массив введённых переменных состояния.
     """
     if "state_variables" not in st.session_state or _all_values_equal(
         st.session_state.state_variables
@@ -65,14 +66,14 @@ def render_state_variables(count: int) -> np.ndarray[np.float64]:
     return state_variables
 
 
-def render_initial_probabilities(count: int) -> np.ndarray[np.float64]:
+def render_initial_probabilities(count: int) -> NDArray[np.float64]:
     """Отображает UI-компонент для ввода начальных вероятностей.
 
     Args:
         count (int): Ожидаемое количество вероятностей.
 
     Returns:
-        np.ndarray[np.float64]: Массив начальных вероятностей.
+        NDArray[np.float64]: Массив начальных вероятностей.
     """
     if "initial_probabilities" not in st.session_state or _all_values_equal(
         st.session_state.initial_probabilities, target_value=0, skip_first=True
@@ -104,7 +105,7 @@ def render_initial_probabilities(count: int) -> np.ndarray[np.float64]:
 
 def render_initial_conditions(
     count: int,
-) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Отображает оба поля ввода: переменные состояния и начальные вероятности.
 
     Также предоставляет кнопку для сброса значений к состоянию по умолчанию.
@@ -113,7 +114,7 @@ def render_initial_conditions(
         count (int): Количество переменных состояния и вероятностей.
 
     Returns:
-        tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
+        tuple[NDArray[np.float64], NDArray[np.float64]]:
             Кортеж из двух массивов:
                 - массив переменных состояния,
                 - массив начальных вероятностей.

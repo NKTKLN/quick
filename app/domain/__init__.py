@@ -1,16 +1,18 @@
 """Пакет с параметрами и вспомогательными модулями системы."""
 
-from .config_params import ConfigInitParams
-from .iterators import ParamsNuIterator
-from .settings import (
-    CalculationEngine,
-    CalculationMethod,
-    CalculationMode,
+from .app_config import ConfigInitParams
+from .computation_config import (
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
+)
+from .enums import (
+    CalculationEngine,
+    CalculationMethod,
+    CalculationMode,
     SystemType,
 )
+from .iterators import ParamsNuIterator
 
 __all__ = [
     "ConfigInitParams",

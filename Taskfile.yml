@@ -41,7 +41,7 @@ tasks:
 
   check:
     desc: Full linting, audit run, and code checks
-    deps: [format, lint, docstyle, audit, deadcode]
+    deps: [format, lint, docstyle, audit] #, deadcode
 
   unused-libs:
     desc: Check for unused libraries

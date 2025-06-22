@@ -9,6 +9,7 @@
 from typing import Optional
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def map_intensity_matrix_generator(
@@ -16,7 +17,7 @@ def map_intensity_matrix_generator(
     p_max: Optional[float] = None,
     q_max: Optional[float] = None,
     depth: int = 10,
-) -> tuple[np.ndarray[np.float64], np.ndarray[np.float64]]:
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Генерирует случайные матрицы p и q с нормировкой строк.
 
     Args:
@@ -29,7 +30,7 @@ def map_intensity_matrix_generator(
         ValueError: Если depth <= 0.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Кортеж из матриц p и q.
+        tuple[NDArray, NDArray]: Кортеж из матриц p и q.
     """
     if depth <= 0:
         raise ValueError("Достигнута максимальная глубина рекурсии (depth).")

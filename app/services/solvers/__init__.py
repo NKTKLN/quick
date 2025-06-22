@@ -5,15 +5,19 @@
 """
 
 from .analytical import (
-    BasicProbabilitySolver,
-    MergedProbabilitySolver,
-    MpmathProbabilitySolver,
-    NumpyProbabilitySolver,
+    AnalyticalBasicProbabilitySolver,
+    AnalyticalMergedProbabilitySolver,
+    AnalyticalMpmathProbabilitySolver,
+    AnalyticalNumpyProbabilitySolver,
 )
+from .base import BasicProbabilitySolver
+from .factory import solvers_factory
 
 __all__ = [
+    "AnalyticalBasicProbabilitySolver",
+    "AnalyticalNumpyProbabilitySolver",
+    "AnalyticalMpmathProbabilitySolver",
+    "AnalyticalMergedProbabilitySolver",
     "BasicProbabilitySolver",
-    "NumpyProbabilitySolver",
-    "MpmathProbabilitySolver",
-    "MergedProbabilitySolver",
+    "solvers_factory",
 ]

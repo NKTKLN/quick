@@ -9,6 +9,7 @@
 import logging
 
 import numpy as np
+from numpy.typing import NDArray
 
 from app.domain import (
     ComputationConfig,
@@ -56,14 +57,14 @@ class AnalyticalSingleServerThroughputSystem(BaseThroughputSystem):
 
     def _calculate_probabilities(
         self, params: SingleServerParams
-    ) -> np.ndarray[np.float64]:
+    ) -> NDArray[np.float64]:
         """Строит модель СМО и вычисляет вероятности состояний системы.
 
         Args:
             params (SingleServerParams): Параметры однолинейной СМО.
 
         Returns:
-            np.ndarray[np.float64]: Массив вероятностей, включая вероятность потери.
+            NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
         queue_system = AnalyticalSingleServerSystem(params, self.config)
         probabilities = queue_system.calculate()
@@ -92,14 +93,14 @@ class AnalyticalMultiServerThroughputSystem(BaseThroughputSystem):
 
     def _calculate_probabilities(
         self, params: MultiServerParams
-    ) -> np.ndarray[np.float64]:
+    ) -> NDArray[np.float64]:
         """Строит модель многолинейной СМО и вычисляет вероятности состояний.
 
         Args:
             params (MultiServerParams): Параметры многолинейной СМО.
 
         Returns:
-            np.ndarray[np.float64]: Массив вероятностей, включая вероятность потери.
+            NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
         queue_system = AnalyticalMultiServerSystem(params, self.config)
         probabilities = queue_system.calculate()
@@ -126,16 +127,14 @@ class AnalyticalMAPServerThroughputSystem(BaseThroughputSystem):
         """
         super().__init__(params, config)
 
-    def _calculate_probabilities(
-        self, params: MAPServerParams
-    ) -> np.ndarray[np.float64]:
+    def _calculate_probabilities(self, params: MAPServerParams) -> NDArray[np.float64]:
         """Строит модель СМО и вычисляет вероятности состояний системы.
 
         Args:
             params (MAPServerParams): Параметры СМО с MAP-потоками.
 
         Returns:
-            np.ndarray[np.float64]: Массив вероятностей, включая вероятность потери.
+            NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
         queue_system = AnalyticalMAPServerSystem(params, self.config)
         probabilities = queue_system.calculate()

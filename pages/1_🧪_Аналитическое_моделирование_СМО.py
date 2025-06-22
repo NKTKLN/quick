@@ -4,6 +4,8 @@
 производить расчет вероятностей и визуализировать результаты.
 """
 
+from typing import Any
+
 import numpy as np
 import streamlit as st
 
@@ -19,15 +21,15 @@ from app.domain.models import (
 from app.metrics.probability import probability_system_factory
 from app.metrics.throughput import throughput_system_factory
 from pages.components import (
-    calculation_config,
     get_intensity_parameters,
     get_system_mode_type,
     map_intensity_matrix,
     plot_probabilities,
     plot_throughput,
+    render_calculation_config,
     render_initial_conditions,
+    render_time_settings,
     system_capacity_inputs,
-    time_settings,
 )
 
 
@@ -39,10 +41,10 @@ def get_user_inputs() -> tuple:
             - config: Конфигурация для выполнения вычислений.
             - params: Параметры выбранной системы массового обслуживания (СМО),
                 включая структуру, интенсивности, параметры обслуживания и т.д.
-            - system_type (str): Тип модели СМО, выбранный пользователем.
+            - system_type (SystemType): Тип модели СМО, выбранный пользователем.
             - calculation_mode (str): Режим вычислений, выбранный пользователем.
     """
-    config = calculation_config()
+    config = render_calculation_config()
     st.markdown("---")
     system_type, calculation_mode = get_system_mode_type()
 
@@ -51,7 +53,7 @@ def get_user_inputs() -> tuple:
         system_type, calculation_mode
     )
 
-    if system_type == "С MAP-потоками":
+    if system_type == SystemType.MAP:
         max_customers, processor_count = system_capacity_inputs(
             system_type, default_max_customers=3
         )
@@ -61,16 +63,16 @@ def get_user_inputs() -> tuple:
         max_customers, processor_count = system_capacity_inputs(system_type)
 
     count = max_customers
-    if system_type == "Многолинейная":
+    if system_type == SystemType.MULTI and processor_count is not None:
         count += processor_count + 1
-    elif system_type == "С MAP-потоками":
+    elif system_type == SystemType.MAP:
         count **= 2
 
     st.markdown("---")
     state_variables, initial_probabilities = render_initial_conditions(count)
 
     st.markdown("---")
-    time_array = time_settings()
+    time_array = render_time_settings()
 
     base_params = dict(
         mu_rate=mu_rate,
@@ -81,11 +83,11 @@ def get_user_inputs() -> tuple:
     )
 
     match system_type:
-        case "Однолинейная":
+        case SystemType.SINGLE:
             base_params.update(lambda_rate=lambda_rate)
-        case "Многолинейная":
+        case SystemType.MULTI:
             base_params.update(lambda_rate=lambda_rate, processor_count=processor_count)
-        case "С MAP-потоками":
+        case SystemType.MAP:
             base_params.update(
                 lambda_rate=lambda_rate,
                 p_rate=p_rate.astype(np.float64),
@@ -103,7 +105,7 @@ def get_user_inputs() -> tuple:
         ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputParams,
     }
 
-    key = (calculation_mode, system_type)
+    key = (calculation_mode, system_type.value)
     ParamClass = param_classes.get(key)
     if not ParamClass:
         raise ValueError(f"Неподдерживаемый режим/тип системы: {key}")
@@ -123,12 +125,6 @@ def main() -> None:
         st.error(f"❌ Ошибка в вводных данных: {e}")
         st.stop()
 
-    system_type_options = {
-        "Однолинейная": SystemType.SINGLE,
-        "Многолинейная": SystemType.MULTI,
-        "С MAP-потоками": SystemType.MAP,
-    }
-
     if st.button("🚀 Применить параметры"):
         try:
             config.validate()
@@ -137,19 +133,20 @@ def main() -> None:
             st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
+        system: Any
         if calculation_mode == "Пропускная способность":
             system = throughput_system_factory(
-                system_type_options[system_type],
+                system_type,
                 CalculationMethod.ANALYTICAL,
-                params,
-                config,
+                params=params,
+                config=config,
             )
         elif calculation_mode == "Вероятностный":
             system = probability_system_factory(
-                system_type_options[system_type],
+                system_type,
                 CalculationMethod.ANALYTICAL,
-                params,
-                config,
+                params=params,
+                config=config,
             )
         else:
             st.error("❌ Некорректный режим/тип системы")
@@ -164,16 +161,19 @@ def main() -> None:
             st.stop()
 
         st.markdown("---")
-        match calculation_mode:
-            case "Вероятностный":
-                st.subheader("📊 Графики вероятностей состояний системы")
-                fig = plot_probabilities(probabilities, params.time_array)
-            case "Пропускная способность":
-                st.subheader("📊 График пропускной способности системы")
-                fig = plot_throughput(probabilities, params.time_array)
-            case _:
-                st.error("❌ Некорректный режим/тип системы")
-                st.stop()
+        if calculation_mode == "Вероятностный" and isinstance(
+            probabilities, np.ndarray
+        ):
+            st.subheader("📊 Графики вероятностей состояний системы")
+            fig = plot_probabilities(probabilities, params.time_array)
+        elif calculation_mode == "Пропускная способность" and isinstance(
+            probabilities, list
+        ):
+            st.subheader("📊 График пропускной способности системы")
+            fig = plot_throughput(probabilities, params.time_array)
+        else:
+            st.error("❌ Некорректный режим/тип системы")
+            st.stop()
         st.plotly_chart(fig, use_container_width=True)
 
 

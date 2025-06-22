@@ -6,9 +6,10 @@
 
 import numpy as np
 import streamlit as st
+from numpy.typing import NDArray
 
 
-def time_settings() -> np.ndarray[np.float64]:
+def render_time_settings() -> NDArray[np.float64]:
     """Отображает UI-компонент для ввода временных параметров.
 
     Пользователь задаёт:
@@ -17,7 +18,7 @@ def time_settings() -> np.ndarray[np.float64]:
       - количество временных шагов (t_steps).
 
     Returns:
-        np.ndarray: Массив временных равномерно распределённых отсечек.
+        NDArray: Массив временных равномерно распределённых отсечек.
     """
     col_t1, col_t2, col_t3 = st.columns(3)
 

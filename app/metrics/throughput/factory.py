@@ -5,19 +5,11 @@
 Поддерживается интеграция с конфигурациями вычислений различной точности.
 """
 
-from typing import Union
+from typing import Any
 
 from app.domain import (
     CalculationMethod,
-    ComputationConfig,
-    MergedComputationConfig,
-    MpmathComputationConfig,
     SystemType,
-)
-from app.domain.models import (
-    MAPServerThroughputParams,
-    MultiServerThroughputParams,
-    SingleServerThroughputParams,
 )
 from app.metrics.throughput.analytical import (
     AnalyticalMAPServerThroughputSystem,
@@ -30,32 +22,30 @@ from app.metrics.throughput.base import BaseThroughputSystem
 def throughput_system_factory(
     system_type: SystemType,
     calculation_method: CalculationMethod,
-    params: Union[
-        SingleServerThroughputParams,
-        MultiServerThroughputParams,
-        MAPServerThroughputParams,
-    ],
-    config: Union[ComputationConfig, MpmathComputationConfig, MergedComputationConfig],
+    **kwargs: Any,
 ) -> BaseThroughputSystem:
     """Фабрика для создания системы массового обслуживания.
 
     Args:
         system_type (SystemType): Тип системы.
         calculation_method (CalculationMethod): Метод вычисления.
-        params: Параметры системы соответствующего типа.
-        config: Конфигурация вычислений.
+        **kwargs (Any): Дополнительные параметры, передаваемые в конструктор системы
+            (например: params, config).
 
     Returns:
         BaseThroughputSystem: Инстанс соответствующей системы.
+
+    Raises:
+        ValueError: Если передан неподдерживаемый метод расчёта или тип.
     """
     if calculation_method == CalculationMethod.ANALYTICAL:
         match system_type:
             case SystemType.SINGLE:
-                return AnalyticalSingleServerThroughputSystem(params, config)
+                return AnalyticalSingleServerThroughputSystem(**kwargs)
             case SystemType.MULTI:
-                return AnalyticalMultiServerThroughputSystem(params, config)
+                return AnalyticalMultiServerThroughputSystem(**kwargs)
             case SystemType.MAP:
-                return AnalyticalMAPServerThroughputSystem(params, config)
+                return AnalyticalMAPServerThroughputSystem(**kwargs)
             case _:
                 raise ValueError(f"Неподдерживаемый тип системы: {system_type}")
     else:

@@ -7,6 +7,7 @@
 
 import io
 import pickle
+from typing import Any
 
 
 class SafeUnpickler(pickle.Unpickler):
@@ -30,7 +31,7 @@ class SafeUnpickler(pickle.Unpickler):
         ("builtins", "complex"),
     }
 
-    def find_class(self, module, name):
+    def find_class(self, module: str, name: str) -> Any:
         """Переопределённый метод поиска классов с ограничением по белому списку.
 
         Args:
@@ -38,7 +39,7 @@ class SafeUnpickler(pickle.Unpickler):
             name (str): Имя класса.
 
         Returns:
-            type: Разрешённый класс.
+            Any: Разрешённый класс.
 
         Raises:
             pickle.UnpicklingError: Если класс не разрешён.

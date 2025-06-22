@@ -45,7 +45,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
         """
 
         @functools.wraps(method)
-        def wrapper(self, *args: Any, **kwargs: Any) -> Any:
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
             """Выполняет кэширование вызова метода.
 
             Формирует ключ на основе аргументов метода и указанных атрибутов self,
@@ -55,12 +55,12 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
             Кэширование может быть отключено через конфигурацию.
 
             Args:
-                self: Экземпляр класса, метод которого вызывается.
-                *args: Позиционные аргументы метода.
-                **kwargs: Именованные аргументы метода.
+                self (Any): Экземпляр класса решателя.
+                *args (Any): Позиционные аргументы метода.
+                **kwargs (Any): Именованные аргументы метода.
 
             Returns:
-                Любое: Результат выполнения метода, либо загруженный из кэша.
+                Any: Результат выполнения метода, либо загруженный из кэша.
             """
             config = ConfigLoader.get_config()
             computation_config: ComputationConfig = self.config

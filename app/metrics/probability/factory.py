@@ -5,19 +5,11 @@
 Поддерживается интеграция с конфигурациями вычислений различной точности.
 """
 
-from typing import Union
+from typing import Any
 
 from app.domain import (
     CalculationMethod,
-    ComputationConfig,
-    MergedComputationConfig,
-    MpmathComputationConfig,
     SystemType,
-)
-from app.domain.models import (
-    MAPServerParams,
-    MultiServerParams,
-    SingleServerParams,
 )
 from app.metrics.probability.analytical import (
     AnalyticalMAPServerSystem,
@@ -30,28 +22,30 @@ from app.metrics.probability.base import BaseProbabilitySystem
 def probability_system_factory(
     system_type: SystemType,
     calculation_method: CalculationMethod,
-    params: Union[SingleServerParams, MultiServerParams, MAPServerParams],
-    config: Union[ComputationConfig, MpmathComputationConfig, MergedComputationConfig],
+    **kwargs: Any,
 ) -> BaseProbabilitySystem:
     """Фабрика для создания системы массового обслуживания.
 
     Args:
         system_type (SystemType): Тип системы.
         calculation_method (CalculationMethod): Метод вычисления.
-        params: Параметры системы соответствующего типа.
-        config: Конфигурация вычислений.
+        **kwargs (Any): Дополнительные параметры, передаваемые в конструктор системы
+            (например: params, config).
 
     Returns:
         BaseProbabilitySystem: Инстанс соответствующей системы.
+
+    Raises:
+        ValueError: Если передан неподдерживаемый метод расчёта или тип.
     """
     if calculation_method == CalculationMethod.ANALYTICAL:
         match system_type:
             case SystemType.SINGLE:
-                return AnalyticalSingleServerSystem(params, config)
+                return AnalyticalSingleServerSystem(**kwargs)
             case SystemType.MULTI:
-                return AnalyticalMultiServerSystem(params, config)
+                return AnalyticalMultiServerSystem(**kwargs)
             case SystemType.MAP:
-                return AnalyticalMAPServerSystem(params, config)
+                return AnalyticalMAPServerSystem(**kwargs)
             case _:
                 raise ValueError(f"Неподдерживаемый тип системы: {system_type}")
     else:
