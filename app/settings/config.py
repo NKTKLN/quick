@@ -34,7 +34,7 @@ class AppConfig(BaseSettings):
         log_format (str): Формат лог-сообщений.
     """
 
-    disable_cache: bool = Field(default=True) # TODO: cache error
+    disable_cache: bool = Field(default=True)  # TODO: cache error
     duckdb_path: str = Field(default="cache_data.duckdb")
     disable_logging: bool = Field(default=False)
     log_level: int = Field(default=logging.INFO)

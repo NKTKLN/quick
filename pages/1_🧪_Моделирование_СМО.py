@@ -8,15 +8,7 @@ import numpy as np
 import streamlit as st
 
 from app.domain import CalculationMode, ComputationConfig, SystemType
-from app.domain.models import (
-    BasicServerParams,
-    MAPServerParams,
-    MAPServerThroughputParams,
-    MultiServerParams,
-    MultiServerThroughputParams,
-    SingleServerParams,
-    SingleServerThroughputParams,
-)
+from app.domain.models import BasicServerParams, model_factory
 from app.services.systems import system_factory
 from pages.components import (
     get_intensity_parameters,
@@ -81,37 +73,20 @@ def get_user_inputs() -> tuple[
         time_array=time_array,
         state_variables=state_variables,
         initial_probabilities=initial_probabilities,
+        nu_rate=nu_rate,
+        lambda_rate=lambda_rate,
     )
 
     match system_type:
-        case SystemType.SINGLE:
-            base_params.update(lambda_rate=lambda_rate)
         case SystemType.MULTI:
-            base_params.update(lambda_rate=lambda_rate, processor_count=processor_count)
+            base_params.update(processor_count=processor_count)
         case SystemType.MAP:
             base_params.update(
-                lambda_rate=lambda_rate,
                 p_rate=p_rate.astype(np.float64),
                 q_rate=q_rate.astype(np.float64),
             )
-        case _:
-            raise ValueError(f"Неподдерживаемый тип системы: {system_type}")
 
-    param_classes = {
-        ("Вероятностный", "Однолинейная"): SingleServerParams,
-        ("Вероятностный", "Многолинейная"): MultiServerParams,
-        ("Вероятностный", "С MAP-потоками"): MAPServerParams,
-        ("Пропускная способность", "Однолинейная"): SingleServerThroughputParams,
-        ("Пропускная способность", "Многолинейная"): MultiServerThroughputParams,
-        ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputParams,
-    }
-
-    key = (calculation_mode.value, system_type.value)
-    ParamClass = param_classes.get(key)
-    if not ParamClass:
-        raise ValueError(f"Неподдерживаемый режим/тип системы: {key}")
-
-    params = ParamClass(**base_params, nu_rate=nu_rate)
+    params = model_factory(system_type, calculation_mode, **base_params)
     return config, params, system_type, calculation_mode
 
 

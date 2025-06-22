@@ -1,6 +1,7 @@
 """Пакет с параметрами моделей систем массового обслуживания (СМО)."""
 
 from .base import BasicServerParams
+from .factory import model_factory
 from .map import (
     BasicMAPServerParams,
     MAPServerParams,
@@ -19,6 +20,7 @@ from .single import (
 
 __all__ = [
     "BasicServerParams",
+    "model_factory",
     "BasicMAPServerParams",
     "MAPServerParams",
     "MAPServerThroughputParams",
