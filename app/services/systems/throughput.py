@@ -7,6 +7,8 @@
 """
 
 import logging
+from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -24,18 +26,83 @@ from app.domain.models import (
     SingleServerParams,
     SingleServerThroughputParams,
 )
-from app.metrics.probability import (
-    AnalyticalMAPServerSystem,
-    AnalyticalMultiServerSystem,
-    AnalyticalSingleServerSystem,
+from app.services.systems.probability import (
+    MAPServerSystem,
+    MultiServerSystem,
+    SingleServerSystem,
 )
-from app.metrics.throughput.base import BaseThroughputSystem
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
 
 
-class AnalyticalSingleServerThroughputSystem(BaseThroughputSystem):
+class BaseThroughputSystem(ABC):
+    """Базовый абстрактный класс для анализа пропускной способности СМО.
+
+    Определяет интерфейс и общую логику вычислений зависимости пропускной способности
+    от интенсивности ухода заявок из очереди. Наследники реализуют специфичные методы
+    расчёта вероятностей для конкретных типов СМО.
+    """
+
+    def __init__(
+        self,
+        params: (
+            SingleServerThroughputParams
+            | MultiServerThroughputParams
+            | MAPServerThroughputParams
+        ),
+        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+    ) -> None:
+        """Инициализирует анализатор пропускной способности с заданными параметрами.
+
+        Args:
+            params: Параметры СМО с диапазоном значений интенсивности ухода заявок.
+            config: Конфигурация вычислений.
+        """
+        self.params = params
+        self.config = config
+
+    def calculate(self) -> list[NDArray[np.float64]]:
+        """Выполняет полный расчёт пропускной способности системы.
+
+        Этапы:
+            1. Итерация по значениям интенсивности ухода заявок (ν)
+            2. Расчёт вероятностей состояний системы
+            3. Вычисление пропускной способности: (1 - p_loss) * λ
+            4. Формирование массива итоговых значений
+
+        Returns:
+            list[NDArray[np.float64]]: Список значений пропускной способности
+                для каждого ν из заданного диапазона.
+        """
+        throughput_results = []
+
+        for single_param in self.params:
+            probabilities = self._calculate_probabilities(single_param)
+            current_throughput = (1 - probabilities[-1]) * single_param.lambda_rate
+            throughput_results.append(current_throughput)
+
+            logger.info(
+                "Рассчитана пропускная способность для ν = %.3f", single_param.nu_rate
+            )
+
+        return throughput_results
+
+    @abstractmethod
+    def _calculate_probabilities(self, params: Any) -> NDArray[np.float64]:
+        """Вычисляет вероятности состояний системы для заданных параметров.
+
+        Args:
+            params (Any): Параметры конкретного расчёта.
+
+        Returns:
+            NDArray[np.float64]: Массив вероятностей состояний,
+                последний элемент — вероятность потери.
+        """
+        pass
+
+
+class SingleServerThroughputSystem(BaseThroughputSystem):
     """Класс анализа пропускной способности однолинейной СМО.
 
     Реализует расчёты пропускной способности для различных значений ν с использованием
@@ -66,12 +133,12 @@ class AnalyticalSingleServerThroughputSystem(BaseThroughputSystem):
         Returns:
             NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
-        queue_system = AnalyticalSingleServerSystem(params, self.config)
+        queue_system = SingleServerSystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities
 
 
-class AnalyticalMultiServerThroughputSystem(BaseThroughputSystem):
+class MultiServerThroughputSystem(BaseThroughputSystem):
     """Класс анализа пропускной способности многолинейной СМО.
 
     Выполняет серию расчётов пропускной способности при разных ν
@@ -102,12 +169,12 @@ class AnalyticalMultiServerThroughputSystem(BaseThroughputSystem):
         Returns:
             NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
-        queue_system = AnalyticalMultiServerSystem(params, self.config)
+        queue_system = MultiServerSystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities
 
 
-class AnalyticalMAPServerThroughputSystem(BaseThroughputSystem):
+class MAPServerThroughputSystem(BaseThroughputSystem):
     """Класс анализа пропускной способности СМО с MAP-потоками.
 
     Реализует расчёты пропускной способности для различных значений ν с использованием
@@ -136,6 +203,6 @@ class AnalyticalMAPServerThroughputSystem(BaseThroughputSystem):
         Returns:
             NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
         """
-        queue_system = AnalyticalMAPServerSystem(params, self.config)
+        queue_system = MAPServerSystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities

@@ -41,11 +41,6 @@ class BasicMAPServerParams(BasicServerParams):
         super().validate()
         if np.any(self.lambda_rate <= 0) or self.lambda_rate.shape[0] == 0:
             raise ValueError("Интенсивность λ должна быть положительна.")
-        if self.initial_probabilities.shape[0] != self.max_customers**2:
-            raise ValueError(
-                "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе возведенных в квадрат."
-            )
         if self.p_rate.shape != self.q_rate.shape:
             raise ValueError(
                 "Размер начальных вероятностей должен совпадать с максимальным числом "
@@ -90,6 +85,11 @@ class MAPServerParams(BasicMAPServerParams):
         super().validate()
         if self.nu_rate <= 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers**2:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе возведенных в квадрат."
+            )
 
 
 @dataclass
@@ -130,3 +130,8 @@ class MAPServerThroughputParams(BasicMAPServerParams):
         super().validate()
         if np.any(self.nu_rate <= 0) or self.nu_rate.shape[0] == 0:
             raise ValueError("Интенсивность ν должна быть положительна.")
+        if self.initial_probabilities.shape[0] != self.max_customers**2:
+            raise ValueError(
+                "Размер начальных вероятностей должен совпадать с максимальным числом "
+                "заявок в системе возведенных в квадрат."
+            )

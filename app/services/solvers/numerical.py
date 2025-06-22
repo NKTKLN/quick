@@ -6,14 +6,19 @@
 вероятностей по времени.
 """
 
-from typing import Callable, cast
+import logging
+from typing import Callable, Optional, cast
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
 
-from app.domain.models.single import SingleServerParams
+from app.domain import ComputationConfig
+from app.domain.models import SingleServerParams
 from app.services.solvers.base import BasicProbabilitySolver
+
+# Инициализация логгера для текущего модуля
+logger = logging.getLogger(__name__)
 
 
 class NumericalProbabilitySolver(BasicProbabilitySolver):
@@ -28,15 +33,18 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
         self,
         params: SingleServerParams,
         coefficients_matrix: NDArray[np.float64],
+        config: Optional[ComputationConfig] = None,
     ) -> None:
         """Инициализирует базовый решатель.
 
         Args:
-            params (SingleServerParams): Параметры системы массового обслуживания.
+            params (SingleServerParams): Параметры системы массового
+                обслуживания.
             coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
                 уравнений размером (n x n).
+            config (Optional[ComputationConfig]): Конфигурация вычислений.
         """
-        super().__init__(params, coefficients_matrix)
+        super().__init__(params, coefficients_matrix, config)
 
     def _transition_rates(
         self,
@@ -62,6 +70,8 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
             """
             return self.coefficients_matrix @ P
 
+        logger.debug("Создана функция расчёта переходных скоростей.")
+
         return rates
 
     def calculate(self) -> NDArray[np.float64]:
@@ -74,6 +84,10 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
             NDArray[np.float64]: Матрица вероятностей состояний (размерность
                 зависит от параметров СМО).
         """
+        logger.info(
+            "Начат расчёт вероятностей методом численного интегрирования (RK45)."
+        )
+
         solution = solve_ivp(
             fun=self._transition_rates(),
             t_span=(self.params.time_array[0], self.params.time_array[-1]),
@@ -83,6 +97,11 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
         )
 
         if not solution.success:
-            raise RuntimeError("Numerical solver failed.")
+            logger.error(
+                "Численный решатель не справился с задачей: %s", solution.message
+            )
+            raise RuntimeError("Численный решатель не справился с задачей.")
+
+        logger.info("Численное интегрирование завершено успешно.")
 
         return cast(NDArray, solution.y)

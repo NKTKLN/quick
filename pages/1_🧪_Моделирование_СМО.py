@@ -1,16 +1,15 @@
-"""Страница для аналитического моделирования СМО с нетерпеливыми заявками.
+"""Страница для моделирования СМО с нетерпеливыми заявками.
 
 Позволяет пользователю задавать параметры системы, выбирать тип СМО,
 производить расчет вероятностей и визуализировать результаты.
 """
 
-from typing import Any
-
 import numpy as np
 import streamlit as st
 
-from app.domain import CalculationMethod, SystemType
+from app.domain import CalculationMode, ComputationConfig, SystemType
 from app.domain.models import (
+    BasicServerParams,
     MAPServerParams,
     MAPServerThroughputParams,
     MultiServerParams,
@@ -18,8 +17,7 @@ from app.domain.models import (
     SingleServerParams,
     SingleServerThroughputParams,
 )
-from app.metrics.probability import probability_system_factory
-from app.metrics.throughput import throughput_system_factory
+from app.services.systems import system_factory
 from pages.components import (
     get_intensity_parameters,
     get_system_mode_type,
@@ -33,7 +31,9 @@ from pages.components import (
 )
 
 
-def get_user_inputs() -> tuple:
+def get_user_inputs() -> tuple[
+    ComputationConfig, BasicServerParams, SystemType, CalculationMode
+]:
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
@@ -63,6 +63,7 @@ def get_user_inputs() -> tuple:
         max_customers, processor_count = system_capacity_inputs(system_type)
 
     count = max_customers
+
     if system_type == SystemType.MULTI and processor_count is not None:
         count += processor_count + 1
     elif system_type == SystemType.MAP:
@@ -105,7 +106,7 @@ def get_user_inputs() -> tuple:
         ("Пропускная способность", "С MAP-потоками"): MAPServerThroughputParams,
     }
 
-    key = (calculation_mode, system_type.value)
+    key = (calculation_mode.value, system_type.value)
     ParamClass = param_classes.get(key)
     if not ParamClass:
         raise ValueError(f"Неподдерживаемый режим/тип системы: {key}")
@@ -116,7 +117,7 @@ def get_user_inputs() -> tuple:
 
 def main() -> None:
     """Основная функция страницы: UI, вычисление, визуализация."""
-    st.title("🧪 Аналитическое моделирование СМО с нетерпеливыми заявками")
+    st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
     st.markdown("---")
 
     try:
@@ -133,24 +134,17 @@ def main() -> None:
             st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
-        system: Any
-        if calculation_mode == "Пропускная способность":
-            system = throughput_system_factory(
+        try:
+            system = system_factory(
                 system_type,
-                CalculationMethod.ANALYTICAL,
+                calculation_mode,
                 params=params,
                 config=config,
             )
-        elif calculation_mode == "Вероятностный":
-            system = probability_system_factory(
-                system_type,
-                CalculationMethod.ANALYTICAL,
-                params=params,
-                config=config,
-            )
-        else:
+        except Exception:
             st.error("❌ Некорректный режим/тип системы")
             st.stop()
+
         st.success("✅ Параметры успешно заданы!")
 
         try:
@@ -161,12 +155,12 @@ def main() -> None:
             st.stop()
 
         st.markdown("---")
-        if calculation_mode == "Вероятностный" and isinstance(
+        if calculation_mode == CalculationMode.PROBABILITY and isinstance(
             probabilities, np.ndarray
         ):
             st.subheader("📊 Графики вероятностей состояний системы")
             fig = plot_probabilities(probabilities, params.time_array)
-        elif calculation_mode == "Пропускная способность" and isinstance(
+        elif calculation_mode == CalculationMode.THROUGHPUT and isinstance(
             probabilities, list
         ):
             st.subheader("📊 График пропускной способности системы")

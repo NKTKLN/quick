@@ -8,6 +8,7 @@ import streamlit as st
 
 from app.domain import (
     CalculationEngine,
+    CalculationMethod,
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
@@ -27,6 +28,17 @@ def render_calculation_config() -> (
         ComputationConfig: Объект конфигурации.
     """
     st.subheader("⚙️ Настройки вычисления для системы")
+    calculation_method = CalculationMethod(
+        st.selectbox(
+            "Выберите метод вычисления:", [method.value for method in CalculationMethod]
+        )
+    )
+    if calculation_method == CalculationMethod.NUMERICAL:
+        return ComputationConfig(
+            calculation_engine=CalculationEngine.NUMPY,
+            calculation_method=calculation_method,
+        )
+
     calculation_type = st.selectbox(
         "Выберите тип вычисления:",
         [
@@ -61,12 +73,21 @@ def render_calculation_config() -> (
         )
 
     if calculation_type == "Numpy (быстрое, для небольших систем)":
-        config = ComputationConfig(calculation_engine=CalculationEngine.NUMPY)
+        config = ComputationConfig(
+            calculation_engine=CalculationEngine.NUMPY,
+            calculation_method=CalculationMethod(calculation_method),
+        )
     elif calculation_type == "Mpmath (точное, для больших систем)":
-        config = MpmathComputationConfig(calculation_engine=CalculationEngine.MPMATH)
+        config = MpmathComputationConfig(
+            calculation_engine=CalculationEngine.MPMATH,
+            calculation_method=CalculationMethod(calculation_method),
+        )
         config.precision = precision
     else:
-        config = MergedComputationConfig(calculation_engine=CalculationEngine.MERGED)
+        config = MergedComputationConfig(
+            calculation_engine=CalculationEngine.MERGED,
+            calculation_method=CalculationMethod(calculation_method),
+        )
         config.precision = precision
         config.tolerance = 10 ** (-tolerance)
 

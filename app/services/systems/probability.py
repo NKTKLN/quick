@@ -1,17 +1,15 @@
-"""Модуль для моделирования систем массового обслуживания с нетерпеливыми заявками.
+"""Модуль для моделирования СМО с нетерпеливыми заявками.
 
 Включает классы для вычисления вероятностных характеристик одно- и многолинейных СМО,
-в том числе с MAP-потоками поступления. Используются матричные методы. Поддерживаются
-вычисления с обычной точностью (numpy) и повышенной точностью (mpmath).
+в том числе с MAP-потоками поступления. Используются матричные методы.
 """
 
-import logging
+from abc import ABC, abstractmethod
 
 import numpy as np
 from numpy.typing import NDArray
 
 from app.domain import (
-    CalculationMethod,
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
@@ -21,7 +19,6 @@ from app.domain.models import (
     MultiServerParams,
     SingleServerParams,
 )
-from app.metrics.probability.base import BaseProbabilitySystem
 from app.services import (
     MAPServerMatrixBuilder,
     MultiServerMatrixBuilder,
@@ -29,12 +26,9 @@ from app.services import (
 )
 from app.services.solvers import solvers_factory
 
-# Настройка логирования для отслеживания работы системы
-logger = logging.getLogger(__name__)
 
-
-class BaseAnalyticalProbabilitySystem(BaseProbabilitySystem):
-    """Базовый класс для аналитического моделирования СМО с нетерпеливыми заявками.
+class BaseProbabilitySystem(ABC):
+    """Базовый абстрактный класс для моделирования СМО с нетерпеливыми заявками.
 
     Определяет интерфейс и общую логику расчёта вероятностей состояний СМО.
     Наследники реализуют специфичные методы построения матриц переходов.
@@ -48,11 +42,10 @@ class BaseAnalyticalProbabilitySystem(BaseProbabilitySystem):
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params (SingleServerParams | MultiServerParams | MAPServerParams):
-                Параметры СМО (интенсивности, структура, др.).
+            params: Параметры СМО (интенсивности, структура, др.).
             config: Конфигурация вычислений.
         """
-        super().__init__(params)
+        self.params = params
         self.config = config
 
     def calculate(self) -> NDArray[np.float64]:
@@ -64,7 +57,7 @@ class BaseAnalyticalProbabilitySystem(BaseProbabilitySystem):
         """
         transition_matrix = self._build_transition_matrix()
         prob_solver = solvers_factory(
-            calculation_method=CalculationMethod.ANALYTICAL,
+            calculation_method=self.config.calculation_method,
             calculation_engine=self.config.calculation_engine,
             params=self.params,
             coefficients_matrix=transition_matrix,
@@ -72,8 +65,17 @@ class BaseAnalyticalProbabilitySystem(BaseProbabilitySystem):
         )
         return prob_solver.calculate()
 
+    @abstractmethod
+    def _build_transition_matrix(self) -> NDArray[np.float64]:
+        """Строит матрицу переходов между состояниями СМО.
 
-class AnalyticalSingleServerSystem(BaseAnalyticalProbabilitySystem):
+        Returns:
+            NDArray[np.float64]: Матрица переходов.
+        """
+        pass
+
+
+class SingleServerSystem(BaseProbabilitySystem):
     """Класс моделирования однолинейной СМО с нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей
@@ -109,7 +111,7 @@ class AnalyticalSingleServerSystem(BaseAnalyticalProbabilitySystem):
         return transition_matrix
 
 
-class AnalyticalMultiServerSystem(BaseAnalyticalProbabilitySystem):
+class MultiServerSystem(BaseProbabilitySystem):
     """Класс моделирования многолинейной СМО с нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей
@@ -145,7 +147,7 @@ class AnalyticalMultiServerSystem(BaseAnalyticalProbabilitySystem):
         return transition_matrix
 
 
-class AnalyticalMAPServerSystem(BaseAnalyticalProbabilitySystem):
+class MAPServerSystem(BaseProbabilitySystem):
     """Класс моделирования СМО с MAP-потоками и нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей

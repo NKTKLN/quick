@@ -6,11 +6,13 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 from numpy.typing import NDArray
 
-from app.domain.models.single import SingleServerParams
+from app.domain import ComputationConfig
+from app.domain.models import SingleServerParams
 
 
 class BasicProbabilitySolver(ABC):
@@ -26,16 +28,19 @@ class BasicProbabilitySolver(ABC):
         self,
         params: SingleServerParams,
         coefficients_matrix: NDArray[np.float64],
+        config: Optional[ComputationConfig] = None,
     ) -> None:
         """Инициализирует базовый решатель.
 
         Args:
-            params (SingleServerParams): Параметры системы массового обслуживания.
+            params: Параметры системы массового обслуживания.
             coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
                 уравнений размером (n x n).
+            config (Optional[ComputationConfig]): Конфигурация вычислений.
         """
         self.params = params
         self.coefficients_matrix = coefficients_matrix
+        self.config = config
 
     @abstractmethod
     def calculate(self) -> NDArray[np.float64]:

@@ -11,24 +11,24 @@ import numpy as np
 import streamlit as st
 from numpy.typing import NDArray
 
-from app.domain import SystemType
+from app.domain import CalculationMode, SystemType
 from app.services import map_intensity_matrix_generator
 
 
-def get_system_mode_type() -> tuple[SystemType, str]:
+def get_system_mode_type() -> tuple[SystemType, CalculationMode]:
     """Отображает UI-компонент с двумя полями выбора (тип системы и режим вычисления).
 
     Returns:
-        tuple[SystemType, str]: Значения типа системы и режима вычисления.
+        tuple[SystemType, CalculationMode]: Значения типа системы и режима вычисления.
     """
     st.subheader("🔬 Тип системы")
     system_type = st.selectbox(
         "Выберите тип СМО:", [system_type.value for system_type in SystemType]
     )
     calculation_mode = st.selectbox(
-        "Выберите режим расчёта:", ["Вероятностный", "Пропускная способность"]
+        "Выберите режим расчёта:", [mode.value for mode in CalculationMode]
     )
-    return SystemType(system_type), calculation_mode
+    return SystemType(system_type), CalculationMode(calculation_mode)
 
 
 def intensity_parameters() -> tuple[float, float, float]:
@@ -180,18 +180,20 @@ def map_throughput_intensity_parameters() -> tuple[
     return lambda_rate, mu_rate, nu_rate
 
 
-def get_intensity_parameters(system_type: SystemType, calculation_mode: str) -> tuple:
+def get_intensity_parameters(
+    system_type: SystemType, calculation_mode: CalculationMode
+) -> tuple:
     """Возвращает параметры интенсивности в зависимости от параметров системы.
 
     Args:
         system_type (SystemType): Тип системы.
-        calculation_mode (str): Режим расчета.
+        calculation_mode (CalculationMode): Режим расчета.
 
     Returns:
         tuple: Параметры интенсивности, соответствующие выбранному типу системы
             и режиму расчета.
     """
-    if calculation_mode == "Пропускная способность":
+    if calculation_mode == CalculationMode.THROUGHPUT:
         if system_type == SystemType.MAP:
             return map_throughput_intensity_parameters()
         return throughput_intensity_parameters()

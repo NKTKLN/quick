@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass
 
-from app.domain.enums import CalculationEngine, CalculationMode
+from app.domain.enums import CalculationEngine, CalculationMethod, CalculationMode
 
 
 @dataclass
@@ -16,12 +16,21 @@ class ComputationConfig:
     Attributes:
         calculation_engine (CalculationEngine): Движок вычислений.
         calculation_mode (CalculationMode): Режим вычисления.
+        calculation_method (CalculationMethod): Метод расчета.
         disable_cache (bool): Флаг отключения кэширования вычислений.
     """
 
     calculation_engine: CalculationEngine = CalculationEngine.MPMATH
     calculation_mode: CalculationMode = CalculationMode.PROBABILITY
+    calculation_method: CalculationMethod = CalculationMethod.ANALYTICAL
     disable_cache: bool = False
+
+    def validate(self) -> None:
+        """Проверяет корректность параметров.
+
+        Выбрасывает исключение ValueError при некорректных параметрах.
+        """
+        pass
 
 
 @dataclass
@@ -40,6 +49,7 @@ class MpmathComputationConfig(ComputationConfig):
 
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
+        super().validate()
         if self.precision <= 0:
             raise ValueError("Точность вычислений должна быть положительна.")
 
@@ -60,6 +70,7 @@ class MergedComputationConfig(MpmathComputationConfig):
 
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
+        super().validate()
         if self.tolerance <= 0:
             raise ValueError(
                 "Допустимая погрешность должна находиться в диапазоне [0, 1]."

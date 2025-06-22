@@ -48,8 +48,7 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
                 уравнений размером (n x n).
             config: Конфигурация вычислений.
         """
-        super().__init__(params, coefficients_matrix)
-        self.config = config
+        super().__init__(params, coefficients_matrix, config)
 
     @abstractmethod
     def generate_m_matrix(

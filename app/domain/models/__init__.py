@@ -1,7 +1,11 @@
 """Пакет с параметрами моделей систем массового обслуживания (СМО)."""
 
 from .base import BasicServerParams
-from .map import BasicMAPServerParams, MAPServerParams, MAPServerThroughputParams
+from .map import (
+    BasicMAPServerParams,
+    MAPServerParams,
+    MAPServerThroughputParams,
+)
 from .multi import (
     BasicMultiServerParams,
     MultiServerParams,
