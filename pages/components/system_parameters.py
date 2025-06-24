@@ -12,7 +12,7 @@ import streamlit as st
 from numpy.typing import NDArray
 
 from app.domain import CalculationMode, SystemType
-from app.services import map_intensity_matrix_generator
+from app.utils import map_intensity_matrix_generator
 
 
 def get_system_mode_type() -> tuple[SystemType, CalculationMode]:
