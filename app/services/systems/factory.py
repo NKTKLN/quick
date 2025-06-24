@@ -8,25 +8,17 @@
 from typing import Any
 
 from app.domain import CalculationMode, SystemType
-from app.services.systems.probability import (
-    BaseProbabilitySystem,
-    MAPServerSystem,
-    MultiServerSystem,
-    SingleServerSystem,
-)
+from app.services.systems.base import BaseSystem
+from app.services.systems.probability import ServerProbabilitySystem
 from app.services.systems.throughput import (
-    BaseThroughputSystem,
     MAPServerThroughputSystem,
-    MultiServerThroughputSystem,
-    SingleServerThroughputSystem,
+    ServerThroughputSystem,
 )
 
 
 def system_factory(
-    system_type: SystemType,
-    calculation_mode: CalculationMode,
-    **kwargs: Any,
-) -> BaseProbabilitySystem | BaseThroughputSystem:
+    system_type: SystemType, calculation_mode: CalculationMode, **kwargs: Any
+) -> BaseSystem:
     """Фабрика для создания системы массового обслуживания.
 
     Args:
@@ -36,30 +28,18 @@ def system_factory(
             (например: params, config).
 
     Returns:
-        BaseProbabilitySystem | BaseThroughputSystem: Инстанс соответствующей системы.
+        BaseSystem: Инстанс соответствующей системы.
 
     Raises:
         ValueError: Если передан неподдерживаемый режим расчёта или тип.
     """
     if calculation_mode == CalculationMode.PROBABILITY:
-        match system_type:
-            case SystemType.SINGLE:
-                return SingleServerSystem(**kwargs)
-            case SystemType.MULTI:
-                return MultiServerSystem(**kwargs)
-            case SystemType.MAP:
-                return MAPServerSystem(**kwargs)
-            case _:
-                raise ValueError(f"Неподдерживаемый тип системы: {system_type}")
+        return ServerProbabilitySystem(**kwargs)
     if calculation_mode == CalculationMode.THROUGHPUT:
         match system_type:
-            case SystemType.SINGLE:
-                return SingleServerThroughputSystem(**kwargs)
-            case SystemType.MULTI:
-                return MultiServerThroughputSystem(**kwargs)
             case SystemType.MAP:
                 return MAPServerThroughputSystem(**kwargs)
             case _:
-                raise ValueError(f"Неподдерживаемый тип системы: {system_type}")
+                return ServerThroughputSystem(**kwargs)
     else:
         raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")

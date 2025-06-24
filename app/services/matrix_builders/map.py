@@ -1,0 +1,114 @@
+"""Модуль построения матрицы коэффициентов для СМО с MAP-потоками и уходами заявок.
+
+Содержит класс MAPServerMatrixBuilder, который строит матрицу коэффициентов систем
+массового обслуживания, в которых входной поток описывается марковским процессом (MAP).
+Основан на параметрах переходов между состояниями MAP и интенсивностях
+обслуживания и ухода.
+"""
+
+import logging
+
+import numpy as np
+from numpy.typing import NDArray
+
+from app.domain.models import MAPServerParams
+from app.services.matrix_builders.base import BaseMatrixBuilder
+
+# Инициализация логгирования
+logger = logging.getLogger(__name__)
+
+
+class MAPServerMatrixBuilder(BaseMatrixBuilder):
+    """Построитель матрицы коэффициентов для СМО с MAP-потоками и уходами заявок.
+
+    Использует матрицы вероятностей переходов p_rate и q_rate для построения
+    четырёхмерной матрицы, сворачиваемой в двухмерную.
+    """
+
+    def __init__(self, params: MAPServerParams) -> None:
+        """Инициализирует построитель СМО с MAP-потоком.
+
+        Args:
+            params (MAPServerParams): Параметры модели СМО с MAP-потоком.
+        """
+        super().__init__(params)
+
+    def _d_0_matrix_generator(self) -> NDArray[np.float64]:
+        """Генерирует матрицу D₀ по MAP-параметрам.
+
+        Returns:
+            NDArray[np.float64]: Матрица D₀ для текущих параметров потока.
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
+        """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
+        matrix = self.params.p_rate.copy()
+        matrix *= self.params.lambda_rate[:, np.newaxis]
+        np.fill_diagonal(matrix, -self.params.lambda_rate)
+        return matrix
+
+    def _d_1_matrix_generator(self) -> NDArray[np.float64]:
+        """Генерирует матрицу D₁ по MAP-параметрам.
+
+        Returns:
+            NDArray[np.float64]: Матрица D₁ для текущих параметров потока.
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
+        """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
+        matrix = self.params.q_rate.copy()
+        matrix *= self.params.lambda_rate[:, np.newaxis]
+        return matrix
+
+    def build(self) -> NDArray[np.float64]:
+        """Формирует матрицу коэффициентов для СМО с MAP-потоками.
+
+        Returns:
+            NDArray[np.float64]: Квадратная матрица коэффициентов (n² x n²).
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPServerParams.
+        """
+        if not isinstance(self.params, MAPServerParams):
+            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+
+        n = self.params.max_customers
+        μ, ν = self.params.mu_rate, self.params.nu_rate
+
+        d_0_t = self._d_0_matrix_generator().T
+        d_1_t = self._d_1_matrix_generator().T
+
+        coefficients_matrix = np.zeros((n, n, n, n), dtype=np.float64)
+
+        for index in range(n):
+            if index == 0:
+                # Начальное состояние
+                coefficients_matrix[index, index] = d_0_t
+                coefficients_matrix[index, index + 1] = μ * np.eye(n)
+            elif index == n - 1:
+                # Конечное состояние
+                coefficients_matrix[index, index - 1] = d_1_t
+                coefficients_matrix[index, index] = (
+                    d_0_t + d_1_t - (μ + (index - 1) * ν) * np.eye(n)
+                )
+            else:
+                # Промежуточные состояния
+                coefficients_matrix[index, index - 1] = d_1_t
+                coefficients_matrix[index, index] = d_0_t - (
+                    μ + ν * max(0, index - 1)
+                ) * np.eye(n)
+                coefficients_matrix[index, index + 1] = (μ + index * ν) * np.eye(n)
+
+        # Преобразование 4D-матрицы в 2D представление
+        coefficients_matrix = coefficients_matrix.transpose(0, 2, 1, 3).reshape(
+            n * n, n * n
+        )  # type: ignore
+
+        logger.info("Матрица коэффициентов для СМО с MAP-потоками сгенерирована.")
+        return coefficients_matrix

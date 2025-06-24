@@ -96,6 +96,7 @@ Todo.md
 # ========================
 !data/raw/*.json
 !example*.*
+!.env.example
 
 # ========================
 # System files

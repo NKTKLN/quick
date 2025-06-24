@@ -9,10 +9,10 @@ import logging
 from datetime import datetime
 from typing import Any, Callable, Dict, TypeVar, cast
 
-from app.common import PickleSerializer
 from app.db.client import DuckDBClient
 from app.domain import ComputationConfig
 from app.settings import ConfigLoader
+from app.utils import PickleSerializer
 
 # Настройка логгера
 logger = logging.getLogger(__name__)

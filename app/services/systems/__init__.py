@@ -1,27 +1,13 @@
 """Пакет систем расчёта СМО."""
 
+from .base import BaseSystem
 from .factory import system_factory
-from .probability import (
-    BaseProbabilitySystem,
-    MAPServerSystem,
-    MultiServerSystem,
-    SingleServerSystem,
-)
-from .throughput import (
-    BaseThroughputSystem,
-    MAPServerThroughputSystem,
-    MultiServerThroughputSystem,
-    SingleServerThroughputSystem,
-)
+from .probability import ServerProbabilitySystem
+from .throughput import ServerThroughputSystem
 
 __all__ = [
     "system_factory",
-    "BaseProbabilitySystem",
-    "MAPServerSystem",
-    "MultiServerSystem",
-    "SingleServerSystem",
-    "BaseThroughputSystem",
-    "MAPServerThroughputSystem",
-    "MultiServerThroughputSystem",
-    "SingleServerThroughputSystem",
+    "BaseSystem",
+    "ServerProbabilitySystem",
+    "ServerThroughputSystem",
 ]

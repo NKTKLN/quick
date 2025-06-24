@@ -13,13 +13,15 @@ import logging
 import os
 import threading
 from dataclasses import asdict
-from functools import lru_cache
 from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain import ConfigInitParams
+
+# Настройка логгера
+logger = logging.getLogger(__name__)
 
 
 class AppConfig(BaseSettings):
@@ -34,7 +36,7 @@ class AppConfig(BaseSettings):
         log_format (str): Формат лог-сообщений.
     """
 
-    disable_cache: bool = Field(default=True)  # TODO: cache error
+    disable_cache: bool = Field(default=False)
     duckdb_path: str = Field(default="cache_data.duckdb")
     disable_logging: bool = Field(default=False)
     log_level: int = Field(default=logging.INFO)
@@ -70,10 +72,8 @@ class ConfigLoader:
                 env_key = key.upper()
                 os.environ[env_key] = str(value)
             cls._instance = None
-            cls.get_config.cache_clear()
 
     @classmethod
-    @lru_cache(maxsize=1)
     def get_config(cls) -> AppConfig:
         """Возвращает инстанцию AppConfig с текущими настройками.
 

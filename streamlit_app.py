@@ -9,7 +9,7 @@
 
 import streamlit as st
 
-from app.common.logger import setup_logger
+from app.utils.logger import setup_logger
 
 
 def render_description() -> None:

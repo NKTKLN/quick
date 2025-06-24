@@ -1,14 +1,12 @@
 """Модуль для анализа пропускной способности СМО с нетерпеливыми заявками.
 
-Включает классы для вычисления пропускной способности одно- и многолинейных
-систем массового обслуживания, в которых заявки могут покидать очередь при
-длительном ожидании. Поддерживается работа с обычной и повышенной точностью
-вычислений. Используется интеграция с вероятностными моделями СМО.
+Включает классы для вычисления пропускной способности одно- и многолинейных СМО,
+в которых заявки могут покидать очередь при длительном ожидании.
+Используется интеграция с вероятностными моделями СМО.
 """
 
 import logging
-from abc import ABC, abstractmethod
-from typing import Any, cast
+from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -23,22 +21,17 @@ from app.domain.models import (
     MultiServerParams,
     SingleServerParams,
 )
-from app.services.systems.probability import (
-    MAPServerSystem,
-    MultiServerSystem,
-    SingleServerSystem,
-)
+from app.services.systems.base import BaseSystem
+from app.services.systems.probability import ServerProbabilitySystem
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
 
 
-class BaseThroughputSystem(ABC):
-    """Базовый абстрактный класс для анализа пропускной способности СМО.
+class ServerThroughputSystem(BaseSystem):
+    """Класс для анализа пропускной способности СМО.
 
-    Определяет интерфейс и общую логику вычислений зависимости пропускной способности
-    от интенсивности ухода заявок из очереди. Наследники реализуют специфичные методы
-    расчёта вероятностей для конкретных типов СМО.
+    Реализует расчёты пропускной способности с использованием вероятностной модели СМО.
     """
 
     def __init__(
@@ -46,14 +39,29 @@ class BaseThroughputSystem(ABC):
         params: SingleServerParams | MultiServerParams | MAPServerParams,
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
-        """Инициализирует анализатор пропускной способности с заданными параметрами.
+        """Инициализирует систему массового обслуживания с заданными параметрами.
 
         Args:
-            params: Параметры СМО с диапазоном значений интенсивности ухода заявок.
+            params: Параметры СМО (интенсивности, структура, др.).
             config: Конфигурация вычислений.
         """
-        self.params = params
-        self.config = config
+        super().__init__(params, config)
+
+    def _calculate_probabilities(
+        self, params: SingleServerParams | MultiServerParams | MAPServerParams
+    ) -> NDArray[np.float64]:
+        """Вычисляет вероятности состояний системы для заданных параметров.
+
+        Args:
+            params: Параметры конкретного расчёта.
+
+        Returns:
+            NDArray[np.float64]: Массив вероятностей состояний,
+                последний элемент — вероятность потери.
+        """
+        queue_system = ServerProbabilitySystem(params, self.config)
+        probabilities = queue_system.calculate()
+        return probabilities
 
     def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
         """Выполняет полный расчёт пропускной способности системы.
@@ -81,93 +89,8 @@ class BaseThroughputSystem(ABC):
 
         return cast(NDArray, throughput)
 
-    @abstractmethod
-    def _calculate_probabilities(self, params: Any) -> NDArray[np.float64]:
-        """Вычисляет вероятности состояний системы для заданных параметров.
 
-        Args:
-            params (Any): Параметры конкретного расчёта.
-
-        Returns:
-            NDArray[np.float64]: Массив вероятностей состояний,
-                последний элемент — вероятность потери.
-        """
-        pass
-
-
-class SingleServerThroughputSystem(BaseThroughputSystem):
-    """Класс анализа пропускной способности однолинейной СМО.
-
-    Реализует расчёты пропускной способности для различных значений ν с использованием
-    вероятностной модели одноканальной СМО.
-    """
-
-    def __init__(
-        self,
-        params: SingleServerParams,
-        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
-    ) -> None:
-        """Инициализирует анализатор с параметрами однолинейной системы.
-
-        Args:
-            params (SingleServerParams): Параметры СМО.
-            config: Конфигурация вычислений.
-        """
-        super().__init__(params, config)
-
-    def _calculate_probabilities(
-        self, params: SingleServerParams
-    ) -> NDArray[np.float64]:
-        """Строит модель СМО и вычисляет вероятности состояний системы.
-
-        Args:
-            params (SingleServerParams): Параметры однолинейной СМО.
-
-        Returns:
-            NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
-        """
-        queue_system = SingleServerSystem(params, self.config)
-        probabilities = queue_system.calculate()
-        return probabilities
-
-
-class MultiServerThroughputSystem(BaseThroughputSystem):
-    """Класс анализа пропускной способности многолинейной СМО.
-
-    Выполняет серию расчётов пропускной способности при разных ν
-    с использованием вероятностной модели многоканальной СМО.
-    """
-
-    def __init__(
-        self,
-        params: MultiServerParams,
-        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
-    ) -> None:
-        """Инициализирует анализатор с параметрами многолинейной системы.
-
-        Args:
-            params (MultiServerParams): Параметры СМО.
-            config: Конфигурация вычислений.
-        """
-        super().__init__(params, config)
-
-    def _calculate_probabilities(
-        self, params: MultiServerParams
-    ) -> NDArray[np.float64]:
-        """Строит модель многолинейной СМО и вычисляет вероятности состояний.
-
-        Args:
-            params (MultiServerParams): Параметры многолинейной СМО.
-
-        Returns:
-            NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
-        """
-        queue_system = MultiServerSystem(params, self.config)
-        probabilities = queue_system.calculate()
-        return probabilities
-
-
-class MAPServerThroughputSystem(BaseThroughputSystem):
+class MAPServerThroughputSystem(ServerThroughputSystem):
     """Класс анализа пропускной способности СМО с MAP-потоками.
 
     Реализует расчёты пропускной способности для различных значений ν с использованием
@@ -206,10 +129,11 @@ class MAPServerThroughputSystem(BaseThroughputSystem):
         if not isinstance(self.params, MAPServerParams):
             raise ValueError("Параметры должны быть экземпляром MAPServerParams")
 
+        probabilities = self._calculate_probabilities(self.params)
+
         throughput_results = []
 
         for lambda_rate in self.params.lambda_rate:
-            probabilities = self._calculate_probabilities(self.params)
             current_throughput = (1 - probabilities[-1]) * lambda_rate
             throughput_results.append(current_throughput)
 
@@ -218,16 +142,3 @@ class MAPServerThroughputSystem(BaseThroughputSystem):
             )
 
         return throughput_results
-
-    def _calculate_probabilities(self, params: MAPServerParams) -> NDArray[np.float64]:
-        """Строит модель СМО и вычисляет вероятности состояний системы.
-
-        Args:
-            params (MAPServerParams): Параметры СМО с MAP-потоками.
-
-        Returns:
-            NDArray[np.float64]: Массив вероятностей, включая вероятность потери.
-        """
-        queue_system = MAPServerSystem(params, self.config)
-        probabilities = queue_system.calculate()
-        return probabilities
