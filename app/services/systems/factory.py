@@ -8,7 +8,7 @@
 from typing import Any
 
 from app.domain import CalculationMode, SystemType
-from app.services.systems.base import BaseSystem
+from app.services.systems.base import BaseServerSystem
 from app.services.systems.probability import ServerProbabilitySystem
 from app.services.systems.throughput import (
     MAPServerThroughputSystem,
@@ -18,7 +18,7 @@ from app.services.systems.throughput import (
 
 def system_factory(
     system_type: SystemType, calculation_mode: CalculationMode, **kwargs: Any
-) -> BaseSystem:
+) -> BaseServerSystem:
     """Фабрика для создания системы массового обслуживания.
 
     Args:
@@ -28,7 +28,7 @@ def system_factory(
             (например: params, config).
 
     Returns:
-        BaseSystem: Инстанс соответствующей системы.
+        BaseServerSystem: Инстанс соответствующей системы.
 
     Raises:
         ValueError: Если передан неподдерживаемый режим расчёта или тип.

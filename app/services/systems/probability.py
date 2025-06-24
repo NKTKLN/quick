@@ -7,39 +7,16 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from app.domain import (
-    ComputationConfig,
-    MergedComputationConfig,
-    MpmathComputationConfig,
-)
-from app.domain.models import (
-    MAPServerParams,
-    MultiServerParams,
-    SingleServerParams,
-)
 from app.services.matrix_builders import matrix_builder_factory
 from app.services.solvers import solvers_factory
-from app.services.systems.base import BaseSystem
+from app.services.systems.base import BaseServerSystem
 
 
-class ServerProbabilitySystem(BaseSystem):
+class ServerProbabilitySystem(BaseServerSystem):
     """Класс для моделирования СМО с нетерпеливыми заявками.
 
     Реализует методы построения матрицы переходов и расчёта вероятностей состояний СМО.
     """
-
-    def __init__(
-        self,
-        params: SingleServerParams | MultiServerParams | MAPServerParams,
-        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
-    ) -> None:
-        """Инициализирует систему массового обслуживания с заданными параметрами.
-
-        Args:
-            params: Параметры СМО (интенсивности, структура, др.).
-            config: Конфигурация вычислений.
-        """
-        super().__init__(params, config)
 
     def calculate(self) -> NDArray[np.float64]:
         """Выполняет полный расчёт вероятностей состояний системы.

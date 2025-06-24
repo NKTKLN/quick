@@ -1,6 +1,6 @@
 """Модуль базовой модели системы массового обслуживания (СМО).
 
-Содержит абстрактный класс `BaseSystem`, определяющий интерфейс для вычисления
+Содержит абстрактный класс `BaseServerSystem`, определяющий интерфейс для вычисления
 основных характеристик СМО с нетерпеливыми заявками.
 """
 
@@ -21,7 +21,7 @@ from app.domain.models import (
 )
 
 
-class BaseSystem(ABC):
+class BaseServerSystem(ABC):
     """Абстрактный базовый класс для систем массового обслуживания с уходами заявок.
 
     Задает интерфейс и общую структуру для всех моделей СМО, включая параметры
@@ -44,11 +44,11 @@ class BaseSystem(ABC):
         self.config = config
 
     @abstractmethod
-    def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
+    def calculate(self) -> NDArray[np.float64]:
         """Выполняет полный расчёт значений состояний системы.
 
         Returns:
-            NDArray[np.float64] | list[NDArray[np.float64]]: Матрица значений
+            NDArray[np.float64]: Матрица значений
                 состояний (размерность зависит от параметров СМО).
         """
-        pass
+        raise NotImplementedError()

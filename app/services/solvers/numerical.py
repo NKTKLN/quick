@@ -7,14 +7,12 @@
 """
 
 import logging
-from typing import Callable, Optional, cast
+from typing import Callable, cast
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
 
-from app.domain import ComputationConfig
-from app.domain.models import SingleServerParams
 from app.services.solvers.base import BasicProbabilitySolver
 
 # Инициализация логгера для текущего модуля
@@ -28,23 +26,6 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
     системы дифференциальных уравнений Колмогорова с использованием
     метода Рунге-Кутты 4–5 порядка (RK45).
     """
-
-    def __init__(
-        self,
-        params: SingleServerParams,
-        coefficients_matrix: NDArray[np.float64],
-        config: Optional[ComputationConfig] = None,
-    ) -> None:
-        """Инициализирует базовый решатель.
-
-        Args:
-            params (SingleServerParams): Параметры системы массового
-                обслуживания.
-            coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
-                уравнений размером (n x n).
-            config (Optional[ComputationConfig]): Конфигурация вычислений.
-        """
-        super().__init__(params, coefficients_matrix, config)
 
     def _transition_rates(
         self,

@@ -6,6 +6,7 @@
 """
 
 import logging
+from abc import ABC, abstractmethod
 from typing import cast
 
 import numpy as np
@@ -16,36 +17,22 @@ from app.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from app.domain.models import (
-    MAPServerParams,
-    MultiServerParams,
-    SingleServerParams,
-)
-from app.services.systems.base import BaseSystem
+from app.domain.models import MAPServerParams
+from app.domain.models.multi import MultiServerParams
+from app.domain.models.single import SingleServerParams
+from app.services.systems.base import BaseServerSystem
 from app.services.systems.probability import ServerProbabilitySystem
 
 # Настройка логирования для отслеживания работы системы
 logger = logging.getLogger(__name__)
 
 
-class ServerThroughputSystem(BaseSystem):
-    """Класс для анализа пропускной способности СМО.
+class BaseServerThroughputSystem(BaseServerSystem, ABC):
+    """Абстрактный базовый класс для анализа пропускной способности СМО.
 
-    Реализует расчёты пропускной способности с использованием вероятностной модели СМО.
+    Задает интерфейс и общую структуру для моделей СМО, расчитывающих пропускную
+    способность с использованием вероятностной модели.
     """
-
-    def __init__(
-        self,
-        params: SingleServerParams | MultiServerParams | MAPServerParams,
-        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
-    ) -> None:
-        """Инициализирует систему массового обслуживания с заданными параметрами.
-
-        Args:
-            params: Параметры СМО (интенсивности, структура, др.).
-            config: Конфигурация вычислений.
-        """
-        super().__init__(params, config)
 
     def _calculate_probabilities(
         self, params: SingleServerParams | MultiServerParams | MAPServerParams
@@ -62,6 +49,23 @@ class ServerThroughputSystem(BaseSystem):
         queue_system = ServerProbabilitySystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities
+
+    @abstractmethod
+    def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
+        """Выполняет полный расчёт пропускной способности системы.
+
+        Returns:
+            NDArray[np.float64] | list[NDArray[np.float64]]: Список значений
+                пропускной способности.
+        """
+        pass
+
+
+class ServerThroughputSystem(BaseServerThroughputSystem):
+    """Класс для анализа пропускной способности СМО.
+
+    Реализует расчёты пропускной способности с использованием вероятностной модели СМО.
+    """
 
     def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
         """Выполняет полный расчёт пропускной способности системы.
@@ -120,8 +124,7 @@ class MAPServerThroughputSystem(ServerThroughputSystem):
             4. Формирование массива итоговых значений
 
         Returns:
-            list[NDArray[np.float64]]: Список значений пропускной способности
-                для каждого ν из заданного диапазона.
+            list[NDArray[np.float64]]: Список значений пропускной способности.
 
         Raises:
             ValueError: Если параметры системы не являются MAPServerParams.
