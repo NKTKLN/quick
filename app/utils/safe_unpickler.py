@@ -29,6 +29,10 @@ class SafeUnpickler(pickle.Unpickler):
         ("builtins", "str"),
         ("builtins", "bool"),
         ("builtins", "complex"),
+        ("numpy", "ndarray"),
+        ("numpy._core.multiarray", "_reconstruct"),
+        ("numpy", "dtype"),
+        ("mpmath.ctx_mp_python", "mpf"),
     }
 
     def find_class(self, module: str, name: str) -> Any:

@@ -6,7 +6,7 @@
 
 import functools
 from datetime import datetime
-from pickle import PickleError
+from pickle import PickleError, UnpicklingError
 from typing import Any, Callable, TypeVar, cast
 
 from duckdb import Error as DuckDBError
@@ -68,7 +68,6 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 result = method(self, *args, **kwargs)
                 return result
 
-            serializer = PickleSerializer()
             db_client = DuckDBClient()
 
             # Формирование части ключа из self
@@ -88,7 +87,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
             )
 
             try:
-                key_blob = serializer.dump_key_to_pickle(cache_key_data)
+                key_blob = PickleSerializer.dump_key_to_pickle(cache_key_data)
             except (PickleError, TypeError) as e:
                 logger.warning(f"Ошибка сериализации ключа для {method.__name__}: {e}")
                 return method(self, *args, **kwargs)
@@ -100,10 +99,10 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                     logger.info(
                         f"Кэш найден для {method.__name__}, возвращаем результат."
                     )
-                    return serializer.load_result_from_pickle(
+                    return PickleSerializer.load_result_from_pickle(
                         data, getattr(self, "_precision", None)
                     )
-            except (DuckDBError, PickleError, TypeError) as e:
+            except (DuckDBError, UnpicklingError, TypeError) as e:
                 logger.warning(f"Ошибка при загрузке кэша для {method.__name__}: {e}")
 
             logger.debug(f"Кэш не найден для {method.__name__}, выполняем метод.")
@@ -111,7 +110,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
 
             try:
                 logger.debug(f"Сохраняем результат метода {method.__name__} в кэш.")
-                result_blob = serializer.dump_to_pickle(result)
+                result_blob = PickleSerializer.dump_to_pickle(result)
                 db_client.insert_result(
                     datetime.now(), method.__name__, key_blob, result_blob
                 )
