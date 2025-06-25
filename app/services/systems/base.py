@@ -14,11 +14,7 @@ from app.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from app.domain.models import (
-    MAPServerParams,
-    MultiServerParams,
-    SingleServerParams,
-)
+from app.domain.models import MAPServerParams, MultiServerParams, SingleServerParams
 
 
 class BaseServerSystem(ABC):

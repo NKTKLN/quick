@@ -15,7 +15,7 @@ tasks:
     desc: Code formatting with black and ruff
     cmds:
       - poetry run black .
-      - poetry run ruff format .
+      - poetry run isort . --profile black
       - poetry run ruff check . --fix
 
   lint:

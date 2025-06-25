@@ -5,7 +5,6 @@
 Используется интеграция с вероятностными моделями СМО.
 """
 
-from abc import ABC
 from typing import cast
 
 import numpy as np
@@ -18,34 +17,7 @@ from app.domain import (
     MpmathComputationConfig,
 )
 from app.domain.models import MAPServerParams
-from app.domain.models.multi import MultiServerParams
-from app.domain.models.single import SingleServerParams
-from app.services.systems.base import BaseServerSystem
-from app.services.systems.probability import ServerProbabilitySystem
-
-
-class BaseServerThroughputSystem(BaseServerSystem, ABC):
-    """Абстрактный базовый класс для анализа пропускной способности СМО.
-
-    Задает интерфейс и общую структуру для моделей СМО, расчитывающих пропускную
-    способность с использованием вероятностной модели.
-    """
-
-    def _calculate_probabilities(
-        self, params: SingleServerParams | MultiServerParams | MAPServerParams
-    ) -> NDArray[np.float64]:
-        """Вычисляет вероятности состояний системы для заданных параметров.
-
-        Args:
-            params: Параметры конкретного расчёта.
-
-        Returns:
-            NDArray[np.float64]: Массив вероятностей состояний,
-                последний элемент — вероятность потери.
-        """
-        queue_system = ServerProbabilitySystem(params, self.config)
-        probabilities = queue_system.calculate()
-        return probabilities
+from app.services.systems.base_throughput import BaseServerThroughputSystem
 
 
 class ServerThroughputSystem(BaseServerThroughputSystem):
@@ -57,7 +29,7 @@ class ServerThroughputSystem(BaseServerThroughputSystem):
     def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
         """Выполняет полный расчёт пропускной способности системы.
 
-        Этапы:
+        Последовательность шагов:
             1. Расчёт вероятностей состояний системы
             2. Вычисление пропускной способности: (1 - p_loss) * λ
             3. Формирование массива итоговых значений
@@ -104,7 +76,7 @@ class MAPServerThroughputSystem(ServerThroughputSystem):
     def calculate(self) -> list[NDArray[np.float64]]:
         """Выполняет полный расчёт пропускной способности системы.
 
-        Этапы:
+        Последовательность шагов:
             1. Итерация по значениям интенсивности поступления заявок (λ)
             2. Расчёт вероятностей состояний системы
             3. Вычисление пропускной способности: (1 - p_loss) * λ
@@ -128,7 +100,7 @@ class MAPServerThroughputSystem(ServerThroughputSystem):
             throughput_results.append(current_throughput)
 
             logger.info(
-                "Рассчитана пропускная способность для ν = {self.params.nu_rate:.3f}"
+                f"Рассчитана пропускная способность для ν = {self.params.nu_rate:.3f}"
             )
 
         return throughput_results

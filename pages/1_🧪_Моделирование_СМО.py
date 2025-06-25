@@ -25,9 +25,9 @@ from pages.components import (
 
 
 # pylint: disable=too-many-locals
-def get_user_inputs() -> tuple[
-    ComputationConfig, BasicServerParams, SystemType, CalculationMode
-]:
+def get_user_inputs() -> (
+    tuple[ComputationConfig, BasicServerParams, SystemType, CalculationMode]
+):
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
@@ -130,14 +130,21 @@ def main() -> None:
             st.stop()
 
         st.markdown("---")
+        st.subheader("📈 Визуализация динамики состояний системы")
         if calculation_mode == CalculationMode.PROBABILITY and isinstance(
             probabilities, np.ndarray
         ):
-            st.subheader("📊 Графики вероятностей состояний системы")
-            fig = plot_probabilities(probabilities, params.time_array)
-        elif calculation_mode == CalculationMode.THROUGHPUT:
-            st.subheader("📊 График пропускной способности системы")
-            fig = plot_throughput(probabilities, params.time_array)
+            fig = plot_probabilities(
+                probabilities, params.time_array, calculation_mode.value
+            )
+        elif calculation_mode in (
+            CalculationMode.THROUGHPUT,
+            CalculationMode.ABSOLUTE_THROUGHPUT,
+            CalculationMode.RELATIVE_THROUGHPUT,
+        ):
+            fig = plot_throughput(
+                probabilities, params.time_array, calculation_mode.value
+            )
         else:
             st.error("❌ Некорректный режим/тип системы")
             st.stop()

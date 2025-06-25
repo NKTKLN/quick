@@ -8,14 +8,23 @@
 from typing import Any
 
 from app.domain import CalculationMode, SystemType
+from app.services.systems.absolute_throughput import (
+    MAPServerAbsoluteThroughputSystem,
+    ServerAbsoluteThroughputSystem,
+)
 from app.services.systems.base import BaseServerSystem
 from app.services.systems.probability import ServerProbabilitySystem
+from app.services.systems.relative_throughput import (
+    MAPServerRelativeThroughputSystem,
+    ServerRelativeThroughputSystem,
+)
 from app.services.systems.throughput import (
     MAPServerThroughputSystem,
     ServerThroughputSystem,
 )
 
 
+# pylint: disable=too-many-return-statements
 def system_factory(
     system_type: SystemType, calculation_mode: CalculationMode, **kwargs: Any
 ) -> BaseServerSystem:
@@ -42,5 +51,19 @@ def system_factory(
                 return MAPServerThroughputSystem(**kwargs)
             case _:
                 return ServerThroughputSystem(**kwargs)
+
+    if calculation_mode == CalculationMode.ABSOLUTE_THROUGHPUT:
+        match system_type:
+            case SystemType.MAP:
+                return MAPServerAbsoluteThroughputSystem(**kwargs)
+            case _:
+                return ServerAbsoluteThroughputSystem(**kwargs)
+
+    if calculation_mode == CalculationMode.RELATIVE_THROUGHPUT:
+        match system_type:
+            case SystemType.MAP:
+                return MAPServerRelativeThroughputSystem(**kwargs)
+            case _:
+                return ServerRelativeThroughputSystem(**kwargs)
 
     raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")

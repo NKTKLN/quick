@@ -7,10 +7,7 @@
 
 from typing import Any
 
-from app.domain import (
-    CalculationEngine,
-    CalculationMethod,
-)
+from app.domain import CalculationEngine, CalculationMethod
 from app.services.solvers.analytical import (
     AnalyticalMergedProbabilitySolver,
     AnalyticalMpmathProbabilitySolver,

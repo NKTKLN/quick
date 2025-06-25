@@ -14,13 +14,14 @@ from numpy.typing import NDArray
 
 
 def plot_probabilities(
-    p_matrix: NDArray[np.float64], time_array: NDArray[np.float64]
+    p_matrix: NDArray[np.float64], time_array: NDArray[np.float64], title_text: str
 ) -> Any:
     """Создает график вероятностей по состояниям системы во времени.
 
     Args:
         p_matrix (NDArray[np.float64]): Матрица вероятностей.
         time_array (NDArray[np.float64]): Массив времени, соответствующий оси X.
+        title_text (str): Текст заголовка графика.
 
     Returns:
         go.Figure: Объект графика Plotly с отображением вероятностей и их суммы.
@@ -67,7 +68,8 @@ def plot_probabilities(
 
     fig.update_layout(
         title=dict(
-            text="System States Probabilities", font=dict(size=20, color="black")
+            text=title_text,
+            font=dict(size=20, color="black"),
         ),
         xaxis=dict(
             title="Time (t)",
@@ -105,6 +107,7 @@ def plot_probabilities(
 def plot_throughput(
     throughput_results: list[NDArray[np.float64]] | NDArray[np.float64],
     time_array: NDArray[np.float64],
+    title_text: str,
 ) -> Any:
     """Создает график пропускной способности системы по состояниям.
 
@@ -112,6 +115,7 @@ def plot_throughput(
         throughput_results (list[NDArray[np.float64]] | NDArray[np.float64]):
             Список массивов пропускной способности для каждого состояния.
         time_array (NDArray[np.float64]): Массив значений параметра.
+        title_text (str): Текст заголовка графика.
 
     Returns:
         go.Figure: Объект графика Plotly с линиями пропускной способности.
@@ -136,7 +140,7 @@ def plot_throughput(
 
     fig.update_layout(
         title=dict(
-            text="System Throughput",
+            text=title_text,
             font=dict(size=20, color="black"),
         ),
         xaxis=dict(

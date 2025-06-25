@@ -138,8 +138,6 @@ class PickleSerializer:
             bytes: Сериализованные байты pickle.
         """
         serialized = cls._serialize_obj(obj)
-        if isinstance(serialized, tuple):
-            print(type(serialized), serialized)
         return pickle.dumps(serialized)
 
     @classmethod

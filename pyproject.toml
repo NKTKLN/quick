@@ -57,8 +57,15 @@ exclude = '''
 
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py312"
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
 ignore = ["E203", "D100"]
@@ -98,7 +105,7 @@ color = true
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
 
 [tool.pylint]
-disable = ["logging-fstring-interpolation", "invalid-name", "non-ascii-file-name", "use-dict-literal", "too-few-public-methods", "fixme", "unnecessary-pass"]
+disable = ["logging-fstring-interpolation", "invalid-name", "non-ascii-file-name", "non-ascii-name", "use-dict-literal", "too-few-public-methods", "fixme", "unnecessary-pass"]
 max-line-length = 88
 max-module-lines = 500
 good-names = ["i", "j", "k", "ex", "_"]
