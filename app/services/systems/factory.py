@@ -35,11 +35,12 @@ def system_factory(
     """
     if calculation_mode == CalculationMode.PROBABILITY:
         return ServerProbabilitySystem(**kwargs)
+
     if calculation_mode == CalculationMode.THROUGHPUT:
         match system_type:
             case SystemType.MAP:
                 return MAPServerThroughputSystem(**kwargs)
             case _:
                 return ServerThroughputSystem(**kwargs)
-    else:
-        raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")
+
+    raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")

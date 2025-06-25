@@ -6,24 +6,22 @@
 вероятностной интерпретации.
 """
 
-from typing import Optional
-
 import numpy as np
 from numpy.typing import NDArray
 
 
 def map_intensity_matrix_generator(
     n: int,
-    p_max: Optional[float] = None,
-    q_max: Optional[float] = None,
+    p_max: float | None = None,
+    q_max: float | None = None,
     depth: int = 10,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Генерирует случайные матрицы p и q с нормировкой строк.
 
     Args:
         n (int): Размерность квадратных матриц.
-        p_max (Optional[float]): Максимальное значение элементов p. По умолчанию None.
-        q_max (Optional[float]): Максимальное значение элементов q. По умолчанию None.
+        p_max (float | None): Максимальное значение элементов p. По умолчанию None.
+        q_max (float | None): Максимальное значение элементов q. По умолчанию None.
         depth (int): Глубина рекурсии при повторном вызове. По умолчанию 5.
 
     Raises:

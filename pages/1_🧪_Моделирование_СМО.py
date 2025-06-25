@@ -6,6 +6,7 @@
 
 import numpy as np
 import streamlit as st
+from numpy.typing import NDArray
 
 from app.domain import CalculationMode, ComputationConfig, SystemType
 from app.domain.models import BasicServerParams, model_factory
@@ -23,6 +24,7 @@ from pages.components import (
 )
 
 
+# pylint: disable=too-many-locals
 def get_user_inputs() -> tuple[
     ComputationConfig, BasicServerParams, SystemType, CalculationMode
 ]:
@@ -43,6 +45,7 @@ def get_user_inputs() -> tuple[
     st.subheader("⚙️ Параметры системы")
     lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
 
+    p_rate, q_rate = None, None
     if system_type == SystemType.MAP:
         max_customers, processor_count = system_capacity_inputs(
             system_type, default_max_customers=3
@@ -65,7 +68,7 @@ def get_user_inputs() -> tuple[
     st.markdown("---")
     time_array = render_time_settings()
 
-    base_params = dict(
+    base_params: dict[str, int | NDArray] = dict(
         mu_rate=mu_rate,
         max_customers=max_customers,
         time_array=time_array,
@@ -75,14 +78,13 @@ def get_user_inputs() -> tuple[
         lambda_rate=lambda_rate,
     )
 
-    match system_type:
-        case SystemType.MULTI:
-            base_params.update(processor_count=processor_count)
-        case SystemType.MAP:
-            base_params.update(
-                p_rate=p_rate.astype(np.float64),
-                q_rate=q_rate.astype(np.float64),
-            )
+    if system_type == SystemType.MULTI and processor_count is not None:
+        base_params.update(processor_count=processor_count)
+    elif system_type == SystemType.MAP and p_rate is not None and q_rate is not None:
+        base_params.update(
+            p_rate=p_rate.astype(np.float64),
+            q_rate=q_rate.astype(np.float64),
+        )
 
     params = model_factory(system_type, **base_params)
     return config, params, system_type, calculation_mode
@@ -95,7 +97,7 @@ def main() -> None:
 
     try:
         config, params, system_type, calculation_mode = get_user_inputs()
-    except Exception as e:
+    except ValueError as e:
         st.error(f"❌ Ошибка в вводных данных: {e}")
         st.stop()
 
@@ -103,7 +105,7 @@ def main() -> None:
         try:
             config.validate()
             params.validate()
-        except Exception as e:
+        except ValueError as e:
             st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
@@ -114,7 +116,7 @@ def main() -> None:
                 params=params,
                 config=config,
             )
-        except Exception:
+        except ValueError:
             st.error("❌ Некорректный режим/тип системы")
             st.stop()
 
@@ -123,7 +125,7 @@ def main() -> None:
         try:
             with st.spinner("⏳ Идёт расчёт значений..."):
                 probabilities = system.calculate()
-        except Exception as e:
+        except ValueError as e:
             st.error(f"❌ Ошибка при вычислении: {e}")
             st.stop()
 

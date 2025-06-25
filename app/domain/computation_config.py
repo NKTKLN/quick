@@ -14,13 +14,13 @@ class ComputationConfig:
     """Базовая конфигурация вычислений.
 
     Attributes:
-        calculation_engine (CalculationEngine): Движок вычислений.
+        calculation_engine (CalculationEngine | None): Движок вычислений.
         calculation_mode (CalculationMode): Режим вычисления.
         calculation_method (CalculationMethod): Метод расчета.
         disable_cache (bool): Флаг отключения кэширования вычислений.
     """
 
-    calculation_engine: CalculationEngine = CalculationEngine.MPMATH
+    calculation_engine: CalculationEngine | None = None
     calculation_mode: CalculationMode = CalculationMode.PROBABILITY
     calculation_method: CalculationMethod = CalculationMethod.ANALYTICAL
     disable_cache: bool = False

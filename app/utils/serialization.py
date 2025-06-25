@@ -6,7 +6,7 @@
 """
 
 import pickle
-from typing import Any, Optional
+from typing import Any
 
 from mpmath import matrix, mpf, re, workdps  # type: ignore[import-untyped]
 from numpy import array, ndarray
@@ -21,12 +21,12 @@ class PickleSerializer:
     обратное восстановление с учётом точности вычислений.
     """
 
-    def _deserialize_obj(self, obj: Any, precision: Optional[int] = None) -> Any:
+    def _deserialize_obj(self, obj: Any, precision: int | None = None) -> Any:
         """Рекурсивно десериализует объекты с учётом точности mpmath.
 
         Args:
             obj (Any): Десериализуемый объект.
-            precision (Optional[int]): Точность вычислений mpmath (default=50).
+            precision (int | None): Точность вычислений mpmath (default=50).
 
         Returns:
             Any: Объект с восстановленными mpmath и numpy типами.
@@ -54,7 +54,7 @@ class PickleSerializer:
                 if obj_type == "mpmath.matrix":
                     data = obj["data"]
                     return matrix(deserialize_nested(data))
-                elif obj_type == "NDArray[mpmath.mpf]":
+                if obj_type == "NDArray[mpmath.mpf]":
                     data = obj["data"]
                     return array(deserialize_nested(data), dtype=object)
             if isinstance(obj, list):
@@ -89,14 +89,6 @@ class PickleSerializer:
         if isinstance(obj, matrix):
             return {"__type__": "mpmath.matrix", "data": serialize_nested(obj.tolist())}
 
-        if isinstance(obj, ndarray):
-            if obj.dtype != object:
-                return obj
-            return {
-                "__type__": "NDArray[mpmath.mpf]",
-                "data": serialize_nested(obj.tolist()),
-            }
-
         if isinstance(obj, list):
             return [self._serialize_obj(item) for item in obj]
 
@@ -105,6 +97,12 @@ class PickleSerializer:
 
         if isinstance(obj, dict):
             return {k: self._serialize_obj(v) for k, v in obj.items()}
+
+        if isinstance(obj, ndarray) and obj.dtype == object:
+            return {
+                "__type__": "NDArray[mpmath.mpf]",
+                "data": serialize_nested(obj.tolist()),
+            }
 
         return obj
 
@@ -132,14 +130,12 @@ class PickleSerializer:
         serialized = self._serialize_obj(obj)
         return pickle.dumps(serialized)
 
-    def load_result_from_pickle(
-        self, obj: bytes, precision: Optional[int] = None
-    ) -> Any:
+    def load_result_from_pickle(self, obj: bytes, precision: int | None = None) -> Any:
         """Десериализует объект из pickle байт с восстановлением типов и точности.
 
         Args:
             obj (bytes): Байты pickle для загрузки.
-            precision (Optional[int]): Точность mpmath при десериализации.
+            precision (int | None): Точность mpmath при десериализации.
 
         Returns:
             Any: Восстановленный объект с корректными типами.

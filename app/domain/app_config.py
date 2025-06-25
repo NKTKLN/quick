@@ -5,7 +5,6 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -16,15 +15,15 @@ class ConfigInitParams:
     и параметров поведения при инициализации конфигурации в ConfigLoader.
 
     Attributes:
-        disable_cache (Optional[bool]): Признак отключения кэширования.
-        duckdb_path (Optional[str]): Путь до файла базы данных DuckDB.
-        disable_logging (Optional[bool]): Признак отключения логирования.
-        log_level (Optional[int]): Целочисленный уровень логирования.
-        log_path (Optional[str]): Путь к файлу логов, если логирование включено.
+        disable_cache (bool | None): Признак отключения кэширования.
+        duckdb_path (str | None): Путь до файла базы данных DuckDB.
+        disable_logging (bool | None): Признак отключения логирования.
+        log_level (str | None): Строковый уровень логирования.
+        log_path (str | None): Путь к файлу логов, если логирование включено.
     """
 
-    disable_cache: Optional[bool] = None
-    duckdb_path: Optional[str] = None
-    disable_logging: Optional[bool] = None
-    log_level: Optional[int] = None
-    log_path: Optional[str] = None
+    disable_cache: bool | None = None
+    duckdb_path: str | None = None
+    disable_logging: bool | None = None
+    log_level: str | None = None
+    log_path: str | None = None

@@ -15,7 +15,6 @@ from .enums import (
 
 __all__ = [
     "ConfigInitParams",
-    "ParamsNuIterator",
     "CalculationEngine",
     "CalculationMode",
     "CalculationMethod",

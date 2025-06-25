@@ -7,7 +7,10 @@
 import functools
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, TypeVar, cast
+from pickle import PickleError
+from typing import Any, Callable, TypeVar, cast
+
+from duckdb import Error as DuckDBError
 
 from app.db.client import DuckDBClient
 from app.domain import ComputationConfig
@@ -73,7 +76,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
 
             # Формирование части ключа из self
             try:
-                self_cache_info: Dict[str, Any] = {
+                self_cache_info: dict[str, Any] = {
                     path: _extract_nested_attribute(self, path)
                     for path in attribute_paths
                 }
@@ -89,7 +92,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
 
             try:
                 key_blob = serializer.dump_key_to_pickle(cache_key_data)
-            except Exception as e:
+            except (PickleError, TypeError) as e:
                 logger.warning(f"Ошибка сериализации ключа для {method.__name__}: {e}")
                 return method(self, *args, **kwargs)
 
@@ -103,7 +106,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                     return serializer.load_result_from_pickle(
                         data, getattr(self, "_precision", None)
                     )
-            except Exception as e:
+            except (DuckDBError, PickleError, TypeError) as e:
                 logger.warning(f"Ошибка при загрузке кэша для {method.__name__}: {e}")
 
             logger.debug(f"Кэш не найден для {method.__name__}, выполняем метод.")
@@ -115,9 +118,9 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 db_client.insert_result(
                     datetime.now(), method.__name__, key_blob, result_blob
                 )
-            except Exception:
+            except (DuckDBError, PickleError, TypeError) as e:
                 logger.warning(
-                    f"Ошибка при сохранении результата в кэш для {method.__name__}"
+                    f"Ошибка при сохранении результата в кэш для {method.__name__}: {e}"
                 )
 
             return result

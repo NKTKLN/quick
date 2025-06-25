@@ -44,11 +44,11 @@ class BaseServerSystem(ABC):
         self.config = config
 
     @abstractmethod
-    def calculate(self) -> NDArray[np.float64]:
-        """Выполняет полный расчёт значений состояний системы.
+    def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
+        """Выполняет полный расчёт пропускной способности системы.
 
         Returns:
-            NDArray[np.float64]: Матрица значений
-                состояний (размерность зависит от параметров СМО).
+            NDArray[np.float64] | list[NDArray[np.float64]]: Список значений
+                пропускной способности.
         """
-        raise NotImplementedError()
+        pass

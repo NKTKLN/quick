@@ -23,6 +23,7 @@ tasks:
     cmds:
       - poetry run ruff check .
       - poetry run mypy .
+      - poetry run pylint --jobs=4 .
 
   docstyle:
     desc: Docstring style check

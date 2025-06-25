@@ -8,7 +8,7 @@ import logging
 import os
 import threading
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import duckdb
 
@@ -25,16 +25,16 @@ class DuckDBClient:
     результатов функций по ключу.
 
     Attributes:
-        _instance (Optional[DuckDBClient]): Singleton-экземпляр класса.
+        _instance (DuckDBClient | None): Singleton-экземпляр класса.
         _lock (threading.Lock): Блокировка для потокобезопасного создания экземпляра.
     """
 
-    _instance: Optional["DuckDBClient"] = None
+    _instance: "DuckDBClient | None" = None
     _lock = threading.Lock()
 
     def __init__(self) -> None:
         """Инициализирует подключение к DuckDB и схему базы."""
-        if hasattr(self, "_initialized") and self._initialized:
+        if getattr(self, "_initialized", False):
             return
         config = ConfigLoader.get_config()
         self.connection = duckdb.connect(database=config.duckdb_path, read_only=False)
@@ -60,7 +60,7 @@ class DuckDBClient:
             raise FileNotFoundError(f"Файл схемы не найден: {schema_path}")
 
         try:
-            with open(schema_path, "r") as f:
+            with open(schema_path, "r", encoding="utf-8") as f:
                 schema_sql = f.read()
                 self.connection.execute(schema_sql)
                 logger.info("Схема базы данных успешно инициализирована.")
@@ -96,7 +96,7 @@ class DuckDBClient:
                 cls._instance.close()
                 cls._instance = None
 
-    def get_by_key(self, func_name: str, key_blob: bytes) -> Optional[bytes]:
+    def get_by_key(self, func_name: str, key_blob: bytes) -> bytes | None:
         """Получает результат из базы по имени функции и бинарному ключу.
 
         Args:
@@ -104,7 +104,7 @@ class DuckDBClient:
             key_blob (bytes): Сериализованный ключ вызова.
 
         Returns:
-            Optional[bytes]: Данные результата из кэша или None, если не найдено.
+            bytes | None: Данные результата из кэша или None, если не найдено.
         """
         logger.debug(f"Выполняется поиск кэша для функции '{func_name}'.")
         result = self.connection.execute(
@@ -144,5 +144,5 @@ class DuckDBClient:
         """Автоматически закрывает соединение при уничтожении объекта."""
         try:
             self.close()
-        except Exception as e:
-            logging.error(f"Ошибка закрытия соединения: {e}")
+        except duckdb.Error as e:
+            logging.error(f"Ошибка закрытия соединения DuckDB: {e}")

@@ -5,7 +5,7 @@
 и вычислительного движка (`CalculationEngine`).
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from app.domain import (
     CalculationEngine,
@@ -22,7 +22,7 @@ from app.services.solvers.numerical import NumericalProbabilitySolver
 
 def solvers_factory(
     calculation_method: CalculationMethod,
-    calculation_engine: Optional[CalculationEngine],
+    calculation_engine: CalculationEngine | None,
     **kwargs: Any,
 ) -> BasicProbabilitySolver:
     """Создаёт и возвращает решатель вероятностной модели СМО.
@@ -32,7 +32,7 @@ def solvers_factory(
 
     Args:
         calculation_method (CalculationMethod): Метод вычисления (например, ANALYTICAL).
-        calculation_engine (Optional[CalculationEngine]): Тип вычислительного движка,
+        calculation_engine (CalculationEngine | None): Тип вычислительного движка,
             поддерживаются: NUMPY, MPMATH, MERGED.
         **kwargs (Any): Дополнительные параметры, передаваемые в конструктор решателя
             (например: params, coefficients_matrix, config).
@@ -55,7 +55,8 @@ def solvers_factory(
                 raise ValueError(
                     f"Неподдерживаемый вычислительный движок: {calculation_engine}"
                 )
-    elif calculation_method == CalculationMethod.NUMERICAL:
+
+    if calculation_method == CalculationMethod.NUMERICAL:
         return NumericalProbabilitySolver(**kwargs)
-    else:
-        raise ValueError(f"Неподдерживаемый метод расчета: {calculation_method}")
+
+    raise ValueError(f"Неподдерживаемый метод расчета: {calculation_method}")

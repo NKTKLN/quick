@@ -21,8 +21,10 @@ def setup_logger() -> None:
         logging.disable(logging.CRITICAL)
         return
 
+    mapping = logging.getLevelNamesMapping()
+
     logging.basicConfig(
-        level=config.log_level,
+        level=mapping.get(config.log_level, logging.INFO),
         format=config.log_format,
         filename=config.log_path,
         filemode="a",

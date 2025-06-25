@@ -37,11 +37,11 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
                 матрицы коэффициентов.
         """
 
-        def rates(t: float, P: NDArray[np.float64]) -> NDArray[np.float64]:
+        def rates(_t: float, P: NDArray[np.float64]) -> NDArray[np.float64]:
             """Вычисляет производную в момент времени t.
 
             Args:
-                t (float): Текущий момент времени (не используется, т.к.
+                _t (float): Текущий момент времени (не используется, т.к.
                     система однородна по времени).
                 P (NDArray[np.float64]): Вектор вероятностей состояний в момент
                     времени t.

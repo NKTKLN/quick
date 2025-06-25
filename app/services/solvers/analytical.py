@@ -6,7 +6,7 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
@@ -282,7 +282,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
         xsi_matrix: Any,
         xsi_matrix_inv: Any,
         exp_g_t: NDArray[Any],
-        invalid_indices: Optional[NDArray[np.int64]] = None,
+        invalid_indices: NDArray[np.int64] | None = None,
     ) -> NDArray[Any]:
         """Вычисляет матрицу M(t) по слоям с использованием mpmath.
 
@@ -290,7 +290,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             xsi_matrix (Any): Матрица собственных векторов.
             xsi_matrix_inv (Any): Обратная матрица собственных векторов.
             exp_g_t (NDArray[Any]): Матрица экспонент exp(λ_k * t).
-            invalid_indices (Optional[NDArray[np.int64]]): Индексы временных точек
+            invalid_indices (NDArray[np.int64] | None): Индексы временных точек
                 для корректировки вычислений.
 
         Returns:
@@ -378,7 +378,7 @@ class AnalyticalMergedProbabilitySolver(
                 точек для каждой пары.
         """
         if not isinstance(self.config, MergedComputationConfig):
-            raise
+            raise ValueError("Конфиг должн быть экземпляром MergedComputationConfig")
 
         matrix_size = data_matrix.shape[0]
         time_steps = data_matrix.shape[2]
@@ -398,7 +398,7 @@ class AnalyticalMergedProbabilitySolver(
             return invalid_indices
 
         # Проверка суммы по графикам
-        sum_over_graphs = data_matrix.sum(axis=(0))
+        sum_over_graphs = data_matrix.sum(axis=0)
         for j in range(matrix_size):
             for t in range(time_steps):
                 value_sum = sum_over_graphs[j, t]
@@ -450,8 +450,8 @@ class AnalyticalMergedProbabilitySolver(
         mpmath_m_matrix = self._compute_m_matrix(
             xsi_matrix, xsi_matrix_inv, exp_g_t, numpy_invalid_indices
         )
-        filter = ~mpmath_m_matrix.astype(bool)
-        mpmath_m_matrix[filter] = numpy_m_matrix[filter]
+        correction_mask = ~mpmath_m_matrix.astype(bool)
+        mpmath_m_matrix[correction_mask] = numpy_m_matrix[correction_mask]
 
         # Вторичная коррекци для сумм точек и их значений
         mpmath_invalid_indices = self._get_invalid_indices(
@@ -460,8 +460,8 @@ class AnalyticalMergedProbabilitySolver(
         end_m_matrix = self._compute_m_matrix(
             xsi_matrix, xsi_matrix_inv, exp_g_t, mpmath_invalid_indices
         )
-        filter = ~end_m_matrix.astype(bool)
-        end_m_matrix[filter] = mpmath_m_matrix[filter]
+        correction_mask = ~end_m_matrix.astype(bool)
+        end_m_matrix[correction_mask] = mpmath_m_matrix[correction_mask]
 
         logger.info("Коррекция матрицы M(t) с использованием mpmath завершена.")
         return end_m_matrix

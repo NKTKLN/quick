@@ -13,7 +13,6 @@ import logging
 import os
 import threading
 from dataclasses import asdict
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,7 +30,7 @@ class AppConfig(BaseSettings):
         disable_cache (bool): Отключение кэширования (по умолчанию False).
         duckdb_path (str): Путь к базе данных DuckDB (по умолчанию "cache_data.duckdb").
         disable_logging (bool): Отключение логирования (по умолчанию False).
-        log_level (str): Уровень логирования (по умолчанию "info").
+        log_level (str): Уровень логирования (по умолчанию "INFO").
         log_path (str): Путь для записи логов (по умолчанию пустая строка).
         log_format (str): Формат лог-сообщений.
     """
@@ -39,7 +38,7 @@ class AppConfig(BaseSettings):
     disable_cache: bool = Field(default=False)
     duckdb_path: str = Field(default="cache_data.duckdb")
     disable_logging: bool = Field(default=False)
-    log_level: int = Field(default=logging.INFO)
+    log_level: str = Field(default="INFO")
     log_path: str = Field(default="")
 
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -54,7 +53,7 @@ class AppConfig(BaseSettings):
 class ConfigLoader:
     """Потокобезопасный загрузчик и кешировщик конфигурации приложения."""
 
-    _instance: Optional[AppConfig] = None
+    _instance: AppConfig | None = None
     _lock = threading.Lock()
 
     @classmethod

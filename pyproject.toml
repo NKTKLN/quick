@@ -22,7 +22,7 @@ dependencies = [
     "plotly (>=6.1.2,<7.0.0)",
     "deptry (>=0.23.0,<0.24.0)",
     "pydantic (>=2.11.7,<3.0.0)",
-    "matplotlib (>=3.10.3,<4.0.0)",
+    "pylint (>=3.3.7,<4.0.0)",
 ]
 
 
@@ -94,3 +94,18 @@ color = true
 
 [tool.vulture]
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
+
+[tool.pylint]
+disable = ["logging-fstring-interpolation", "invalid-name", "non-ascii-file-name", "use-dict-literal", "too-few-public-methods", "fixme", "unnecessary-pass"]
+max-line-length = 88
+max-module-lines = 500
+good-names = ["i", "j", "k", "ex", "_"]
+const-rgx = "[A-Z_][A-Z0-9_]*"
+variable-rgx = "[a-z_][a-z0-9_]*"
+class-rgx = "[A-Z][a-zA-Z0-9]*"
+function-rgx = "[a-z_][a-z0-9_]*"
+method-rgx = "[a-z_][a-z0-9_]*"
+ignore = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
+
+[tool.pylint.format]
+max-line-length = 88

@@ -5,7 +5,7 @@
 - Максимальной емкости системы и количества процессоров.
 """
 
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 import streamlit as st
@@ -125,7 +125,7 @@ def system_capacity_inputs(
     system_type: SystemType,
     default_max_customers: int = 4,
     default_processor_count: int = 2,
-) -> tuple[int, Optional[int]]:
+) -> tuple[int, int | None]:
     """Отображает UI-компонент для ввода емкости системы и количества процессоров.
 
     Args:
@@ -137,7 +137,7 @@ def system_capacity_inputs(
             процессоров в многолинейной системе. По умолчанию 2.
 
     Returns:
-        tuple[int, Optional[int]]: Максимальное количество заявок (n) и количество
+        tuple[int, int | None]: Максимальное количество заявок (n) и количество
             процессоров (m), если применимо.
     """
     max_customers = st.number_input(
@@ -162,7 +162,7 @@ def _generate_matrix(
     n: int,
     title: str,
     key: str,
-    default_matrix: Optional[NDArray[np.float64]] = None,
+    default_matrix: NDArray[np.float64] | None = None,
 ) -> NDArray[np.float64]:
     """Отображает UI-компонент с матрицей для редактирования пользователем.
 
@@ -170,9 +170,8 @@ def _generate_matrix(
         n (int): Размерность квадратной матрицы (n x n).
         title (str): Заголовок для компонента разворачиваемого блока.
         key (str): Уникальный ключ для Streamlit компонента редактирования таблицы.
-        default_matrix (Optional[NDArray[np.float64]], optional): Начальная матрица
-            значений. Если None, используется матрица из нулей размером n x n.
-            По умолчанию None.
+        default_matrix (NDArray[np.float64] | None): Начальная матрица значений.
+            Если None, используется матрица из нулей размером n x n.
 
     Returns:
         NDArray[np.float64]: Матрица интенсивностей размером n x n.

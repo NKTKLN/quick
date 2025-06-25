@@ -29,9 +29,11 @@ def matrix_builder_factory(
     """
     if isinstance(params, SingleServerParams):
         return SingleServerMatrixBuilder(params)
-    elif isinstance(params, MultiServerParams):
+
+    if isinstance(params, MultiServerParams):
         return MultiServerMatrixBuilder(params)
-    elif isinstance(params, MAPServerParams):
+
+    if isinstance(params, MAPServerParams):
         return MAPServerMatrixBuilder(params)
-    else:
-        raise ValueError(f"Unsupported parameter type: {type(params)}")
+
+    raise ValueError(f"Unsupported parameter type: {type(params)}")

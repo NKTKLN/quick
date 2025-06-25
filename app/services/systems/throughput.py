@@ -6,7 +6,7 @@
 """
 
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import cast
 
 import numpy as np
@@ -49,16 +49,6 @@ class BaseServerThroughputSystem(BaseServerSystem, ABC):
         queue_system = ServerProbabilitySystem(params, self.config)
         probabilities = queue_system.calculate()
         return probabilities
-
-    @abstractmethod
-    def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:
-        """Выполняет полный расчёт пропускной способности системы.
-
-        Returns:
-            NDArray[np.float64] | list[NDArray[np.float64]]: Список значений
-                пропускной способности.
-        """
-        pass
 
 
 class ServerThroughputSystem(BaseServerThroughputSystem):
