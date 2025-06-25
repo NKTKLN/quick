@@ -6,16 +6,12 @@
 обслуживания и ухода.
 """
 
-import logging
-
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain.models import MAPServerParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
-
-# Инициализация логгирования
-logger = logging.getLogger(__name__)
 
 
 class MAPServerMatrixBuilder(BaseMatrixBuilder):

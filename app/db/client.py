@@ -4,18 +4,15 @@
 функций по ключу и управление соединением.
 """
 
-import logging
 import os
 import threading
 from datetime import datetime
 from typing import Any
 
 import duckdb
+from loguru import logger
 
 from app.settings import ConfigLoader
-
-# Настройка логгера
-logger = logging.getLogger(__name__)
 
 
 class DuckDBClient:
@@ -145,4 +142,4 @@ class DuckDBClient:
         try:
             self.close()
         except duckdb.Error as e:
-            logging.error(f"Ошибка закрытия соединения DuckDB: {e}")
+            logger.error(f"Ошибка закрытия соединения DuckDB: {e}")

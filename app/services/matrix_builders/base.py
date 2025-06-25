@@ -6,16 +6,12 @@
 моделей массового обслуживания — одноканальных, многоканальных и с MAP-потоками.
 """
 
-import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
 from numpy.typing import NDArray
 
 from app.domain.models import MAPServerParams, MultiServerParams, SingleServerParams
-
-# Инициализация логгирования
-logger = logging.getLogger(__name__)
 
 
 class BaseMatrixBuilder(ABC):

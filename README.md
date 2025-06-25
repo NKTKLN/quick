@@ -17,12 +17,11 @@ QUICK использует модуль конфигурации на базе [
 
 | Переменная окружения | Описание                           | Значение по умолчанию                                  |
 | -------------------- | ---------------------------------- | ------------------------------------------------------ |
-| `DISABLE_CACHE`      | Отключение кеширования             | `False`                                                 |
+| `DISABLE_CACHE`      | Отключение кеширования             | `False`                                                |
 | `DUCKDB_PATH`        | Путь к базе данных DuckDB          | `cache_data.duckdb`                                    |
 | `DISABLE_LOGGING`    | Отключение логирования             | `False`                                                |
 | `LOG_LEVEL`          | Уровень логирования                | `INFO`                                                 |
-| `LOG_PATH`           | Путь для записи логов              | пустая строка (stdout)                                 |
-| `LOG_FORMAT`         | Формат сообщений логов             | `%(asctime)s - %(name)s - %(levelname)s - %(message)s` |
+| `LOG_PATH`           | Путь для записи логов              | пустая строка                                          |
 
 ### ✍️ Пример `.env.example`
 
@@ -30,9 +29,8 @@ QUICK использует модуль конфигурации на базе [
 DISABLE_CACHE=True
 DUCKDB_PATH=cache_data.duckdb
 DISABLE_LOGGING=False
-LOG_LEVEL=20
+LOG_LEVEL=INFO
 LOG_PATH=
-LOG_FORMAT=%(asctime)s - %(name)s - %(levelname)s - %(message)s
 ```
 
 ## 🛠️ Установка и запуск

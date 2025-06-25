@@ -4,7 +4,9 @@
 а также опцию полного отключения логирования для управления диагностической информацией.
 """
 
-import logging
+import sys
+
+from loguru import logger
 
 from app.settings import ConfigLoader
 
@@ -12,20 +14,36 @@ from app.settings import ConfigLoader
 def setup_logger() -> None:
     """Инициализирует конфигурацию логгирования приложения.
 
-    Настраивает базовый логгер с параметрами из конфигурации: уровень логов,
+    Настраивает логгер Loguru с параметрами из конфигурации: уровень логов,
     формат вывода, путь к файлу. При необходимости полностью отключает логгирование.
     """
+    logger.remove()
+
     config = ConfigLoader.get_config()
 
     if config.disable_logging:
-        logging.disable(logging.CRITICAL)
         return
 
-    mapping = logging.getLevelNamesMapping()
-
-    logging.basicConfig(
-        level=mapping.get(config.log_level, logging.INFO),
+    logger.add(
+        sys.stdout,
         format=config.log_format,
-        filename=config.log_path,
-        filemode="a",
+        level=config.log_level,
+        colorize=True,
+        enqueue=True,
+        backtrace=True,
+        diagnose=True,
     )
+
+    if config.log_path:
+        logger.add(
+            config.log_path,
+            format=config.log_format,
+            level=config.log_level,
+            colorize=False,
+            enqueue=True,
+            backtrace=True,
+            diagnose=True,
+            rotation="10 MB",
+            retention="10 days",
+            compression="zip",
+        )

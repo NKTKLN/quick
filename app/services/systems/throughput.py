@@ -5,11 +5,11 @@
 Используется интеграция с вероятностными моделями СМО.
 """
 
-import logging
 from abc import ABC
 from typing import cast
 
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain import (
@@ -22,9 +22,6 @@ from app.domain.models.multi import MultiServerParams
 from app.domain.models.single import SingleServerParams
 from app.services.systems.base import BaseServerSystem
 from app.services.systems.probability import ServerProbabilitySystem
-
-# Настройка логирования для отслеживания работы системы
-logger = logging.getLogger(__name__)
 
 
 class BaseServerThroughputSystem(BaseServerSystem, ABC):
@@ -78,7 +75,7 @@ class ServerThroughputSystem(BaseServerThroughputSystem):
         throughput = (1 - probabilities[-1]) * self.params.lambda_rate
 
         logger.info(
-            "Рассчитана пропускная способность для ν = %.3f", self.params.nu_rate
+            f"Рассчитана пропускная способность для ν = {self.params.nu_rate:.3f}"
         )
 
         return cast(NDArray, throughput)
@@ -131,7 +128,7 @@ class MAPServerThroughputSystem(ServerThroughputSystem):
             throughput_results.append(current_throughput)
 
             logger.info(
-                "Рассчитана пропускная способность для ν = %.3f", self.params.nu_rate
+                "Рассчитана пропускная способность для ν = {self.params.nu_rate:.3f}"
             )
 
         return throughput_results

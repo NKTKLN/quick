@@ -6,17 +6,14 @@
 вероятностей по времени.
 """
 
-import logging
 from typing import Callable, cast
 
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
 
 from app.services.solvers.base import BasicProbabilitySolver
-
-# Инициализация логгера для текущего модуля
-logger = logging.getLogger(__name__)
 
 
 class NumericalProbabilitySolver(BasicProbabilitySolver):
@@ -79,7 +76,7 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
 
         if not solution.success:
             logger.error(
-                "Численный решатель не справился с задачей: %s", solution.message
+                f"Численный решатель не справился с задачей: {solution.message}"
             )
             raise RuntimeError("Численный решатель не справился с задачей.")
 

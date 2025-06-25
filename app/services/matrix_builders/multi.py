@@ -5,16 +5,12 @@
 обслуживания и ухода из очереди.
 """
 
-import logging
-
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain.models import MultiServerParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
-
-# Инициализация логгирования
-logger = logging.getLogger(__name__)
 
 
 class MultiServerMatrixBuilder(BaseMatrixBuilder):

@@ -9,7 +9,6 @@
       инициализировать параметры из объекта и кешировать результаты.
 """
 
-import logging
 import os
 import threading
 from dataclasses import asdict
@@ -18,9 +17,6 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain import ConfigInitParams
-
-# Настройка логгера
-logger = logging.getLogger(__name__)
 
 
 class AppConfig(BaseSettings):
@@ -41,7 +37,11 @@ class AppConfig(BaseSettings):
     log_level: str = Field(default="INFO")
     log_path: str = Field(default="")
 
-    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_format: str = (
+        "<cyan>[{time:DD/MM/YY HH:mm:ss}]</cyan> "
+        "<light-magenta>[{file}:{function}:{line}]</light-magenta> "
+        "<lvl>[{level}]</lvl> - {message}"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -5,20 +5,17 @@
 """
 
 import functools
-import logging
 from datetime import datetime
 from pickle import PickleError
 from typing import Any, Callable, TypeVar, cast
 
 from duckdb import Error as DuckDBError
+from loguru import logger
 
 from app.db.client import DuckDBClient
 from app.domain import ComputationConfig
 from app.settings import ConfigLoader
 from app.utils import PickleSerializer
-
-# Настройка логгера
-logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=Callable[..., Any])
 

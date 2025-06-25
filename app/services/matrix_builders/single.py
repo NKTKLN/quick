@@ -5,16 +5,12 @@
 заявками, учитывая интенсивности поступления, обслуживания и ухода клиентов.
 """
 
-import logging
-
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain.models import SingleServerParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
-
-# Инициализация логгирования
-logger = logging.getLogger(__name__)
 
 
 class SingleServerMatrixBuilder(BaseMatrixBuilder):

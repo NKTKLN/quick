@@ -4,12 +4,12 @@
 вероятностных состояний системы массового обслуживания (СМО) в переходном режиме.
 """
 
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, cast
 
 import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 from scipy.linalg import eig as scipy_eig
 from tqdm import tqdm  # type: ignore[import-untyped]
@@ -22,9 +22,6 @@ from app.domain import (
 )
 from app.domain.models import SingleServerParams
 from app.services.solvers.base import BasicProbabilitySolver
-
-# Инициализация логгирования
-logger = logging.getLogger(__name__)
 
 
 class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
