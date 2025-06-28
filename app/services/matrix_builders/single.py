@@ -27,6 +27,11 @@ class SingleServerMatrixBuilder(BaseMatrixBuilder):
             params (SingleServerParams): Параметры одноканальной СМО.
         """
         super().__init__(params)
+        logger.debug(
+            "Инициализирован SingleServerMatrixBuilder с параметрами: "
+            f"max_customers={params.max_customers}, lambda_rate={params.lambda_rate}, "
+            f"mu_rate={params.mu_rate}, nu_rate={params.nu_rate}"
+        )
 
     def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для одноканальной СМО.
@@ -38,6 +43,7 @@ class SingleServerMatrixBuilder(BaseMatrixBuilder):
             ValueError: Если параметры системы не являются SingleServerParams.
         """
         if not isinstance(self.params, SingleServerParams):
+            logger.error("Параметры не являются экземпляром SingleServerParams")
             raise ValueError("Параметры должны быть экземпляром SingleServerParams")
 
         n = self.params.max_customers
@@ -60,5 +66,7 @@ class SingleServerMatrixBuilder(BaseMatrixBuilder):
                 coefficients_matrix[index, index] = -(μ + (index - 1) * ν + λ)
                 coefficients_matrix[index, index + 1] = μ + index * ν
 
-        logger.info("Матрица коэффициентов для одноканальной СМО сгенерирована.")
+        logger.success(
+            "Матрица коэффициентов для одноканальной СМО успешно сгенерирована."
+        )
         return coefficients_matrix

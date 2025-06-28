@@ -13,6 +13,7 @@ import os
 import threading
 from dataclasses import asdict
 
+from loguru import logger
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -71,6 +72,7 @@ class ConfigLoader:
                 env_key = key.upper()
                 os.environ[env_key] = str(value)
             cls._instance = None
+            logger.info("Конфигурация приложения инициализирована из параметров.")
 
     @classmethod
     def get_config(cls) -> AppConfig:
@@ -83,5 +85,10 @@ class ConfigLoader:
         """
         with cls._lock:
             if cls._instance is None:
+                logger.debug(
+                    "Конфигурация не закеширована. "
+                    "Инициализация AppConfig из окружения..."
+                )
                 cls._instance = AppConfig()
+                logger.debug(f"AppConfig инициализирован: {cls._instance.model_dump()}")
             return cls._instance

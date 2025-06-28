@@ -27,6 +27,13 @@ class MultiServerMatrixBuilder(BaseMatrixBuilder):
             params (MultiServerParams): Параметры многоканальной СМО.
         """
         super().__init__(params)
+        logger.debug(
+            "Инициализирован MultiServerMatrixBuilder с параметрами: "
+            f"max_customers={params.max_customers}, "
+            f"processor_count={params.processor_count}, "
+            f"lambda_rate={params.lambda_rate}, mu_rate={params.mu_rate}, "
+            f"nu_rate={params.nu_rate}"
+        )
 
     def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для многоканальной СМО.
@@ -39,8 +46,10 @@ class MultiServerMatrixBuilder(BaseMatrixBuilder):
             ValueError: Если параметры системы не являются MultiServerParams.
         """
         if not isinstance(self.params, MultiServerParams):
+            logger.error("Параметры не являются экземпляром MultiServerParams")
             raise ValueError("Параметры должны быть экземпляром MultiServerParams")
 
+        logger.info("Начато построение матрицы коэффициентов.")
         n, m = self.params.max_customers, self.params.processor_count
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate
 
@@ -66,5 +75,7 @@ class MultiServerMatrixBuilder(BaseMatrixBuilder):
                     min(index + 1, m) * μ + max(0, index + 1 - m) * ν
                 )
 
-        logger.info("Матрица коэффициентов для многоканальной СМО сгенерирована.")
+        logger.success(
+            "Матрица коэффициентов для многоканальной СМО успешно сгенерирована."
+        )
         return coefficients_matrix

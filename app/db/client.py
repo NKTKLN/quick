@@ -39,7 +39,7 @@ class DuckDBClient:
                 database=config.duckdb_path, read_only=False
             )
             self.connection.execute("PRAGMA threads=4")
-            logger.info("Установлено соединение с DuckDB, инициализация схемы.")
+            logger.info(f"Создано соединение с DuckDB по пути: {config.duckdb_path}")
             self._init_schema()
             self._initialized: bool = True
         except IOError as e:
@@ -58,7 +58,9 @@ class DuckDBClient:
             os.path.join(current_dir, "..", "sql", "schema.sql")
         )
 
+        logger.debug(f"Загрузка схемы из файла: {schema_path}")
         if not os.path.exists(schema_path):
+            logger.error(f"Файл схемы не найден: {schema_path}")
             raise FileNotFoundError(f"Файл схемы не найден: {schema_path}")
 
         try:
@@ -67,6 +69,7 @@ class DuckDBClient:
                 self.connection.execute(schema_sql)
                 logger.info("Схема базы данных успешно инициализирована.")
         except Exception as exc:
+            logger.error(f"Ошибка при выполнении SQL-схемы: {exc}")
             raise RuntimeError(
                 f"Ошибка при инициализации схемы из {schema_path}"
             ) from exc
@@ -83,10 +86,6 @@ class DuckDBClient:
             if cls._instance is None:
                 logger.debug("Создание нового singleton-экземпляра DuckDBClient.")
                 cls._instance = super().__new__(cls)
-            else:
-                logger.debug(
-                    "Используется существующий singleton-экземпляр DuckDBClient."
-                )
             return cls._instance
 
     @classmethod

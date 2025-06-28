@@ -9,6 +9,8 @@ import io
 import pickle
 from typing import Any
 
+from loguru import logger
+
 
 class SafeUnpickler(pickle.Unpickler):
     """Безопасный unpickler с ограничением на допустимые классы.
@@ -33,6 +35,7 @@ class SafeUnpickler(pickle.Unpickler):
         ("numpy._core.multiarray", "_reconstruct"),
         ("numpy", "dtype"),
         ("mpmath.ctx_mp_python", "mpf"),
+        ("mpmath.ctx_mp_python", "mpc"),
     }
 
     def find_class(self, module: str, name: str) -> Any:
@@ -49,7 +52,10 @@ class SafeUnpickler(pickle.Unpickler):
             pickle.UnpicklingError: Если класс не разрешён.
         """
         if (module, name) in self.ALLOWED_CLASSES:
+            logger.debug(f"Разрешён класс для загрузки: {module}.{name}")
             return super().find_class(module, name)
+
+        logger.error(f"Попытка загрузить запрещённый класс: {module}.{name}")
         raise pickle.UnpicklingError(
             f"Попытка загрузить запрещённый класс: {module}.{name}"
         )
@@ -67,4 +73,7 @@ def safe_loads(data: bytes) -> object:
     Raises:
         pickle.UnpicklingError: При попытке загрузки запрещённого типа.
     """
-    return SafeUnpickler(io.BytesIO(data)).load()
+    logger.debug("Начало безопасной десериализации данных")
+    result = SafeUnpickler(io.BytesIO(data)).load()
+    logger.debug("Безопасная десериализация завершена успешно")
+    return result

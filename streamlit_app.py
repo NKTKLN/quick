@@ -9,7 +9,9 @@
 
 import streamlit as st
 
-from app.utils.logger import setup_logger
+from app.db import DuckDBClient
+from app.utils import setup_logger
+from app.utils.progress import Progress, StreamlitProgressStrategy
 
 
 def render_description() -> None:
@@ -49,14 +51,12 @@ def render_description() -> None:
 
 
 def main() -> None:
-    """Точка входа в приложение Streamlit.
-
-    Выполняется:
-    - Инициализация логгера
-    - Установка конфигурации страницы
-    - Отображение описательной информации
-    """
+    """Точка входа в приложение Streamlit."""
     setup_logger()
+
+    _ = DuckDBClient()
+
+    Progress.set_strategy(StreamlitProgressStrategy())
 
     st.set_page_config(
         page_title="Анализатор медицинских СМО", layout="wide", page_icon="🏥"

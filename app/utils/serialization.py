@@ -8,6 +8,7 @@
 import pickle
 from typing import Any
 
+from loguru import logger
 from mpmath import matrix, mpf, re, workdps  # type: ignore[import-untyped]
 from numpy import array, ndarray
 
@@ -36,6 +37,7 @@ class PickleSerializer:
             precision = 50
 
         with workdps(precision):
+            logger.debug(f"Десериализация объекта с точностью: {precision}")
 
             def deserialize_nested(data: Any) -> Any:
                 """Рекурсивно преобразует вложенные списки в объекты mpmath.mpf.
@@ -54,9 +56,11 @@ class PickleSerializer:
                 obj_type = obj.get("__type__")
                 if obj_type == "mpmath.matrix":
                     data = obj["data"]
+                    logger.debug("Десериализация mpmath.matrix")
                     return matrix(deserialize_nested(data))
                 if obj_type == "NDArray[mpmath.mpf]":
                     data = obj["data"]
+                    logger.debug("Десериализация numpy.ndarray с элементами mpmath.mpf")
                     return array(deserialize_nested(data), dtype=object)
 
             if isinstance(obj, list):
@@ -68,6 +72,7 @@ class PickleSerializer:
             if isinstance(obj, tuple):
                 return tuple(cls._deserialize_obj(item, precision) for item in obj)
 
+            logger.debug("Завершение рекурсивной десериализации объекта")
             return obj
 
     @classmethod
@@ -95,6 +100,7 @@ class PickleSerializer:
             return str(re(data))
 
         if isinstance(obj, matrix):
+            logger.debug("Сериализация mpmath.matrix")
             return {"__type__": "mpmath.matrix", "data": serialize_nested(obj.tolist())}
 
         if isinstance(obj, list):
@@ -107,6 +113,7 @@ class PickleSerializer:
             return {k: cls._serialize_obj(v) for k, v in obj.items()}
 
         if isinstance(obj, ndarray) and obj.dtype == object:
+            logger.debug("Сериализация numpy.ndarray с элементами mpmath.mpf")
             return {
                 "__type__": "NDArray[mpmath.mpf]",
                 "data": serialize_nested(obj.tolist()),
@@ -124,6 +131,7 @@ class PickleSerializer:
         Returns:
             bytes: Сериализованные байты pickle.
         """
+        logger.debug("Начинаем сериализацию словаря для pickle")
         serialized = {k: cls._serialize_obj(v) for k, v in data.items()}
         return pickle.dumps(serialized)
 
@@ -137,6 +145,7 @@ class PickleSerializer:
         Returns:
             bytes: Сериализованные байты pickle.
         """
+        logger.debug("Начинаем сериализацию объекта для pickle")
         serialized = cls._serialize_obj(obj)
         return pickle.dumps(serialized)
 
@@ -151,5 +160,11 @@ class PickleSerializer:
         Returns:
             Any: Восстановленный объект с корректными типами.
         """
-        loaded = safe_loads(obj)
+        logger.debug("Начинаем десериализацию результата из pickle")
+        try:
+            loaded = safe_loads(obj)
+        except pickle.UnpicklingError as e:
+            logger.error(f"Ошибка десериализации: {e}")
+            return None
+
         return cls._deserialize_obj(loaded, precision)

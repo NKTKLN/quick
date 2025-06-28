@@ -65,10 +65,16 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
             config = ConfigLoader.get_config()
             computation_config: ComputationConfig = self.config
             if computation_config.disable_cache or config.disable_cache:
+                logger.debug(
+                    f"Кэш отключён для {method.__name__}, выполнение без "
+                    "использования кэша."
+                )
                 result = method(self, *args, **kwargs)
                 return result
 
             db_client = DuckDBClient()
+
+            logger.debug(f"Запрос к кэшу для метода: {method.__name__}")
 
             # Формирование части ключа из self
             try:
@@ -96,11 +102,17 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
             try:
                 data = db_client.get_by_key(method.__name__, key_blob)
                 if data is not None:
-                    logger.info(
-                        f"Кэш найден для {method.__name__}, возвращаем результат."
-                    )
-                    return PickleSerializer.load_result_from_pickle(
+                    result = PickleSerializer.load_result_from_pickle(
                         data, getattr(self, "_precision", None)
+                    )
+                    if result is not None:
+                        logger.info(
+                            f"Кэш найден для {method.__name__}, возвращаем результат."
+                        )
+                        return result
+                    logger.debug(
+                        "Кэш был найден, но десериализация результата вернула None "
+                        f"для {method.__name__}"
                     )
             except (DuckDBError, UnpicklingError, TypeError) as e:
                 logger.warning(f"Ошибка при загрузке кэша для {method.__name__}: {e}")

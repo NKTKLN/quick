@@ -16,9 +16,9 @@ repos:
         language: system
         pass_filenames: false
 
-      - id: ruff-fix
-        name: Ruff fix and check
-        entry: poetry run ruff check . --fix
+      - id: ruff
+        name: Ruff check
+        entry: poetry run ruff check .
         language: system
         pass_filenames: false
 

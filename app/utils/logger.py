@@ -1,7 +1,6 @@
 """Модуль конфигурации логгирования приложения.
 
-Содержит функцию setup_logger для настройки вывода логов в файл или консоль,
-а также опцию полного отключения логирования для управления диагностической информацией.
+Содержит функцию setup_logger для настройки вывода логов в файл или консоль.
 """
 
 import sys
@@ -35,6 +34,7 @@ def setup_logger() -> None:
     )
 
     if config.log_path:
+        logger.debug(f"Добавление логгера для файла: {config.log_path}")
         logger.add(
             config.log_path,
             format=config.log_format,
@@ -47,3 +47,12 @@ def setup_logger() -> None:
             retention="10 days",
             compression="zip",
         )
+    else:
+        logger.debug("Путь к лог-файлу не указан, логирование в файл отключено")
+
+    logger.info("Логгирование инициализировано")
+    logger.info(f"Уровень логирования установлен на: {config.log_level}")
+    if config.log_path:
+        logger.info(f"Логи будут сохраняться в файл: {config.log_path}")
+    else:
+        logger.info("Лог-файл не указан, вывод только в консоль")

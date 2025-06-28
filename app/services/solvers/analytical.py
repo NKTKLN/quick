@@ -12,7 +12,6 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 from scipy.linalg import eig as scipy_eig
-from tqdm import tqdm  # type: ignore[import-untyped]
 
 from app.db import duckdb_cache
 from app.domain import (
@@ -22,6 +21,7 @@ from app.domain import (
 )
 from app.domain.models import SingleServerParams
 from app.services.solvers.base import BasicProbabilitySolver
+from app.utils import Progress
 
 
 class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
@@ -193,7 +193,7 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         exp_g_t = np.exp(np.outer(eigenvalues, self.params.time_array))
 
         m_matrix = np.zeros((matrix_size, matrix_size, time_steps), dtype=np.float64)
-        for k in tqdm(range(matrix_size), desc="Вычисление слоёв M"):
+        for k in Progress.wrap(range(matrix_size), description="Вычисление слоёв M"):
             outer = np.outer(xsi_matrix[:, k], xsi_matrix_inv[k, :])
             m_matrix += np.real(
                 outer[:, :, np.newaxis] * exp_g_t[k, np.newaxis, np.newaxis]
@@ -299,7 +299,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
 
         with mp.workdps(self._precision):
             m_matrix = np.zeros((matrix_size, matrix_size, time_steps), dtype=mp.mpf)
-            for k in tqdm(range(matrix_size), desc="Пересчёт слоёв M"):
+            for k in Progress.wrap(range(matrix_size), description="Пересчёт слоёв M"):
                 for i in range(matrix_size):
                     for j in range(matrix_size):
                         time_end_step = (
