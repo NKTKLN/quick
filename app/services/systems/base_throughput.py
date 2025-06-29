@@ -5,13 +5,12 @@
 основываясь на вероятностных моделях состояния системы.
 """
 
-import warnings
 from abc import ABC
 
 import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
-from scipy.special import factorial  # pylint: disable=no-name-in-module
+from scipy.special import factorial
 
 from app.domain.models import MAPServerParams
 from app.domain.models.multi import MultiServerParams
@@ -52,115 +51,47 @@ class BaseServerExpectedThroughputSystem(BaseServerThroughputSystem, ABC):
     рассчитанных вероятностей состояний.
     """
 
-    def _calculate_expected_value_core(
-        self, lambda_rate: float, p_loss: NDArray[np.float64], max_k: int = 1000
+    def _calculate_expected_value(
+        self, p_loss: NDArray[np.float64], lambda_rate: float | None = None
     ) -> NDArray[np.float64]:
-        """Ядро вычисления ожидаемого числа ушедших заявок.
+        """Вычисляет ожидаемое число ушедших заявок.
 
         Args:
-            lambda_rate (float): Интенсивность поступления заявок (λ).
             p_loss (NDArray[np.float64]): Вероятность потери заявки.
-            max_k (int): Максимальное число итераций для суммы.
+            lambda_rate (float | None): Интенсивность поступления заявок (λ).
+                Если None, то берет значение из self.params. По умолчанию None.
 
         Returns:
             NDArray[np.float64]: Ожидаемое значение числа ушедших заявок.
         """
-        logger.debug(
-            "Начато вычисление ядра ожидаемого значения с "
-            f"lambda={lambda_rate}, max_k={max_k}"
-        )
-        n = self.params.max_customers
+        logger.debug("Начинаем вычисление ожидаемого значения ушедших заявок")
 
-        max_k = n
-        if isinstance(self.params, MultiServerParams):
-            max_k = self.params.processor_count + n
+        if lambda_rate is None and isinstance(self.params.lambda_rate, float):
+            lambda_rate = self.params.lambda_rate
+        else:
+            logger.error("Интенсивность λ не передана и не определена в параметрах.")
+            raise ValueError(
+                "Интенсивность λ не передана и не определена в параметрах."
+            )
 
         β = self.params.nu_rate / self.params.mu_rate
         ρ = lambda_rate / self.params.mu_rate
 
-        k = np.arange(1, max_k + 1)
+        n = self.params.max_customers
+        k = n
+        if isinstance(self.params, MultiServerParams):
+            k = self.params.processor_count + n
 
         sum_term = 0.0
-        for k_i in k:
+        for k_i in range(1, k + 1):
             numerator = k_i * ρ**k_i
             denominator = np.prod([n + j * β for j in range(1, k_i + 1)])
-            sum_term += numerator / denominator
-
-        # numerator = k * ρ ** k
-        # denominator = gamma(n + (k + 1) * β) / gamma(n + β)
-
-        # sum_term = np.sum(numerator / denominator)
-
-        # log_numerator = np.log(k) + k * np.log(ρ)
-        # log_denominator = gammaln(n + (k + 1) * β) - gammaln(n + β)
-        # log_terms = log_numerator - log_denominator
-
-        # max_log_term = np.max(log_terms)
-        # sum_term = np.sum(np.exp(log_terms - max_log_term))
-        # sum_term *= np.exp(max_log_term)
+            sum_term += float(numerator / denominator)
 
         prefactor = (ρ**n / factorial(n)) * p_loss
-        N_b = prefactor * float(sum_term)
+        N_b = prefactor * sum_term
 
-        logger.success("Вычисление ядра ожидаемого значения завершено успешно")
-        return N_b
-
-    def _calculate_expected_value(
-        self, lambda_rate: float, p_loss: np.ndarray, max_k: int = 1000
-    ) -> np.ndarray:
-        """Вычисляет ожидаемое число ушедших заявок с защитой от переполнения.
-
-        Выполняет вычисления с постепенным уменьшением max_k при возникновении
-        переполнения или других предупреждений, связанных с вычислениями.
-
-        Args:
-            lambda_rate (float): Интенсивность поступления заявок (λ).
-            p_loss (NDArray[np.float64]): Вероятность потери заявки.
-            max_k (int): Максимальное число итераций для суммы.
-
-        Raises:
-            RuntimeWarning: Если вычислить значение не удалось при минимальном max_k.
-
-        Returns:
-            NDArray[np.float64]: Ожидаемое значение числа ушедших заявок.
-        """
-        min_k = 10
-        if max_k < min_k:
-            logger.error(
-                "Не удалось вычислить значение без overflow при минимальном "
-                f"max_k={min_k}"
-            )
-            raise RuntimeWarning(
-                "Не удалось вычислить значение без overflow с допустимым max_k."
-            )
-
-        logger.info(
-            f"Начало вычисления ожидаемого значения ушедших заявок с max_k={max_k}"
+        logger.success(
+            "Вычисление ожидаемого значения ушедших заявок завершено успешно"
         )
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-
-            result = self._calculate_expected_value_core(lambda_rate, p_loss, max_k)
-
-            warning_overflow = any(
-                issubclass(warning.category, RuntimeWarning)
-                and (
-                    "overflow" in str(warning.message)
-                    or "invalid value" in str(warning.message)
-                )
-                for warning in w
-            )
-            if warning_overflow:
-                logger.warning(
-                    f"Обнаружено overflow/invalid value при max_k={max_k}. "
-                    "Пробуем уменьшить max_k и повторить вычисление."
-                )
-                return self._calculate_expected_value(
-                    lambda_rate, p_loss, max_k=max_k // 2
-                )
-
-            logger.success(
-                "Вычисление ожидаемого значения ушедших заявок завершено успешно"
-            )
-            return result
+        return N_b

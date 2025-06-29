@@ -10,16 +10,10 @@ from typing import Any
 from loguru import logger
 
 from app.domain import CalculationMode, SystemType
-from app.services.systems.absolute_throughput import (
-    MAPServerAbsoluteThroughputSystem,
-    ServerAbsoluteThroughputSystem,
-)
+from app.services.systems.absolute_throughput import ServerAbsoluteThroughputSystem
 from app.services.systems.base import BaseServerSystem
 from app.services.systems.probability import ServerProbabilitySystem
-from app.services.systems.relative_throughput import (
-    MAPServerRelativeThroughputSystem,
-    ServerRelativeThroughputSystem,
-)
+from app.services.systems.relative_throughput import ServerRelativeThroughputSystem
 from app.services.systems.throughput import (
     MAPServerThroughputSystem,
     ServerThroughputSystem,
@@ -63,21 +57,11 @@ def system_factory(
                 return ServerThroughputSystem(**kwargs)
 
     if calculation_mode == CalculationMode.ABSOLUTE_THROUGHPUT:
-        match system_type:
-            case SystemType.MAP:
-                logger.info("Создан MAPServerAbsoluteThroughputSystem")
-                return MAPServerAbsoluteThroughputSystem(**kwargs)
-            case _:
-                logger.info("Создан ServerAbsoluteThroughputSystem")
-                return ServerAbsoluteThroughputSystem(**kwargs)
+        logger.info("Создан ServerAbsoluteThroughputSystem")
+        return ServerAbsoluteThroughputSystem(**kwargs)
 
     if calculation_mode == CalculationMode.RELATIVE_THROUGHPUT:
-        match system_type:
-            case SystemType.MAP:
-                logger.info("Создан MAPServerRelativeThroughputSystem")
-                return MAPServerRelativeThroughputSystem(**kwargs)
-            case _:
-                logger.info("Создан ServerRelativeThroughputSystem")
-                return ServerRelativeThroughputSystem(**kwargs)
+        logger.info("Создан ServerRelativeThroughputSystem")
+        return ServerRelativeThroughputSystem(**kwargs)
 
     raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")
