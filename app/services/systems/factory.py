@@ -7,6 +7,8 @@
 
 from typing import Any
 
+from loguru import logger
+
 from app.domain import CalculationMode, SystemType
 from app.services.systems.absolute_throughput import (
     MAPServerAbsoluteThroughputSystem,
@@ -42,28 +44,40 @@ def system_factory(
     Raises:
         ValueError: Если передан неподдерживаемый режим расчёта или тип.
     """
+    logger.debug(
+        f"Вызван system_factory с параметрами: system_type={system_type}, "
+        f"calculation_mode={calculation_mode}"
+    )
+
     if calculation_mode == CalculationMode.PROBABILITY:
+        logger.info("Создан ServerProbabilitySystem")
         return ServerProbabilitySystem(**kwargs)
 
     if calculation_mode == CalculationMode.THROUGHPUT:
         match system_type:
             case SystemType.MAP:
+                logger.info("Создан MAPServerThroughputSystem")
                 return MAPServerThroughputSystem(**kwargs)
             case _:
+                logger.info("Создан ServerThroughputSystem")
                 return ServerThroughputSystem(**kwargs)
 
     if calculation_mode == CalculationMode.ABSOLUTE_THROUGHPUT:
         match system_type:
             case SystemType.MAP:
+                logger.info("Создан MAPServerAbsoluteThroughputSystem")
                 return MAPServerAbsoluteThroughputSystem(**kwargs)
             case _:
+                logger.info("Создан ServerAbsoluteThroughputSystem")
                 return ServerAbsoluteThroughputSystem(**kwargs)
 
     if calculation_mode == CalculationMode.RELATIVE_THROUGHPUT:
         match system_type:
             case SystemType.MAP:
+                logger.info("Создан MAPServerRelativeThroughputSystem")
                 return MAPServerRelativeThroughputSystem(**kwargs)
             case _:
+                logger.info("Создан ServerRelativeThroughputSystem")
                 return ServerRelativeThroughputSystem(**kwargs)
 
     raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")

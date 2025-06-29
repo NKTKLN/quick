@@ -11,7 +11,7 @@ from abc import ABC
 import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
-from scipy.special import factorial, gammaln  # pylint: disable=no-name-in-module
+from scipy.special import factorial  # pylint: disable=no-name-in-module
 
 from app.domain.models import MAPServerParams
 from app.domain.models.multi import MultiServerParams
@@ -65,25 +65,44 @@ class BaseServerExpectedThroughputSystem(BaseServerThroughputSystem, ABC):
         Returns:
             NDArray[np.float64]: Ожидаемое значение числа ушедших заявок.
         """
+        logger.debug(
+            "Начато вычисление ядра ожидаемого значения с "
+            f"lambda={lambda_rate}, max_k={max_k}"
+        )
         n = self.params.max_customers
+
+        max_k = n
+        if isinstance(self.params, MultiServerParams):
+            max_k = self.params.processor_count + n
 
         β = self.params.nu_rate / self.params.mu_rate
         ρ = lambda_rate / self.params.mu_rate
 
         k = np.arange(1, max_k + 1)
 
-        log_numerator = np.log(k) + k * np.log(ρ)
-        log_denominator = gammaln(n + (k + 1) * β) - gammaln(n + β)
-        log_terms = log_numerator - log_denominator
+        sum_term = 0.0
+        for k_i in k:
+            numerator = k_i * ρ**k_i
+            denominator = np.prod([n + j * β for j in range(1, k_i + 1)])
+            sum_term += numerator / denominator
 
-        max_log_term = np.max(log_terms)
-        sum_term = np.sum(np.exp(log_terms - max_log_term))
-        sum_term *= np.exp(max_log_term)
+        # numerator = k * ρ ** k
+        # denominator = gamma(n + (k + 1) * β) / gamma(n + β)
+
+        # sum_term = np.sum(numerator / denominator)
+
+        # log_numerator = np.log(k) + k * np.log(ρ)
+        # log_denominator = gammaln(n + (k + 1) * β) - gammaln(n + β)
+        # log_terms = log_numerator - log_denominator
+
+        # max_log_term = np.max(log_terms)
+        # sum_term = np.sum(np.exp(log_terms - max_log_term))
+        # sum_term *= np.exp(max_log_term)
 
         prefactor = (ρ**n / factorial(n)) * p_loss
         N_b = prefactor * float(sum_term)
 
-        logger.debug("Завершено вычисление ядра ожидаемого значения")
+        logger.success("Вычисление ядра ожидаемого значения завершено успешно")
         return N_b
 
     def _calculate_expected_value(
@@ -109,13 +128,15 @@ class BaseServerExpectedThroughputSystem(BaseServerThroughputSystem, ABC):
         if max_k < min_k:
             logger.error(
                 "Не удалось вычислить значение без overflow при минимальном "
-                "max_k={min_k}"
+                f"max_k={min_k}"
             )
             raise RuntimeWarning(
                 "Не удалось вычислить значение без overflow с допустимым max_k."
             )
 
-        logger.info(f"Вычисление ожидаемого значения ушедших заявок с max_k={max_k}")
+        logger.info(
+            f"Начало вычисления ожидаемого значения ушедших заявок с max_k={max_k}"
+        )
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -131,15 +152,15 @@ class BaseServerExpectedThroughputSystem(BaseServerThroughputSystem, ABC):
                 for warning in w
             )
             if warning_overflow:
-                logger.info(
-                    "Обнаружено предупреждение overflow/invalid value при "
-                    f"max_k={max_k}, уменьшаем max_k и повторяем"
+                logger.warning(
+                    f"Обнаружено overflow/invalid value при max_k={max_k}. "
+                    "Пробуем уменьшить max_k и повторить вычисление."
                 )
                 return self._calculate_expected_value(
                     lambda_rate, p_loss, max_k=max_k // 2
                 )
 
-            logger.info(
-                f"Успешно вычислено ожидаемое значение ушедших заявок при max_k={max_k}"
+            logger.success(
+                "Вычисление ожидаемого значения ушедших заявок завершено успешно"
             )
             return result

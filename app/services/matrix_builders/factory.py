@@ -5,6 +5,8 @@
 одноканальной, многоканальной или с MAP-потоками.
 """
 
+from loguru import logger
+
 from app.domain.models import MAPServerParams, MultiServerParams, SingleServerParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
 from app.services.matrix_builders.map import MAPServerMatrixBuilder
@@ -27,13 +29,20 @@ def matrix_builder_factory(
     Raises:
         ValueError: При передаче неподдерживаемого типа параметров.
     """
+    logger.debug(
+        f"Вызван matrix_builder_factory для параметров: {type(params).__name__}"
+    )
+
     if isinstance(params, SingleServerParams):
+        logger.info("Создан SingleServerMatrixBuilder")
         return SingleServerMatrixBuilder(params)
 
     if isinstance(params, MultiServerParams):
+        logger.info("Создан MultiServerMatrixBuilder")
         return MultiServerMatrixBuilder(params)
 
     if isinstance(params, MAPServerParams):
+        logger.info("Создан MAPServerMatrixBuilder")
         return MAPServerMatrixBuilder(params)
 
-    raise ValueError(f"Unsupported parameter type: {type(params)}")
+    raise ValueError(f"Неподдерживаемый тип параметров: {type(params)}")

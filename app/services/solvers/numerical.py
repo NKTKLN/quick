@@ -48,8 +48,7 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
             """
             return self.coefficients_matrix @ P
 
-        logger.debug("Создана функция расчёта переходных скоростей.")
-
+        logger.debug("Создание функции расчёта переходных скоростей (dP/dt)")
         return rates
 
     def calculate(self) -> NDArray[np.float64]:
@@ -65,6 +64,11 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
         logger.info(
             "Начат расчёт вероятностей методом численного интегрирования (RK45)."
         )
+        logger.debug(
+            "Временной интервал: "
+            f"{self.params.time_array[0]} — {self.params.time_array[-1]}"
+        )
+        logger.debug(f"Начальные вероятности: {self.params.initial_probabilities}")
 
         solution = solve_ivp(
             fun=self._transition_rates(),
@@ -75,11 +79,8 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
         )
 
         if not solution.success:
-            logger.error(
-                f"Численный решатель не справился с задачей: {solution.message}"
-            )
+            logger.error(f"Решатель завершился с ошибкой: {solution.message}")
             raise RuntimeError("Численный решатель не справился с задачей.")
 
-        logger.info("Численное интегрирование завершено успешно.")
-
+        logger.success("Численное интегрирование завершено успешно.")
         return cast(NDArray, solution.y)

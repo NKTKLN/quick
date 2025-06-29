@@ -40,16 +40,16 @@ class ServerThroughputSystem(BaseServerThroughputSystem):
         Raises:
             ValueError: Если параметры системы являются MAPServerParams.
         """
+        logger.info("Начат расчёт пропускной способности СМО")
+
         if isinstance(self.params, MAPServerParams):
+            logger.error("Получены параметры MAPServerParams для обычной системы")
             raise ValueError("Параметры не должны быть экземпляром MAPServerParams")
 
         probabilities = self._calculate_probabilities(self.params)
         throughput = (1 - probabilities[-1]) * self.params.lambda_rate
 
-        logger.info(
-            f"Рассчитана пропускная способность для ν = {self.params.nu_rate:.3f}"
-        )
-
+        logger.success("Расчёт пропускной способности завершён успешно")
         return cast(NDArray, throughput)
 
 
@@ -88,7 +88,10 @@ class MAPServerThroughputSystem(ServerThroughputSystem):
         Raises:
             ValueError: Если параметры системы не являются MAPServerParams.
         """
+        logger.info("Начат расчёт пропускной способности для MAP-СМО")
+
         if not isinstance(self.params, MAPServerParams):
+            logger.error("Ожидались параметры MAPServerParams, но получены другие")
             raise ValueError("Параметры должны быть экземпляром MAPServerParams")
 
         probabilities = self._calculate_probabilities(self.params)
@@ -98,9 +101,7 @@ class MAPServerThroughputSystem(ServerThroughputSystem):
         for lambda_rate in self.params.lambda_rate:
             current_throughput = (1 - probabilities[-1]) * lambda_rate
             throughput_results.append(current_throughput)
+            logger.debug(f"Итерация расчёта для λ = {lambda_rate:.4} завершена")
 
-            logger.info(
-                f"Рассчитана пропускная способность для ν = {self.params.nu_rate:.3f}"
-            )
-
+        logger.success("Расчёт пропускной способности завершён успешно")
         return throughput_results

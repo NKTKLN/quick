@@ -8,6 +8,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain import ComputationConfig
@@ -40,6 +41,12 @@ class BasicProbabilitySolver(ABC):
         self.params = params
         self.coefficients_matrix = coefficients_matrix
         self.config = config
+
+        logger.debug(
+            f"Решатель {self.__class__.__name__} инициализирован с параметрами: "
+            f"{params.__class__.__name__}, "
+            f"config={config.__class__.__name__}"
+        )
 
     @abstractmethod
     def calculate(self) -> NDArray[np.float64]:

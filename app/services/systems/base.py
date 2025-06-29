@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain import (
@@ -38,6 +39,12 @@ class BaseServerSystem(ABC):
         """
         self.params = params
         self.config = config
+
+        logger.debug(
+            f"СМО {self.__class__.__name__} инициализирована с параметрами: "
+            f"{params.__class__.__name__}, "
+            f"config={config.__class__.__name__}"
+        )
 
     @abstractmethod
     def calculate(self) -> NDArray[np.float64] | list[NDArray[np.float64]]:

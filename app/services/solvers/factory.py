@@ -7,6 +7,8 @@
 
 from typing import Any
 
+from loguru import logger
+
 from app.domain import CalculationEngine, CalculationMethod
 from app.services.solvers.analytical import (
     AnalyticalMergedProbabilitySolver,
@@ -40,20 +42,33 @@ def solvers_factory(
     Raises:
         ValueError: Если передан неподдерживаемый метод расчёта или движок.
     """
+    logger.debug(
+        f"Вызван solvers_factory с параметрами: "
+        f"calculation_method={calculation_method}, "
+        f"calculation_engine={calculation_engine}"
+    )
+
     if calculation_method == CalculationMethod.ANALYTICAL:
         match calculation_engine:
             case CalculationEngine.NUMPY:
+                logger.info("Создан AnalyticalNumpyProbabilitySolver")
                 return AnalyticalNumpyProbabilitySolver(**kwargs)
             case CalculationEngine.MPMATH:
+                logger.info("Создан AnalyticalMpmathProbabilitySolver")
                 return AnalyticalMpmathProbabilitySolver(**kwargs)
             case CalculationEngine.MERGED:
+                logger.info("Создан AnalyticalMergedProbabilitySolver")
                 return AnalyticalMergedProbabilitySolver(**kwargs)
             case _:
+                logger.error(
+                    f"Неподдерживаемый вычислительный движок: {calculation_engine}"
+                )
                 raise ValueError(
                     f"Неподдерживаемый вычислительный движок: {calculation_engine}"
                 )
 
     if calculation_method == CalculationMethod.NUMERICAL:
+        logger.info("Создан NumericalProbabilitySolver")
         return NumericalProbabilitySolver(**kwargs)
 
     raise ValueError(f"Неподдерживаемый метод расчета: {calculation_method}")

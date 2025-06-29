@@ -96,10 +96,11 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
         Returns:
             NDArray[np.float64]: Матрица вероятностей P размером (n x t).
         """
+        logger.debug("Вычисляем итоговую матрицу вероятностей P(t)...")
         p_matrix = np.dot(self.params.initial_probabilities, m_matrix).astype(
             np.float64
         )
-        logger.info("Вычисление матрицы p завершено.")
+        logger.info("Вычисление матрицы P(t) завершено успешно")
         return cast(NDArray[np.float64], p_matrix)
 
     def calculate(self) -> NDArray[np.float64]:
@@ -115,9 +116,12 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
             NDArray[np.float64]: Матрица вероятностей состояний (размерность
                 зависит от параметров СМО).
         """
+        logger.info("Запуск полного расчёта вероятностей состояния системы...")
         eigenvalues, xsi_matrix = self._compute_eigenvalues()
         m_matrix = self.generate_m_matrix(eigenvalues, xsi_matrix)
-        return self.generate_p_matrix(m_matrix)
+        p_matrix = self.generate_p_matrix(m_matrix)
+        logger.success("Полный расчёт вероятностей завершён успешно")
+        return p_matrix
 
 
 class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
@@ -152,16 +156,21 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
             tuple[NDArray[np.float64], NDArray[np.float64]]:
                 Кортеж из массива собственных значений и матрицы собственных векторов.
         """
+        logger.debug("Начинаем вычисление собственных значений и векторов...")
         eigenvalues, xsi_matrix = scipy_eig(self.coefficients_matrix)
 
         if not (
             np.all(np.isclose(eigenvalues.imag, 0))
             and np.all(np.isclose(xsi_matrix.imag, 0))
         ):
+            logger.error(
+                "Обнаружены комплексные части в собственных значениях или векторах"
+            )
             raise ValueError(
                 "Собственные значения или векторы имеют существенную комплексную часть"
             )
 
+        logger.info("Собственные значения и векторы успешно вычислены")
         return (
             np.asarray(eigenvalues.real, dtype=np.float64),
             np.asarray(xsi_matrix.real, dtype=np.float64),
@@ -186,6 +195,7 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
             NDArray[np.float64]: 3D матрица M размером (n x n x t),
                 где t — количество временных точек.
         """
+        logger.debug("Начинаем генерацию матрицы M(t)...")
         matrix_size = xsi_matrix.shape[0]
         time_steps = len(self.params.time_array)
 
@@ -198,8 +208,9 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
             m_matrix += np.real(
                 outer[:, :, np.newaxis] * exp_g_t[k, np.newaxis, np.newaxis]
             )
+            logger.debug(f"Слой {k+1}/{matrix_size} матрицы M добавлен")
 
-        logger.info("Генерация матрицы M завершена.")
+        logger.info("Генерация матрицы M(t) завершена")
         return m_matrix
 
 
@@ -238,9 +249,11 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             ValueError: Если конфиг не является MpmathComputationConfig или
                 MergedComputationConfig.
         """
+        logger.debug("Начинаем вычисление собственных значений и векторов...")
         if not isinstance(
             self.config, MpmathComputationConfig | MergedComputationConfig
         ):
+            logger.error("Конфиг неверного типа для mpmath решателя.")
             raise ValueError(
                 "Конфиг должн быть экземпляром MpmathComputationConfig или "
                 "MergedComputationConfig"
@@ -249,6 +262,8 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
         with mp.workdps(self.config.precision):
             mp_matrix = mp.matrix(self.coefficients_matrix.tolist())
             eigenvalues, xsi_matrix = mp.eig(mp_matrix)
+
+        logger.info("Собственные значения и векторы успешно вычислены")
         return eigenvalues, xsi_matrix
 
     @duckdb_cache("_precision", "params.time_array")
@@ -265,12 +280,14 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
         Returns:
             NDArray[Any]: Двумерная матрица exp(λ_k * t) для всех λ и t.
         """
+        logger.debug("Начинаем генерацию матрицы экспонент...")
         with mp.workdps(self._precision):
             time_array = mp.matrix(self.params.time_array)
             outer = [[eig * t for t in time_array] for eig in eigenvalues]
             exp_g_t = np.array(
                 [[mp.exp(val) for val in row] for row in outer], dtype=mp.mpf
             )
+        logger.info("Матрица экспонент успешно сгенерирована")
         return exp_g_t
 
     @duckdb_cache("params.time_array", "_precision")
@@ -294,6 +311,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             NDArray[Any]: 3D numpy-массив с типом object, содержащий вычисленные
                 значения M(t).
         """
+        logger.debug("Начинаем вычисление матрицы M(t)...")
         matrix_size = len(xsi_matrix)
         time_steps = len(self.params.time_array)
 
@@ -313,7 +331,9 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
                         outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
                         for t in range(time_end_step):
                             m_matrix[i, j, t] += mp.re(outer_ij * exp_g_t[k, t])
+                logger.debug(f"Слой {k+1}/{matrix_size} матрицы M добавлен")
 
+            logger.debug("Вычисление матрицы M(t) завершено")
             return m_matrix
 
     def generate_m_matrix(self, eigenvalues: Any, xsi_matrix: Any) -> NDArray[Any]:
@@ -331,11 +351,12 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             NDArray[mp.mpf]: 3D матрица M размером (n x n x t),
                 где t — количество временных точек.
         """
+        logger.debug("Начинаем генерацию матрицы M(t)...")
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
             exp_g_t = self._generate_exp_matrix(eigenvalues)
         m_matrix = self._compute_m_matrix(xsi_matrix, xsi_matrix_inv, exp_g_t)
-        logger.info("Генерация матрицы M завершена.")
+        logger.info("Генерация матрицы M(t) завершена")
         return m_matrix
 
 
@@ -374,6 +395,8 @@ class AnalyticalMergedProbabilitySolver(
             NDArray[np.int64]: Массив индексов последних некорректных временных
                 точек для каждой пары.
         """
+        logger.debug("Начата проверка на некорректные значения в матрице M(t)")
+
         if not isinstance(self.config, MergedComputationConfig):
             raise ValueError("Конфиг должн быть экземпляром MergedComputationConfig")
 
@@ -392,6 +415,7 @@ class AnalyticalMergedProbabilitySolver(
                     invalid_indices[i, j] = max(invalid_indices[i, j], t)
 
         if not check_sum:
+            logger.debug(f"Найдены некорректные индексы: {invalid_indices}")
             return invalid_indices
 
         # Проверка суммы по графикам
@@ -403,6 +427,7 @@ class AnalyticalMergedProbabilitySolver(
                     continue
                 invalid_indices[:, j] = np.maximum(invalid_indices[:, j], t)
 
+        logger.debug(f"Найдены некорректные индексы: {invalid_indices}")
         return invalid_indices
 
     def generate_m_matrix(
@@ -421,6 +446,7 @@ class AnalyticalMergedProbabilitySolver(
         Returns:
             NDArray[np.float64]: 3D массив M(t) с исправленными значениями.
         """
+        logger.info("Генерация матрицы M(t): старт с вычислений на numpy")
         numpy_eigenvalues = np.array(
             [float(mp.re(x)) for x in eigenvalues], dtype=np.float64
         )
@@ -431,26 +457,30 @@ class AnalyticalMergedProbabilitySolver(
         numpy_m_matrix = AnalyticalNumpyProbabilitySolver.generate_m_matrix(
             self, numpy_eigenvalues, numpy_xsi_matrix
         )
+        logger.debug("Матрица M(t) по numpy сгенерирована")
+
         numpy_invalid_indices = self._get_invalid_indices(numpy_m_matrix)
 
         if np.all(numpy_invalid_indices == -1):
-            logger.info(
-                "Корректных значений достаточно, использование numpy достаточно."
-            )
+            logger.info("Все значения корректны, использование numpy достаточно")
             return numpy_m_matrix
 
+        logger.info("Обнаружены некорректные значения, запускается коррекция с mpmath")
         with mp.workdps(self._precision):
             xsi_matrix_inv = mp.inverse(xsi_matrix)
             exp_g_t = self._generate_exp_matrix(eigenvalues)
 
         # Первичная коррекция неподходящих точек
+        logger.debug("Начало первичной коррекции значений с mpmath")
         mpmath_m_matrix = self._compute_m_matrix(
             xsi_matrix, xsi_matrix_inv, exp_g_t, numpy_invalid_indices
         )
         correction_mask = ~mpmath_m_matrix.astype(bool)
         mpmath_m_matrix[correction_mask] = numpy_m_matrix[correction_mask]
+        logger.debug("Первичная коррекция завершена")
 
         # Вторичная коррекци для сумм точек и их значений
+        logger.debug("Начало вторичной проверки и коррекции с суммами")
         mpmath_invalid_indices = self._get_invalid_indices(
             mpmath_m_matrix, check_sum=True
         )
@@ -460,5 +490,5 @@ class AnalyticalMergedProbabilitySolver(
         correction_mask = ~end_m_matrix.astype(bool)
         end_m_matrix[correction_mask] = mpmath_m_matrix[correction_mask]
 
-        logger.info("Коррекция матрицы M(t) с использованием mpmath завершена.")
+        logger.info("Коррекция матрицы M(t) с использованием mpmath завершена")
         return end_m_matrix

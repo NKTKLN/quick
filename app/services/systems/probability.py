@@ -5,6 +5,7 @@
 """
 
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
 from app.services.matrix_builders import matrix_builder_factory
@@ -25,6 +26,7 @@ class ServerProbabilitySystem(BaseServerSystem):
             NDArray[np.float64]: Матрица вероятностей состояний (размерность
                 зависит от параметров СМО).
         """
+        logger.info("Начат расчёт вероятностей состояний СМО")
         transition_matrix = matrix_builder_factory(self.params).build()
         prob_solver = solvers_factory(
             calculation_method=self.config.calculation_method,

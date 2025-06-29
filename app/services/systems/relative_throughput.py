@@ -43,19 +43,18 @@ class ServerRelativeThroughputSystem(BaseServerExpectedThroughputSystem):
         Raises:
             ValueError: Если параметры системы являются экземпляром MAPServerParams.
         """
+        logger.info("Начат расчёт относительной пропускной способности для СМО")
+
         if isinstance(self.params, MAPServerParams):
+            logger.error("Получен недопустимый тип параметров: MAPServerParams")
             raise ValueError("Параметры не должны быть экземпляром MAPServerParams")
 
         probabilities = self._calculate_probabilities(self.params)
-        n_b = self._calculate_expected_value(self.params.lambda_rate, probabilities[-1])
+        N_b = self._calculate_expected_value(self.params.lambda_rate, probabilities[-1])
 
-        relative_throughput = self.params.lambda_rate - self.params.nu_rate * n_b
+        relative_throughput = 1 - self.params.nu_rate / self.params.lambda_rate * N_b
 
-        logger.info(
-            "Рассчитана относительная пропускная способность для "
-            f"ν = {self.params.nu_rate:.3f}"
-        )
-
+        logger.success("Расчёт относительной пропускной способности завершён успешно")
         return cast(NDArray, relative_throughput)
 
 
@@ -95,7 +94,10 @@ class MAPServerRelativeThroughputSystem(ServerRelativeThroughputSystem):
         Raises:
             ValueError: Если параметры системы являются экземпляром MAPServerParams.
         """
+        logger.info("Начат расчёт относительной пропускной способности для MAP-СМО")
+
         if not isinstance(self.params, MAPServerParams):
+            logger.error("Ожидались параметры MAPServerParams, но получены другие")
             raise ValueError("Параметры должны быть экземпляром MAPServerParams")
 
         probabilities = self._calculate_probabilities(self.params)
@@ -103,13 +105,12 @@ class MAPServerRelativeThroughputSystem(ServerRelativeThroughputSystem):
         relative_throughput_results = []
 
         for lambda_rate in self.params.lambda_rate:
-            n_b = self._calculate_expected_value(lambda_rate, probabilities[-1])
-            current_relative_throughput = lambda_rate - self.params.nu_rate * n_b
-            relative_throughput_results.append(current_relative_throughput)
-
-            logger.info(
-                "Рассчитана относительная пропускная способность для "
-                f"ν = {self.params.nu_rate:.3f}"
+            N_b = self._calculate_expected_value(lambda_rate, probabilities[-1])
+            current_relative_throughput = (
+                1 - self.params.nu_rate / self.params.lambda_rate * N_b
             )
+            relative_throughput_results.append(current_relative_throughput)
+            logger.debug(f"Итерация расчёта для λ = {lambda_rate:.4} завершена")
 
+        logger.success("Расчёт относительной пропускной способности завершён успешно")
         return relative_throughput_results

@@ -43,19 +43,18 @@ class ServerAbsoluteThroughputSystem(BaseServerExpectedThroughputSystem):
         Raises:
             ValueError: Если параметры системы являются экземпляром MAPServerParams.
         """
+        logger.info("Начат расчёт абсолютной пропускной способности для СМО")
+
         if isinstance(self.params, MAPServerParams):
+            logger.error("Получен недопустимый тип параметров: MAPServerParams !")
             raise ValueError("Параметры не должны быть экземпляром MAPServerParams")
 
         probabilities = self._calculate_probabilities(self.params)
-        n_b = self._calculate_expected_value(self.params.lambda_rate, probabilities[-1])
+        N_b = self._calculate_expected_value(self.params.lambda_rate, probabilities[-1])
 
-        absolute_throughput = self.params.lambda_rate - self.params.nu_rate * n_b
+        absolute_throughput = self.params.lambda_rate - self.params.nu_rate * N_b
 
-        logger.info(
-            "Рассчитана абсолютная пропускная способность для "
-            f"ν = {self.params.nu_rate:.3f}"
-        )
-
+        logger.success("Расчёт абсолютной пропускной способности завершён успешно")
         return cast(NDArray, absolute_throughput)
 
 
@@ -95,7 +94,10 @@ class MAPServerAbsoluteThroughputSystem(ServerAbsoluteThroughputSystem):
         Raises:
             ValueError: Если параметры системы являются экземпляром MAPServerParams.
         """
+        logger.info("Начат расчёт абсолютной пропускной способности для MAP-СМО")
+
         if not isinstance(self.params, MAPServerParams):
+            logger.error("Ожидались параметры MAPServerParams, но получены другие")
             raise ValueError("Параметры должны быть экземпляром MAPServerParams")
 
         probabilities = self._calculate_probabilities(self.params)
@@ -103,13 +105,10 @@ class MAPServerAbsoluteThroughputSystem(ServerAbsoluteThroughputSystem):
         absolute_throughput_results = []
 
         for lambda_rate in self.params.lambda_rate:
-            n_b = self._calculate_expected_value(lambda_rate, probabilities[-1])
-            current_absolute_throughput = lambda_rate - self.params.nu_rate * n_b
+            N_b = self._calculate_expected_value(lambda_rate, probabilities[-1])
+            current_absolute_throughput = lambda_rate - self.params.nu_rate * N_b
             absolute_throughput_results.append(current_absolute_throughput)
+            logger.debug(f"Итерация расчёта для λ = {lambda_rate:.4} завершена")
 
-            logger.info(
-                "Рассчитана абсолютная пропускная способность для "
-                f"ν = {self.params.nu_rate:.3f}"
-            )
-
+        logger.success("Расчёт абсолютной пропускной способности завершён успешно")
         return absolute_throughput_results
