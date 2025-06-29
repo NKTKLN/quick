@@ -1,27 +1,58 @@
-# Используем официальный образ Python
-FROM python:3.12-slim
+# ===== Стадия 1: Сборщик =====
+FROM python:3.13-slim AS builder
 
-# Устанавливаем зависимости системы
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && apt-get clean \
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    POETRY_VERSION=2.1.3 \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+        build-essential \
+        curl \
+        python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем Poetry
-RUN pip install --no-cache-dir poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s $POETRY_HOME/bin/poetry /usr/local/bin/poetry
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем файлы проекта
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock* ./
+
+RUN poetry install --no-root --only main --no-interaction --no-ansi
+
+# ===== Стадия 2: Финальная =====
+FROM python:3.13-slim AS final
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DUCKDB_PATH=cache/data.duck_db
+
+# Создаем непривилегированного пользователя заранее, чтобы избежать проблем с правами
+RUN groupadd -g 10000 shrimp && \
+    useradd -m -u 10000 -g shrimp shrimp
+
+WORKDIR /app
+
+# Копируем только необходимые файлы из билдера
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin/streamlit /usr/local/bin/streamlit
+COPY --from=builder /app /app
+
+# Копируем остальное
 COPY . .
 
-# Устанавливаем зависимости через Poetry
-RUN poetry config virtualenvs.create false && poetry install --no-root --no-dev
+# Устанавливаем права сразу после копирования
+RUN chown -R shrimp:shrimp /app
 
-# Указываем порт для Streamlit
+USER shrimp
+
 EXPOSE 8501
 
-# Команда для запуска Streamlit-приложения
-CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+ENTRYPOINT ["streamlit", "run", "streamlit_app.py"]
+CMD ["--server.port=8501", "--server.address=0.0.0.0"]

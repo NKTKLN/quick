@@ -12,10 +12,10 @@ tasks:
       - poetry run pre-commit install
 
   format:
-    desc: Code formatting with black and ruff (через isort)
+    desc: Code formatting with black and ruff
     cmds:
       - poetry run black .
-      - poetry run ruff format .
+      - poetry run isort . --profile black
       - poetry run ruff check . --fix
 
   lint:
@@ -23,6 +23,7 @@ tasks:
     cmds:
       - poetry run ruff check .
       - poetry run mypy .
+      - poetry run pylint --jobs=4 .
 
   docstyle:
     desc: Docstring style check
@@ -41,9 +42,30 @@ tasks:
 
   check:
     desc: Full linting, audit run, and code checks
-    deps: [format, lint, docstyle, audit, deadcode]
+    deps: [format, lint, docstyle, audit] #, deadcode
+
+  unused-libs:
+    desc: Check for unused libraries
+    cmds:
+      - poetry run deptry .
 
   run:
     desc: Run the application
     cmds:
       - poetry run streamlit run streamlit_app.py
+
+  docker-build:
+    desc: Build the application in docker
+    cmds:
+      - docker build -t quick-system .
+  
+  docker-run:
+    desc: Run the application in docker
+    cmds:
+      - docker run -it --rm -p 8501:8501
+          -v $(pwd)/cache:/app/cache
+          quick-system
+
+  docker:
+    desc: Start the application in docker
+    deps: [docker-build, docker-run]

@@ -1,206 +1,154 @@
-"""Моделирование СМО с нетерпеливыми заявками.
+"""Страница для моделирования СМО с нетерпеливыми заявками.
 
-Этот модуль реализует интерактивное веб-приложение для численного моделирования
-СМО типа M/M/m/n с нетерпеливыми заявками, которое может применяться для анализа
-медицинских информационно-измерительных систем.
-
-Основные функциональные возможности:
-- Моделирование как одноканальных, так и многоканальных СМО
-- Настройка параметров системы (интенсивности поступления, обслуживания, ухода)
-- Визуализация динамики вероятностей состояний системы
-- Проверка корректности входных параметров
+Позволяет пользователю задавать параметры системы, выбирать тип СМО,
+производить расчет вероятностей и визуализировать результаты.
 """
 
 import numpy as np
-import pandas as pd
 import streamlit as st
+from numpy.typing import NDArray
 
-from app.impatient_queue_system import ImpatientQueueSystem, MultiImpatientQueueSystem
-from app.parameters import MultiQueueSystemParameters, QueueSystemParameters
-from app.plot import plot_probabilities
-
-st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
-
-st.markdown(
-    """
-## 🔍 Описание
-На этой странице реализовано численное моделирование СМО типа **M/M/m/n с нетерпеливыми\
-    заявками**, применяемой в медицинских информационно-измерительных системах.
-
-## 📌 Основные параметры системы:
-- **λ (лямбда)** — интенсивность поступления заявок (пакетов/с)
-- **μ (мю)** — интенсивность обслуживания (пакетов/с)
-- **ν (ню)** — интенсивность ухода нетерпеливых заявок (пакетов/с)
-- **n** — размер буфера (макс. кол-во заявок в системе, включая обслуживаемую)
-- **m** (опционально) — количество обслуживающих процессоров
-"""
+from app.domain import CalculationMode, ComputationConfig, SystemType
+from app.domain.models import BasicServerParams, model_factory
+from app.services.systems import system_factory
+from pages.components import (
+    get_intensity_parameters,
+    get_system_mode_type,
+    map_intensity_matrix,
+    plot_probabilities,
+    plot_throughput,
+    render_calculation_config,
+    render_initial_conditions,
+    render_time_settings,
+    system_capacity_inputs,
 )
 
-with st.expander("ℹ️ Как использовать это приложение"):
-    st.write(
-        """
-    1. Задайте параметры системы в форме ниже
-    2. Укажите временной диапазон для моделирования
-    3. Задайте начальные вероятности состояний
-    4. Нажмите "Применить параметры"
-    5. Используйте график вероятностей, который будет отображен ниже
+
+# pylint: disable=too-many-locals
+def get_user_inputs() -> (
+    tuple[ComputationConfig, BasicServerParams, SystemType, CalculationMode]
+):
+    """Собирает все входные параметры от пользователя через UI.
+
+    Returns:
+        tuple:
+            - config: Конфигурация для выполнения вычислений.
+            - params: Параметры выбранной системы массового обслуживания (СМО),
+                включая структуру, интенсивности, параметры обслуживания и т.д.
+            - system_type (SystemType): Тип модели СМО, выбранный пользователем.
+            - calculation_mode (str): Режим вычислений, выбранный пользователем.
     """
-    )
+    config = render_calculation_config()
+    st.markdown("---")
+    system_type, calculation_mode = get_system_mode_type()
 
-st.markdown("---")
-st.subheader("🔬 Тип системы")
-
-system_type = st.selectbox("Выберите тип СМО:", ["Однолинейная", "Многолинейная"])
-
-with st.form("param_form"):
     st.subheader("⚙️ Параметры системы")
+    lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        lambda_rate = st.number_input(
-            "Интенсивность поступления заявок (λ)",
-            min_value=0.0,
-            value=8333.0,
-            format="%.10f",
+    p_rate, q_rate = None, None
+    if system_type == SystemType.MAP:
+        max_customers, processor_count = system_capacity_inputs(
+            system_type, default_max_customers=3
         )
-    with col2:
-        mu_rate = st.number_input(
-            "Интенсивность обслуживания заявок (μ)",
-            min_value=0.0,
-            value=10833.0,
-            format="%.10f",
-        )
-    with col3:
-        nu_rate = st.number_input(
-            "Интенсивность ухода нетерпеливых заявок (ν)",
-            min_value=0.0,
-            value=12345.0,
-            format="%.10f",
-        )
+        st.markdown("---")
+        p_rate, q_rate = map_intensity_matrix(max_customers)
+    else:
+        max_customers, processor_count = system_capacity_inputs(system_type)
+
+    count = max_customers
+
+    if system_type == SystemType.MULTI and processor_count is not None:
+        count += processor_count + 1
+    elif system_type == SystemType.MAP:
+        count **= 2
 
     st.markdown("---")
+    state_variables, initial_probabilities = render_initial_conditions(count)
 
-    max_customers = st.number_input(
-        "Максимальное количество заявок в системе (n)",
-        min_value=1,
-        max_value=100,
-        value=4,
+    st.markdown("---")
+    time_array = render_time_settings()
+
+    base_params: dict[str, int | NDArray] = dict(
+        mu_rate=mu_rate,
+        max_customers=max_customers,
+        time_array=time_array,
+        state_variables=state_variables,
+        initial_probabilities=initial_probabilities,
+        nu_rate=nu_rate,
+        lambda_rate=lambda_rate,
     )
 
-    if system_type == "Многолинейная":
-        processor_count = st.number_input(
-            "Количество обслуживающих процессоров (m)",
-            min_value=1,
-            max_value=100,
-            value=2,
+    if system_type == SystemType.MULTI and processor_count is not None:
+        base_params.update(processor_count=processor_count)
+    elif system_type == SystemType.MAP and p_rate is not None and q_rate is not None:
+        base_params.update(
+            p_rate=p_rate.astype(np.float64),
+            q_rate=q_rate.astype(np.float64),
         )
 
-    st.subheader("⏳ Временные параметры")
-    col_t1, col_t2, col_t3 = st.columns(3)
-    with col_t1:
-        t_start = st.number_input(
-            "Начальное время", min_value=0.0, value=0.0, format="%.10f"
-        )
-    with col_t2:
-        t_end = st.number_input(
-            "Конечное время", min_value=0.0, value=0.001, format="%.10f"
-        )
-    with col_t3:
-        t_steps = st.number_input(
-            "Количество шагов по времени", min_value=10, value=1000
-        )
-    time_array = np.linspace(t_start, t_end, int(t_steps), dtype=np.float64)
+    params = model_factory(system_type, **base_params)
+    return config, params, system_type, calculation_mode
 
-    st.subheader("📈 Начальные условия")
-    state_variables_str = st.text_input(
-        "Переменные состояния — *введите через запятую*", "1, 1, 1, 1"
-    )
-    state_variables = np.array(
-        [float(x.strip()) for x in state_variables_str.split(",")]
-    )
 
-    initial_probabilities_str = st.text_input(
-        "Начальные вероятности — *введите через запятую*", "1, 0, 0, 0"
-    )
-    initial_probabilities = np.array(
-        [float(x.strip()) for x in initial_probabilities_str.split(",")]
-    )
+def main() -> None:
+    """Основная функция страницы: UI, вычисление, визуализация."""
+    st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
+    st.markdown("---")
 
-    submitted = st.form_submit_button("🚀 Применить параметры")
-
-if submitted:
-    # Валидация входных данных
-    if not np.isclose(np.sum(initial_probabilities), 1.0):
-        st.error("Сумма начальных вероятностей должна быть равна 1.")
+    try:
+        config, params, system_type, calculation_mode = get_user_inputs()
+    except ValueError as e:
+        st.error(f"❌ Ошибка в вводных данных: {e}")
         st.stop()
 
-    if len(state_variables) != len(initial_probabilities):
-        st.error(
-            "Количество переменных состояния должно совпадать с количеством начальных\
-                вероятностей."
-        )
-        st.stop()
+    if st.button("🚀 Применить параметры"):
+        try:
+            config.validate()
+            params.validate()
+        except ValueError as e:
+            st.error(f"❌ Ошибка в параметрах: {e}")
+            st.stop()
 
-    if np.any(initial_probabilities < 0) or np.any(initial_probabilities > 1):
-        st.error("Все вероятности должны быть в диапазоне от 0 до 1.")
-        st.stop()
+        try:
+            system = system_factory(
+                system_type,
+                calculation_mode,
+                params=params,
+                config=config,
+            )
+        except ValueError:
+            st.error("❌ Некорректный режим/тип системы")
+            st.stop()
 
-    if np.any(state_variables < 0):
-        st.error("Переменные состояния не могут быть отрицательными.")
-        st.stop()
+        st.success("✅ Параметры успешно заданы!")
 
-    if t_end <= t_start:
-        st.error("Конечное время должно быть больше начального.")
-        st.stop()
+        try:
+            with st.spinner("⏳ Идёт расчёт значений..."):
+                probabilities = system.calculate()
+        except ValueError as e:
+            st.error(f"❌ Ошибка при вычислении: {e}")
+            st.stop()
 
-    if lambda_rate <= 0 or mu_rate <= 0 or nu_rate <= 0:
-        st.error("Все интенсивности (λ, μ, ν) должны быть положительными.")
-        st.stop()
+        st.markdown("---")
+        st.subheader("📈 Визуализация динамики состояний системы")
+        if calculation_mode == CalculationMode.PROBABILITY and isinstance(
+            probabilities, np.ndarray
+        ):
+            fig = plot_probabilities(
+                probabilities, params.time_array, calculation_mode.value
+            )
+        elif calculation_mode in (
+            CalculationMode.THROUGHPUT,
+            CalculationMode.ABSOLUTE_THROUGHPUT,
+            CalculationMode.RELATIVE_THROUGHPUT,
+        ):
+            fig = plot_throughput(
+                probabilities, params.time_array, calculation_mode.value
+            )
+        else:
+            st.error("❌ Некорректный режим/тип системы")
+            st.stop()
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Инициализация соответствующей системы
-    impatient_queue_system: ImpatientQueueSystem | MultiImpatientQueueSystem
-    if system_type == "Многолинейная":
-        params_for_multi = MultiQueueSystemParameters(
-            lambda_rate=lambda_rate,
-            mu_rate=mu_rate,
-            nu_rate=nu_rate,
-            max_customers=max_customers,
-            processor_count=processor_count,
-            time_array=time_array,
-            state_variables=state_variables,
-            initial_probabilities=initial_probabilities,
-        )
-        impatient_queue_system = MultiImpatientQueueSystem(params_for_multi)
-    else:
-        params = QueueSystemParameters(
-            lambda_rate=lambda_rate,
-            mu_rate=mu_rate,
-            nu_rate=nu_rate,
-            max_customers=max_customers,
-            time_array=time_array,
-            state_variables=state_variables,
-            initial_probabilities=initial_probabilities,
-        )
-        impatient_queue_system = ImpatientQueueSystem(params)
 
-    st.success("✅ Параметры успешно заданы!")
-
-    # Расчет и визуализация результатов
-    with st.spinner("⏳ Идет расчет вероятностей..."):
-        probabilities = impatient_queue_system.calculate()
-
-        st.subheader("📊 Графики вероятностей состояний системы")
-        fig = plot_probabilities(probabilities, time_array)
-        st.pyplot(fig)
-
-        st.subheader("📝 Вероятности в конце периода")
-        end_probs = probabilities[:, -1]
-        prob_df = pd.DataFrame(
-            {
-                "Состояние": [f"S{i}" for i in range(len(end_probs))],
-                "Вероятность": end_probs,
-            }
-        )
-        st.table(prob_df)
-
-        st.markdown(f"**📌 Сумма итоговых вероятностей:** {sum(end_probs):.6f}")
+main()
