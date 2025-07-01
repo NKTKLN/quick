@@ -40,6 +40,8 @@ interrogate = "^1.7.0"
 vulture = "^2.14"
 pip-audit = "^2.9.0"
 black = "^25.1.0"
+pyupgrade-directories = "^0.3.0"
+commitizen = "^4.8.3"
 
 [tool.black]
 line-length = 88
@@ -118,3 +120,14 @@ ignore = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
 
 [tool.pylint.format]
 max-line-length = 88
+
+[tool.pyupgrade]
+py312-plus = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "poetry"
+update_changelog_on_bump = true
+major_version_zero = true

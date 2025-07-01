@@ -42,7 +42,7 @@ class DuckDBClient:
             logger.info(f"Создано соединение с DuckDB по пути: {config.duckdb_path}")
             self._init_schema()
             self._initialized: bool = True
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Ошибка создания соединения DuckDB: {e}")
 
     def _init_schema(self) -> None:
@@ -64,7 +64,7 @@ class DuckDBClient:
             raise FileNotFoundError(f"Файл схемы не найден: {schema_path}")
 
         try:
-            with open(schema_path, "r", encoding="utf-8") as f:
+            with open(schema_path, encoding="utf-8") as f:
                 schema_sql = f.read()
                 self.connection.execute(schema_sql)
                 logger.info("Схема базы данных успешно инициализирована.")

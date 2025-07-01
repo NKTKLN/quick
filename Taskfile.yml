@@ -11,12 +11,50 @@ tasks:
     cmds:
       - poetry run pre-commit install
 
+  init:
+    desc: Full project setup — install deps, configure pre-commit and Commitizen
+    deps: [install, precommit, commitizen]
+
+  cz-commit:
+    desc: Create a commit using Commitizen (Conventional Commits standard)
+    cmds:
+      - poetry run cz commit
+
+  cz-check:
+    desc: Check if commit messages follow Conventional Commits
+    cmds:
+      - poetry run cz check
+
+  cz-bump:
+    desc: Bump version, tag, and update changelog using Commitizen
+    cmds:
+      - poetry run cz bump
+
+  release:
+    desc: Bump version and push tags (run after merge to main)
+    cmds:
+      - poetry run cz bump
+      - git push --follow-tags
+
+  code-upgrade:
+    desc: Updates code syntax to newer versions
+    platforms: [linux, darwin]
+    cmds:
+      - find . -type f -name "*.py"
+        ! -path "./.git/*"
+        ! -path "./__pycache__/*"
+        ! -path "./build/*"
+        ! -path "./dist/*"
+        ! -path "./.venv/*"
+        ! -path "./tmp/*"
+        -exec poetry run pyupgrade {} +
+
   format:
     desc: Code formatting with black and ruff
+    deps: [code-upgrade]
     cmds:
       - poetry run black .
       - poetry run isort . --profile black
-      - poetry run ruff check . --fix
 
   lint:
     desc: Static code analysis with ruff and mypy
@@ -61,6 +99,7 @@ tasks:
   
   docker-run:
     desc: Run the application in docker
+    platforms: [linux, darwin]
     cmds:
       - docker run -it --rm -p 8501:8501
           -v $(pwd)/cache:/app/cache
