@@ -42,4 +42,3 @@ class BaseMatrixBuilder(ABC):
         Raises:
             ValueError: Если параметры системы не являются нужным типом.
         """
-        pass

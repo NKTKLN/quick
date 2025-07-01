@@ -23,7 +23,7 @@ from app.domain import ConfigInitParams
 class AppConfig(BaseSettings):
     """Конфигурация приложения, загружаемая из переменных окружения или файла .env.
 
-    Атрибуты:
+    Attributes:
         disable_cache (bool): Отключение кэширования (по умолчанию False).
         duckdb_path (str): Путь к базе данных DuckDB (по умолчанию "cache_data.duckdb").
         disable_logging (bool): Отключение логирования (по умолчанию False).

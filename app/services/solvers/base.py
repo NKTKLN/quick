@@ -56,4 +56,3 @@ class BasicProbabilitySolver(ABC):
             NDArray[np.float64]: Матрица вероятностей состояний (размерность
                 зависит от параметров СМО).
         """
-        pass

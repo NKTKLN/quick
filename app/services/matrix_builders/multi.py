@@ -16,8 +16,8 @@ from app.services.matrix_builders.base import BaseMatrixBuilder
 class MultiServerMatrixBuilder(BaseMatrixBuilder):
     """Построитель матрицы коэффициентов для многоканальной СМО с уходами заявок.
 
-    Учитывает количество обслуживающих приборов, интенсивность обслуживания
-    и ухода из очереди.
+    Учитывает количество обслуживающих приборов, интенсивность обслуживания и ухода из
+    очереди.
     """
 
     def __init__(self, params: MultiServerParams) -> None:

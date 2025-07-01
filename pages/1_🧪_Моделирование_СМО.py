@@ -1,7 +1,7 @@
 """Страница для моделирования СМО с нетерпеливыми заявками.
 
-Позволяет пользователю задавать параметры системы, выбирать тип СМО,
-производить расчет вероятностей и визуализировать результаты.
+Позволяет пользователю задавать параметры системы, выбирать тип СМО, производить расчет
+вероятностей и визуализировать результаты.
 """
 
 import numpy as np
@@ -86,6 +86,7 @@ def get_user_inputs() -> (
             q_rate=q_rate.astype(np.float64),
         )
 
+    config.calculation_mode = calculation_mode
     params = model_factory(system_type, **base_params)
     return config, params, system_type, calculation_mode
 

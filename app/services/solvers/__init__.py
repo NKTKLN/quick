@@ -1,8 +1,4 @@
-"""Пакет решателей вероятностей для систем массового обслуживания.
-
-Содержит классы для вычисления вероятностей состояний СМО с использованием
-разных методов.
-"""
+"""Пакет решателей вероятностей для систем массового обслуживания."""
 
 from .analytical import (
     AnalyticalBasicProbabilitySolver,
@@ -12,12 +8,14 @@ from .analytical import (
 )
 from .base import BasicProbabilitySolver
 from .factory import solvers_factory
+from .numerical import NumericalProbabilitySolver
 
 __all__ = [
     "AnalyticalBasicProbabilitySolver",
     "AnalyticalNumpyProbabilitySolver",
     "AnalyticalMpmathProbabilitySolver",
     "AnalyticalMergedProbabilitySolver",
+    "NumericalProbabilitySolver",
     "BasicProbabilitySolver",
     "solvers_factory",
 ]
