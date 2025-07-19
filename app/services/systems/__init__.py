@@ -1,20 +1,13 @@
 """Пакет систем расчёта СМО."""
 
-from .absolute_throughput import ServerAbsoluteThroughputSystem
-from .base import BaseServerSystem
-from .base_throughput import BaseServerThroughputSystem
+from .base import BaseSystem
 from .factory import system_factory
-from .probability import ServerProbabilitySystem
-from .relative_throughput import ServerRelativeThroughputSystem
-from .throughput import MAPServerThroughputSystem, ServerThroughputSystem
+from .steady_state import MultiServerSteadyStateSystem
+from .transient_state import TransientStateSystem
 
 __all__ = [
+    "BaseSystem",
+    "TransientStateSystem",
+    "MultiServerSteadyStateSystem",
     "system_factory",
-    "BaseServerSystem",
-    "ServerProbabilitySystem",
-    "BaseServerThroughputSystem",
-    "ServerThroughputSystem",
-    "MAPServerThroughputSystem",
-    "ServerAbsoluteThroughputSystem",
-    "ServerRelativeThroughputSystem",
 ]

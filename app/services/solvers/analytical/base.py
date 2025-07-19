@@ -18,7 +18,7 @@ from app.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from app.domain.models import SingleServerParams
+from app.domain.models import TransientSystemParams
 from app.services.solvers.base import BasicProbabilitySolver
 
 
@@ -31,14 +31,14 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
 
     def __init__(
         self,
-        params: SingleServerParams,
+        params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
         config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
     ) -> None:
         """Инициализирует базовый решатель.
 
         Args:
-            params (SingleServerParams): Параметры системы массового обслуживания.
+            params (TransientSystemParams): Параметры СМО.
             coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
                 уравнений размером (n x n).
             config: Конфигурация вычислений.

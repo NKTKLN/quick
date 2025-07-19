@@ -11,15 +11,16 @@ import numpy as np
 import streamlit as st
 from numpy.typing import NDArray
 
-from app.domain import CalculationMode, SystemType
+from app.domain import CalculationMode, SystemMode, SystemType
 from app.utils import map_intensity_matrix_generator
 
 
-def get_system_mode_type() -> tuple[SystemType, CalculationMode]:
+def get_system_mode_type() -> tuple[SystemType, CalculationMode, SystemMode]:
     """Отображает UI-компонент с двумя полями выбора (тип системы и режим вычисления).
 
     Returns:
-        tuple[SystemType, CalculationMode]: Значения типа системы и режима вычисления.
+        tuple[SystemType, CalculationMode, SystemMode]: Значения типа системы, режима
+            вычисления и режима системы.
     """
     st.subheader("🔬 Тип системы")
     system_type = st.selectbox(
@@ -28,7 +29,14 @@ def get_system_mode_type() -> tuple[SystemType, CalculationMode]:
     calculation_mode = st.selectbox(
         "Выберите режим расчёта:", [mode.value for mode in CalculationMode]
     )
-    return SystemType(system_type), CalculationMode(calculation_mode)
+    system_mode = st.selectbox(
+        "Выберите режим системы:", [mode.value for mode in SystemMode]
+    )
+    return (
+        SystemType(system_type),
+        CalculationMode(calculation_mode),
+        SystemMode(system_mode),
+    )
 
 
 def intensity_parameters() -> tuple[float, float, float]:
@@ -125,7 +133,7 @@ def system_capacity_inputs(
     system_type: SystemType,
     default_max_customers: int = 4,
     default_processor_count: int = 2,
-) -> tuple[int, int | None]:
+) -> tuple[int, int]:
     """Отображает UI-компонент для ввода емкости системы и количества процессоров.
 
     Args:
@@ -147,7 +155,7 @@ def system_capacity_inputs(
         value=default_max_customers,
     )
 
-    processor_count = None
+    processor_count = 1
     if system_type == SystemType.MULTI:
         processor_count = st.number_input(
             "Количество обслуживающих процессоров (m)",

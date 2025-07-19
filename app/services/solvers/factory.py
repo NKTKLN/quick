@@ -5,11 +5,12 @@
 и вычислительного движка (`CalculationEngine`).
 """
 
-from typing import Any
-
+import numpy as np
 from loguru import logger
+from numpy.typing import NDArray
 
-from app.domain import CalculationEngine, CalculationMethod
+from app.domain import CalculationEngine, CalculationMethod, ComputationConfig
+from app.domain.models import TransientSystemParams
 from app.services.solvers.analytical import (
     AnalyticalMergedProbabilitySolver,
     AnalyticalMpmathProbabilitySolver,
@@ -20,9 +21,9 @@ from app.services.solvers.numerical import NumericalProbabilitySolver
 
 
 def solvers_factory(
-    calculation_method: CalculationMethod,
-    calculation_engine: CalculationEngine | None,
-    **kwargs: Any,
+    params: TransientSystemParams,
+    coefficients_matrix: NDArray[np.float64],
+    config: ComputationConfig | None = None,
 ) -> BasicProbabilitySolver:
     """Создаёт и возвращает решатель вероятностной модели СМО.
 
@@ -30,11 +31,10 @@ def solvers_factory(
     инициализирует соответствующий решатель на основе переданных аргументов.
 
     Args:
-        calculation_method (CalculationMethod): Метод вычисления (например, ANALYTICAL).
-        calculation_engine (CalculationEngine | None): Тип вычислительного движка,
-            поддерживаются: NUMPY, MPMATH, MERGED.
-        **kwargs (Any): Дополнительные параметры, передаваемые в конструктор решателя
-            (например: params, coefficients_matrix, config).
+        params (TransientSystemParams): Параметры СМО.
+        coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
+            уравнений размером (n x n).
+        config (ComputationConfig | None, optional): Конфигурация вычислений.
 
     Returns:
         BasicProbabilitySolver: Экземпляр соответствующего решателя.
@@ -42,33 +42,37 @@ def solvers_factory(
     Raises:
         ValueError: Если передан неподдерживаемый метод расчёта или движок.
     """
-    logger.debug(
-        f"Вызван solvers_factory с параметрами: "
-        f"calculation_method={calculation_method}, "
-        f"calculation_engine={calculation_engine}"
-    )
+    logger.debug(f"Вызван solvers_factory с параметрами: config={config}")
 
-    if calculation_method == CalculationMethod.ANALYTICAL:
-        match calculation_engine:
+    if config.calculation_method == CalculationMethod.ANALYTICAL:
+        match config.calculation_engine:
             case CalculationEngine.NUMPY:
                 logger.info("Создан AnalyticalNumpyProbabilitySolver")
-                return AnalyticalNumpyProbabilitySolver(**kwargs)
+                return AnalyticalNumpyProbabilitySolver(
+                    params, coefficients_matrix, config
+                )
             case CalculationEngine.MPMATH:
                 logger.info("Создан AnalyticalMpmathProbabilitySolver")
-                return AnalyticalMpmathProbabilitySolver(**kwargs)
+                return AnalyticalMpmathProbabilitySolver(
+                    params, coefficients_matrix, config
+                )
             case CalculationEngine.MERGED:
                 logger.info("Создан AnalyticalMergedProbabilitySolver")
-                return AnalyticalMergedProbabilitySolver(**kwargs)
+                return AnalyticalMergedProbabilitySolver(
+                    params, coefficients_matrix, config
+                )
             case _:
                 logger.error(
-                    f"Неподдерживаемый вычислительный движок: {calculation_engine}"
+                    "Неподдерживаемый вычислительный движок: "
+                    f"{config.calculation_engine}"
                 )
                 raise ValueError(
-                    f"Неподдерживаемый вычислительный движок: {calculation_engine}"
+                    "Неподдерживаемый вычислительный движок: "
+                    f"{config.calculation_engine}"
                 )
 
-    if calculation_method == CalculationMethod.NUMERICAL:
+    if config.calculation_method == CalculationMethod.NUMERICAL:
         logger.info("Создан NumericalProbabilitySolver")
-        return NumericalProbabilitySolver(**kwargs)
+        return NumericalProbabilitySolver(params, coefficients_matrix, config)
 
-    raise ValueError(f"Неподдерживаемый метод расчета: {calculation_method}")
+    raise ValueError(f"Неподдерживаемый метод расчета: {config.calculation_method}")

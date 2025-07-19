@@ -16,9 +16,7 @@ from app.domain import (
 from app.settings import ConfigLoader
 
 
-def render_calculation_config() -> (
-    ComputationConfig | MpmathComputationConfig | MergedComputationConfig
-):
+def render_calculation_config() -> ComputationConfig:
     """Отображает UI-компонент для конфигурации вычислений.
 
     В зависимости от выбранного типа вычислений, позволяет настраивать точность
@@ -30,7 +28,8 @@ def render_calculation_config() -> (
     st.subheader("⚙️ Настройки вычисления для системы")
     calculation_method = CalculationMethod(
         st.selectbox(
-            "Выберите метод вычисления:", [method.value for method in CalculationMethod]
+            "Выберите метод вычисления:",
+            [method.value for method in CalculationMethod],
         )
     )
     if calculation_method == CalculationMethod.NUMERICAL:

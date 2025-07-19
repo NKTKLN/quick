@@ -10,7 +10,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from app.domain.models import MAPServerParams
+from app.domain.models import MAPSystemParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
 
 
@@ -21,17 +21,20 @@ class MAPServerMatrixBuilder(BaseMatrixBuilder):
     четырёхмерной матрицы, сворачиваемой в двухмерную.
     """
 
-    def __init__(self, params: MAPServerParams) -> None:
-        """Инициализирует построитель СМО с MAP-потоком.
+    def __init__(self, params: MAPSystemParams) -> None:
+        """Инициализирует базовый построитель с параметрами модели.
 
         Args:
-            params (MAPServerParams): Параметры модели СМО с MAP-потоком.
+            params (MAPSystemParams): Параметры модели СМО.
         """
-        super().__init__(params)
+        self.params = params
+
         logger.debug(
-            "Инициализирован MAPServerMatrixBuilder с параметрами: "
-            f"max_customers={params.max_customers}, mu={params.mu_rate}, "
-            f"nu={params.nu_rate}"
+            f"Инициализирован MAPServerMatrixBuilder с параметрами: "
+            f"max_customers={params.max_customers}, "
+            f"processor_count={params.processor_count}, "
+            f"lambda_rate={params.lambda_rate}, mu_rate={params.mu_rate}, "
+            f"nu_rate={params.nu_rate}"
         )
 
     def _d_0_matrix_generator(self) -> NDArray[np.float64]:
@@ -41,11 +44,13 @@ class MAPServerMatrixBuilder(BaseMatrixBuilder):
             NDArray[np.float64]: Матрица D₀ для текущих параметров потока.
 
         Raises:
-            ValueError: Если параметры системы не являются MAPServerParams.
+            ValueError: Если базовые параметры системы не являются MAPSystemParams.
         """
-        if not isinstance(self.params, MAPServerParams):
-            logger.error("Параметры не являются экземпляром MAPServerParams")
-            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+        if not isinstance(self.params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MAPSystemParams"
+            )
 
         if self.params.p_rate.shape != self.params.q_rate.shape:
             logger.error("Матрицы p_rate и q_rate должны иметь одинаковую размерность.")
@@ -67,11 +72,13 @@ class MAPServerMatrixBuilder(BaseMatrixBuilder):
             NDArray[np.float64]: Матрица D₁ для текущих параметров потока.
 
         Raises:
-            ValueError: Если параметры системы не являются MAPServerParams.
+            ValueError: Если базовые параметры системы не являются MAPSystemParams.
         """
-        if not isinstance(self.params, MAPServerParams):
-            logger.error("Параметры не являются экземпляром MAPServerParams")
-            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+        if not isinstance(self.params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MAPSystemParams"
+            )
 
         logger.debug("Генерация матрицы D₁ из q_rate и λ.")
         matrix = self.params.q_rate.copy()
@@ -86,11 +93,13 @@ class MAPServerMatrixBuilder(BaseMatrixBuilder):
             NDArray[np.float64]: Квадратная матрица коэффициентов (n² x n²).
 
         Raises:
-            ValueError: Если параметры системы не являются MAPServerParams.
+            ValueError: Если базовые параметры системы не являются MAPSystemParams.
         """
-        if not isinstance(self.params, MAPServerParams):
-            logger.error("Параметры не являются экземпляром MAPServerParams")
-            raise ValueError("Параметры должны быть экземпляром MAPServerParams")
+        if not isinstance(self.params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MAPSystemParams"
+            )
 
         logger.info("Начато построение матрицы коэффициентов.")
         n = self.params.max_customers

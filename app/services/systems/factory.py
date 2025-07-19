@@ -1,67 +1,64 @@
-"""Модуль фабрики для создания СМО.
+"""Модуль фабрики для создания экземпляров систем массового обслуживания (СМО).
 
-Функция `system_factory` предоставляет интерфейс для инстанцирования соответствующего
-класса модели СМО в зависимости от типа системы и режима вычислений.
-Поддерживается интеграция с конфигурациями вычислений различной точности.
+Функция `system_factory` выбирает и создаёт подходящий класс модели СМО
+в зависимости от типа системы и режима её работы.
+
+Поддерживается интеграция с различными режимами расчётов (стационарный, переходный)
+и типами систем (многоканальная, MAP и др.).
 """
 
 from typing import Any
 
 from loguru import logger
 
-from app.domain import CalculationMode, SystemType
-from app.services.systems.absolute_throughput import ServerAbsoluteThroughputSystem
-from app.services.systems.base import BaseServerSystem
-from app.services.systems.probability import ServerProbabilitySystem
-from app.services.systems.relative_throughput import ServerRelativeThroughputSystem
-from app.services.systems.throughput import (
-    MAPServerThroughputSystem,
-    ServerThroughputSystem,
-)
+from app.domain import SystemMode, SystemType
+from app.services.systems.base import BaseSystem
+from app.services.systems.steady_state import MultiServerSteadyStateSystem
+from app.services.systems.transient_state import TransientStateSystem
 
 
-# pylint: disable=too-many-return-statements
 def system_factory(
-    system_type: SystemType, calculation_mode: CalculationMode, **kwargs: Any
-) -> BaseServerSystem:
-    """Фабрика для создания системы массового обслуживания.
+    system_type: SystemType, system_mode: SystemMode, **kwargs: Any
+) -> BaseSystem:
+    """Фабрика для создания объекта системы массового обслуживания.
 
     Args:
         system_type (SystemType): Тип системы.
-        calculation_mode (CalculationMode): Режим вычисления.
+        system_mode (SystemMode): Режим работы системы.
         **kwargs (Any): Дополнительные параметры, передаваемые в конструктор системы
             (например: params, config).
 
     Returns:
-        BaseServerSystem: Инстанс соответствующей системы.
+        BaseSystem: Экземпляр подходящего класса системы.
 
     Raises:
-        ValueError: Если передан неподдерживаемый режим расчёта или тип.
+        ValueError: Если указан неподдерживаемый режим работы или тип системы.
+        NotImplementedError: Если выбранный режим/тип ещё не реализован.
     """
     logger.debug(
         f"Вызван system_factory с параметрами: system_type={system_type}, "
-        f"calculation_mode={calculation_mode}"
+        f"system_mode={system_mode}"
     )
 
-    if calculation_mode == CalculationMode.PROBABILITY:
-        logger.info("Создан ServerProbabilitySystem")
-        return ServerProbabilitySystem(**kwargs)
-
-    if calculation_mode == CalculationMode.THROUGHPUT:
+    if system_mode == SystemMode.TRANSIENT:
         match system_type:
             case SystemType.MAP:
-                logger.info("Создан MAPServerThroughputSystem")
-                return MAPServerThroughputSystem(**kwargs)
+                # logger.info("Создан MAPServerThroughputSystem")
+                raise NotImplementedError(
+                    "MAP-системы в переходном режиме не реализованы"
+                )
             case _:
-                logger.info("Создан ServerThroughputSystem")
-                return ServerThroughputSystem(**kwargs)
+                logger.info("Создан TransientStateSystem")
+                return TransientStateSystem(**kwargs)
 
-    if calculation_mode == CalculationMode.ABSOLUTE_THROUGHPUT:
-        logger.info("Создан ServerAbsoluteThroughputSystem")
-        return ServerAbsoluteThroughputSystem(**kwargs)
+    if system_mode == SystemMode.STEADY:
+        match system_type:
+            case SystemType.MULTI:
+                logger.info("Создан MultiServerSteadyStateSystem")
+                return MultiServerSteadyStateSystem()
+            case _:
+                raise NotImplementedError(
+                    f"Система типа {system_type} в режиме STEADY не реализована"
+                )
 
-    if calculation_mode == CalculationMode.RELATIVE_THROUGHPUT:
-        logger.info("Создан ServerRelativeThroughputSystem")
-        return ServerRelativeThroughputSystem(**kwargs)
-
-    raise ValueError(f"Неподдерживаемый режим расчета: {calculation_mode}")
+    raise ValueError(f"Неподдерживаемый режим функционирования: {system_mode}")

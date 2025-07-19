@@ -104,37 +104,50 @@ def plot_probabilities(
     return fig
 
 
-def plot_throughput(
-    throughput_results: list[NDArray[np.float64]] | NDArray[np.float64],
+def plot_metric(
+    metric_data: list[NDArray[np.float64]] | NDArray[np.float64],
     time_array: NDArray[np.float64],
     title_text: str,
+    yaxis_title: str = "Value",
+    series_labels: list[str] | None = None,
+    line_colors: list[str] | None = None,
 ) -> Any:
-    """Создает график пропускной способности системы по состояниям.
+    """Универсальная функция построения графика для различных метрик системы.
 
     Args:
-        throughput_results (list[NDArray[np.float64]] | NDArray[np.float64]):
-            Список массивов пропускной способности для каждого состояния.
-        time_array (NDArray[np.float64]): Массив значений параметра.
-        title_text (str): Текст заголовка графика.
+        metric_data (list[NDArray[np.float64]] | NDArray[np.float64]):
+            Список массивов метрик или одиночный массив (если один график).
+        time_array (NDArray[np.float64]): Массив значений времени.
+        title_text (str): Заголовок графика.
+        yaxis_title (str): Подпись оси Y (по умолчанию "Value").
+        series_labels (list[str] | None): Пользовательские подписи для каждой серии.
+        line_colors (list[str] | None): Цвета линий (по умолчанию из Plotly D3 палитры).
 
     Returns:
-        go.Figure: Объект графика Plotly с линиями пропускной способности.
+        go.Figure: Объект графика Plotly.
     """
     fig = go.Figure()
+    default_colors = px.colors.qualitative.D3
 
-    colors = px.colors.qualitative.D3
+    if not isinstance(metric_data, list):
+        metric_data = [metric_data]
 
-    if not isinstance(throughput_results, list):
-        throughput_results = [throughput_results]
+    if series_labels is None:
+        series_labels = [f"State {i}" for i in range(len(metric_data))]
 
-    for state, throughput in enumerate(throughput_results):
+    if line_colors is None:
+        line_colors = default_colors
+
+    for idx, data in enumerate(metric_data):
+        label = series_labels[idx] if idx < len(series_labels) else f"Series {idx}"
+        color = line_colors[idx % len(line_colors)]
         fig.add_trace(
             go.Scatter(
                 x=time_array,
-                y=throughput,
+                y=data,
                 mode="lines",
-                name=f"State {state}",
-                line=dict(width=2, color=colors[state % len(colors)]),
+                name=label,
+                line=dict(width=2, color=color),
             )
         )
 
@@ -152,7 +165,7 @@ def plot_throughput(
             constrain="domain",
         ),
         yaxis=dict(
-            title="Throughput",
+            title=yaxis_title,
             title_font=dict(color="black", size=16),
             tickfont=dict(color="black"),
             automargin=True,

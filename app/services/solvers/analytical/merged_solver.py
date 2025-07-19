@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 
 from app.db import duckdb_cache
 from app.domain import ComputationConfig, MergedComputationConfig
-from app.domain.models import SingleServerParams
+from app.domain.models import TransientSystemParams
 from app.services.solvers.analytical.mpmath_solver import (
     AnalyticalMpmathProbabilitySolver,
 )
@@ -28,14 +28,14 @@ class AnalyticalMergedProbabilitySolver(AnalyticalMpmathProbabilitySolver):
 
     def __init__(
         self,
-        params: SingleServerParams,
+        params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
         config: MergedComputationConfig,
     ) -> None:
         """Инициализирует решатель вероятностей с повышенной точностью.
 
         Args:
-            params (SingleServerParams): Параметры системы массового обслуживания.
+            params (TransientSystemParams): Параметры СМО.
             coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
                 уравнений размером (n x n).
             config (MergedComputationConfig): Конфигурация вычислений.

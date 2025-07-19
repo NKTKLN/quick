@@ -6,7 +6,13 @@ from .computation_config import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from .enums import CalculationEngine, CalculationMethod, CalculationMode, SystemType
+from .enums import (
+    CalculationEngine,
+    CalculationMethod,
+    CalculationMode,
+    SystemMode,
+    SystemType,
+)
 
 __all__ = [
     "ConfigInitParams",
@@ -14,6 +20,7 @@ __all__ = [
     "CalculationMode",
     "CalculationMethod",
     "SystemType",
+    "SystemMode",
     "ComputationConfig",
     "MergedComputationConfig",
     "MpmathComputationConfig",

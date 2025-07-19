@@ -14,7 +14,7 @@ from scipy.linalg import eig as scipy_eig
 
 from app.db import duckdb_cache
 from app.domain import ComputationConfig
-from app.domain.models import SingleServerParams
+from app.domain.models import TransientSystemParams
 from app.services.solvers.analytical.base import AnalyticalBasicProbabilitySolver
 from app.utils import Progress
 
@@ -27,14 +27,14 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
 
     def __init__(
         self,
-        params: SingleServerParams,
+        params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
         config: ComputationConfig,
     ) -> None:
         """Инициализирует решатель вероятностей.
 
         Args:
-            params (SingleServerParams): Параметры системы массового обслуживания.
+            params (TransientSystemParams): Параметры СМО.
             coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
                 уравнений размером (n x n).
             config (ComputationConfig): Конфигурация вычислений.

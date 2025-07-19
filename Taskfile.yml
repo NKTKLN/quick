@@ -53,8 +53,8 @@ tasks:
     desc: Code formatting with black and ruff
     deps: [code-upgrade]
     cmds:
-      - poetry run ruff check . --fix
       - poetry run black .
+      - poetry run ruff check . --fix
 
   lint:
     desc: Static code analysis with ruff and mypy

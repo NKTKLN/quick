@@ -9,9 +9,10 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from loguru import logger
 from numpy.typing import NDArray
 
-from app.domain.models import MAPServerParams, MultiServerParams, SingleServerParams
+from app.domain.models import BaseSystemParams
 
 
 class BaseMatrixBuilder(ABC):
@@ -21,16 +22,21 @@ class BaseMatrixBuilder(ABC):
     дифференциальных уравнений, описывающих поведение СМО.
     """
 
-    def __init__(
-        self, params: SingleServerParams | MultiServerParams | MAPServerParams
-    ) -> None:
+    def __init__(self, params: BaseSystemParams) -> None:
         """Инициализирует базовый построитель с параметрами модели.
 
         Args:
-            params (SingleServerParams | MultiServerParams | MAPServerParams):
-                Параметры модели СМО.
+            params (BaseSystemParams): Параметры модели СМО.
         """
         self.params = params
+
+        logger.debug(
+            f"Инициализирован {self.__class__.__name__} с параметрами: "
+            f"max_customers={params.max_customers}, "
+            f"processor_count={params.processor_count}, "
+            f"lambda_rate={params.lambda_rate}, mu_rate={params.mu_rate}, "
+            f"nu_rate={params.nu_rate}"
+        )
 
     @abstractmethod
     def build(self) -> NDArray[np.float64]:

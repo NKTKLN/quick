@@ -6,7 +6,7 @@ from .initial_conditions import (
     render_initial_probabilities,
     render_state_variables,
 )
-from .plot import plot_probabilities, plot_throughput
+from .plot import plot_metric, plot_probabilities
 from .system_parameters import (
     get_intensity_parameters,
     get_system_mode_type,
@@ -20,7 +20,7 @@ from .time_settings import render_time_settings
 __all__ = [
     "render_calculation_config",
     "plot_probabilities",
-    "plot_throughput",
+    "plot_metric",
     "render_state_variables",
     "render_initial_probabilities",
     "render_initial_conditions",

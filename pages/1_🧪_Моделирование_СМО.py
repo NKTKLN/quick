@@ -4,43 +4,85 @@
 вероятностей и визуализировать результаты.
 """
 
+from dataclasses import asdict
+
 import numpy as np
+import pandas as pd
 import streamlit as st
 from numpy.typing import NDArray
 
-from app.domain import CalculationMode, ComputationConfig, SystemType
-from app.domain.models import BasicServerParams, model_factory
+from app.domain import CalculationMode, ComputationConfig, SystemMode, SystemType
+from app.domain.models import (
+    BaseSystemParams,
+    CalculationSettings,
+    MAPSystemParams,
+    ServerParams,
+    TransientSystemParams,
+)
 from app.services.systems import system_factory
 from pages.components import (
     get_intensity_parameters,
     get_system_mode_type,
     map_intensity_matrix,
+    plot_metric,
     plot_probabilities,
-    plot_throughput,
     render_calculation_config,
     render_initial_conditions,
     render_time_settings,
     system_capacity_inputs,
 )
 
+PLOT_SETTINGS = {
+    "throughput": {
+        "title_text": "Пропускная способность системы",
+        "yaxis_title": "Заявки/ед. времени",
+        "line_colors": ["#1f77b4"],
+    },
+    "avg_buffer_length": {
+        "title_text": "Среднее число заявок в буфере",
+        "yaxis_title": "Каналы",
+        "line_colors": ["#ff7f0e"],
+    },
+    "avg_system_length": {
+        "title_text": "Среднее число заявок в системе",
+        "yaxis_title": "Заявки",
+        "line_colors": ["#9467bd"],
+    },
+    "absolute_throughput": {
+        "title_text": "Абсолютная пропускная способность",
+        "yaxis_title": "Заявки/ед. времени",
+        "line_colors": ["#2ca02c"],
+    },
+    "relative_throughput": {
+        "title_text": "Относительная пропускная способность",
+        "yaxis_title": "Доля от входящего потока",
+        "line_colors": ["#d62728"],
+    },
+    "rejection_probability": {
+        "title_text": "Вероятность отказа",
+        "yaxis_title": "Вероятность",
+        "line_colors": ["#8c564b"],
+    },
+    "service_probability": {
+        "title_text": "Вероятность обслуживания заявок",
+        "yaxis_title": "Вероятность",
+        "line_colors": ["#e377c2"],
+    },
+}
+
 
 # pylint: disable=too-many-locals
-def get_user_inputs() -> (
-    tuple[ComputationConfig, BasicServerParams, SystemType, CalculationMode]
-):
+def get_user_inputs() -> tuple[ComputationConfig, ServerParams]:
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
         tuple:
-            - config: Конфигурация для выполнения вычислений.
-            - params: Параметры выбранной системы массового обслуживания (СМО),
-                включая структуру, интенсивности, параметры обслуживания и т.д.
-            - system_type (SystemType): Тип модели СМО, выбранный пользователем.
-            - calculation_mode (str): Режим вычислений, выбранный пользователем.
+            - config (ComputationConfig): Конфигурация для выполнения вычислений.
+            - params (ServerParams): Параметры выбранноСМО.
     """
     config = render_calculation_config()
     st.markdown("---")
-    system_type, calculation_mode = get_system_mode_type()
+    system_type, calculation_mode, system_mode = get_system_mode_type()
 
     st.subheader("⚙️ Параметры системы")
     lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
@@ -62,42 +104,97 @@ def get_user_inputs() -> (
     elif system_type == SystemType.MAP:
         count **= 2
 
-    st.markdown("---")
-    state_variables, initial_probabilities = render_initial_conditions(count)
+    transient_params = None
+    if system_mode == SystemMode.TRANSIENT:
+        st.markdown("---")
+        state_variables, initial_probabilities = render_initial_conditions(count)
 
-    st.markdown("---")
-    time_array = render_time_settings()
+        st.markdown("---")
+        time_array = render_time_settings()
 
-    base_params: dict[str, int | NDArray] = dict(
+        transient_params = TransientSystemParams(
+            time_array=time_array,
+            state_variables=state_variables,
+            initial_probabilities=initial_probabilities,
+        )
+
+    base_params = BaseSystemParams(
         mu_rate=mu_rate,
-        max_customers=max_customers,
-        time_array=time_array,
-        state_variables=state_variables,
-        initial_probabilities=initial_probabilities,
         nu_rate=nu_rate,
         lambda_rate=lambda_rate,
+        max_customers=max_customers,
+        processor_count=processor_count,
     )
 
-    if system_type == SystemType.MULTI and processor_count is not None:
-        base_params.update(processor_count=processor_count)
-    elif system_type == SystemType.MAP and p_rate is not None and q_rate is not None:
-        base_params.update(
+    settings = CalculationSettings(
+        calculation_mode=calculation_mode,
+        system_mode=system_mode,
+        system_type=system_type,
+    )
+
+    if system_type == SystemType.MAP and p_rate is not None and q_rate is not None:
+        base_params = MAPSystemParams(
+            **asdict(base_params),
             p_rate=p_rate.astype(np.float64),
             q_rate=q_rate.astype(np.float64),
         )
 
-    config.calculation_mode = calculation_mode
-    params = model_factory(system_type, **base_params)
-    return config, params, system_type, calculation_mode
+    params = ServerParams(
+        base_params=base_params,
+        transient_params=transient_params,
+        settings=settings,
+    )
+    return config, params
 
 
+def format_dataframe(
+    df: pd.DataFrame, precision: int = 16
+) -> pd.io.formats.style.Styler:
+    """Форматирует все числовые значения в DataFrame.
+
+    Args:
+        df (pd.DataFrame): Исходный DataFrame.
+        precision (int): Количество знаков после запятой для форматирования чисел.
+
+    Returns:
+        pd.io.formats.style.Styler: Отформатированный Styler для отображения
+            в Streamlit.
+    """
+    return df.style.format(
+        lambda x: f"{x:.{precision}f}" if isinstance(x, float) else x
+    )
+
+
+def split_results(
+    results_dict: dict[str, NDArray[np.float64]],
+) -> tuple[dict[str, NDArray[np.float64]], list]:
+    """Разделяет словарь результатов системы на две переменных.
+
+    Разделяет результаты на две переменных одна это матрица вероятностей, а другая это
+    словарь со всеми остальными параметрами.
+
+    Args:
+        results_dict (dict[str, NDArray[np.float64]]): Словарь результатов вычисления.
+
+    Returns:
+        tuple: Кортеж из двух словарей:
+            - probability: матрица вероятностей,
+            - metrics_dict: словарь со всеми остальными ключами и значениями из
+                исходного словаря, кроме "probability".
+    """
+    results = {k: v[-1] for k, v in results_dict.items() if k != "probability"}
+    probabilities = results_dict["probability"][:, 0].tolist()
+    return results, probabilities
+
+
+# ruff: noqa: C901
 def main() -> None:
     """Основная функция страницы: UI, вычисление, визуализация."""
     st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
     st.markdown("---")
 
     try:
-        config, params, system_type, calculation_mode = get_user_inputs()
+        config, params = get_user_inputs()
     except ValueError as e:
         st.error(f"❌ Ошибка в вводных данных: {e}")
         st.stop()
@@ -110,46 +207,72 @@ def main() -> None:
             st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
-        try:
-            system = system_factory(
-                system_type,
-                calculation_mode,
+        steady_system = system_factory(
+            system_mode=SystemMode.STEADY,
+            system_type=params.settings.system_type,
+            params=params,
+            config=config,
+        )
+        transient_system = None
+        if params.settings.system_mode == SystemMode.TRANSIENT:
+            transient_system = system_factory(
+                system_mode=SystemMode.TRANSIENT,
+                system_type=params.settings.system_type,
                 params=params,
                 config=config,
             )
-        except ValueError:
-            st.error("❌ Некорректный режим/тип системы")
-            st.stop()
-
-        st.success("✅ Параметры успешно заданы!")
 
         try:
             with st.spinner("⏳ Идёт расчёт значений..."):
-                probabilities = system.calculate()
+                steady_system.calculate_probabilities()
+                if transient_system is not None:
+                    transient_system.calculate_probabilities()
         except ValueError as e:
             st.error(f"❌ Ошибка при вычислении: {e}")
             st.stop()
 
         st.markdown("---")
-        st.subheader("📈 Визуализация динамики состояний системы")
-        if calculation_mode == CalculationMode.PROBABILITY and isinstance(
-            probabilities, np.ndarray
-        ):
-            fig = plot_probabilities(
-                probabilities, params.time_array, calculation_mode.value
+
+        steady_system_results, steady_system_probabilities = split_results(
+            steady_system.calculate()
+        )
+        results = {SystemMode.STEADY.value: steady_system_results}
+        probabilities = {SystemMode.STEADY.value: steady_system_probabilities}
+        if transient_system is not None:
+            st.subheader("📈 Визуализация динамики состояний системы")
+            (
+                results[SystemMode.TRANSIENT.value],
+                probabilities[SystemMode.TRANSIENT.value],
+            ) = split_results(transient_system.calculate())
+
+            st.plotly_chart(
+                plot_probabilities(
+                    transient_system.probabilities,
+                    params.transient_params.time_array,
+                    params.settings.calculation_mode.value,
+                ),
+                use_container_width=True,
             )
-        elif calculation_mode in (
-            CalculationMode.THROUGHPUT,
-            CalculationMode.ABSOLUTE_THROUGHPUT,
-            CalculationMode.RELATIVE_THROUGHPUT,
-        ):
-            fig = plot_throughput(
-                probabilities, params.time_array, calculation_mode.value
-            )
-        else:
-            st.error("❌ Некорректный режим/тип системы")
-            st.stop()
-        st.plotly_chart(fig, use_container_width=True)
+
+            for key, value in results[SystemMode.TRANSIENT.value]:
+                try:
+                    st.plotly_chart(
+                        plot_metric(
+                            value,
+                            params.transient_params.time_array,
+                            **PLOT_SETTINGS[key],
+                        ),
+                        use_container_width=True,
+                    )
+                except Exception as e:
+                    st.error(f"❌ Ошибка в результатах: {e}")
+
+        st.subheader("📊 Вероятности стационарных состояний")
+        st.dataframe(format_dataframe(pd.DataFrame(probabilities)))
+
+        if params.settings.calculation_mode != CalculationMode.PROBABILITY:
+            st.subheader("📈 Основные характеристики системы")
+            st.dataframe(format_dataframe(pd.DataFrame(results)))
 
 
 main()

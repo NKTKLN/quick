@@ -12,7 +12,7 @@ from loguru import logger
 from numpy.typing import NDArray
 
 from app.domain import ComputationConfig
-from app.domain.models import SingleServerParams
+from app.domain.models import TransientSystemParams
 
 
 class BasicProbabilitySolver(ABC):
@@ -26,14 +26,14 @@ class BasicProbabilitySolver(ABC):
 
     def __init__(
         self,
-        params: SingleServerParams,
+        params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
         config: ComputationConfig | None = None,
     ) -> None:
         """Инициализирует базовый решатель.
 
         Args:
-            params: Параметры системы массового обслуживания.
+            params (TransientSystemParams): Параметры СМО.
             coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
                 уравнений размером (n x n).
             config (ComputationConfig | None): Конфигурация вычислений.

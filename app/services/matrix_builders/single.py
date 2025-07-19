@@ -9,7 +9,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from app.domain.models import SingleServerParams
+from app.domain.models import MAPSystemParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
 
 
@@ -20,19 +20,6 @@ class SingleServerMatrixBuilder(BaseMatrixBuilder):
     обслуживания и ухода нетерпеливых клиентов.
     """
 
-    def __init__(self, params: SingleServerParams) -> None:
-        """Инициализирует построитель одноканальной СМО.
-
-        Args:
-            params (SingleServerParams): Параметры одноканальной СМО.
-        """
-        super().__init__(params)
-        logger.debug(
-            "Инициализирован SingleServerMatrixBuilder с параметрами: "
-            f"max_customers={params.max_customers}, lambda_rate={params.lambda_rate}, "
-            f"mu_rate={params.mu_rate}, nu_rate={params.nu_rate}"
-        )
-
     def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для одноканальной СМО.
 
@@ -40,11 +27,11 @@ class SingleServerMatrixBuilder(BaseMatrixBuilder):
             NDArray[np.float64]: Квадратная матрица коэффициентов размера n x n.
 
         Raises:
-            ValueError: Если параметры системы не являются SingleServerParams.
+            ValueError: Если параметры системы являются MAPSystemParams.
         """
-        if not isinstance(self.params, SingleServerParams):
-            logger.error("Параметры не являются экземпляром SingleServerParams")
-            raise ValueError("Параметры должны быть экземпляром SingleServerParams")
+        if isinstance(self.params, MAPSystemParams):
+            logger.error("Параметры являются экземпляром MAPSystemParams")
+            raise ValueError("Параметры не должны быть экземпляром MAPSystemParams")
 
         n = self.params.max_customers
         λ, μ, ν = self.params.lambda_rate, self.params.mu_rate, self.params.nu_rate

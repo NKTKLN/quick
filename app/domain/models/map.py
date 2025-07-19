@@ -9,25 +9,22 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from app.domain.models.base import BasicServerParams
+from app.domain.models.base import BaseSystemParams
 
 
 @dataclass
-class BasicMAPServerParams(BasicServerParams):
-    """Параметры СМО с MAP-потоками и уходом нетерпеливых заявок.
+class MAPSystemParams(BaseSystemParams):
+    """Базовые параметры СМО с MAP-потоками и уходом нетерпеливых заявок.
 
     Описывает систему с марковским модулированным пуассоновским входным потоком,
     а также оттоком нетерпеливых заявок. Включает матрицы интенсивностей переходов.
 
     Attributes:
-        lambda_rate (NDArray[np.float64]): Массив значений интенсивности
-            поступления заявок (λ > 0).
         p_rate (NDArray[np.float64]): Матрица интенсивностей обслуживания.
         q_rate (NDArray[np.float64]): Матрица интенсивностей поступления.
-        Остальные параметры наследуются от BasicSingleServerParams.
+        Остальные параметры наследуются от BaseSystemParams.
     """
 
-    lambda_rate: NDArray[np.float64]
     p_rate: NDArray[np.float64]
     q_rate: NDArray[np.float64]
 
@@ -37,8 +34,6 @@ class BasicMAPServerParams(BasicServerParams):
         Выбрасывает исключение ValueError при некорректных параметрах.
         """
         super().validate()
-        if np.any(self.lambda_rate <= 0) or self.lambda_rate.shape[0] == 0:
-            raise ValueError("Интенсивность λ должна быть положительна.")
         if self.p_rate.shape != self.q_rate.shape:
             raise ValueError(
                 "Размер начальных вероятностей должен совпадать с максимальным числом "
@@ -59,32 +54,3 @@ class BasicMAPServerParams(BasicServerParams):
                 "диапазоне [0, 1]."
             )
         # TODO: Спросить про корректность матриц интенсивности (Пока не надо)
-
-
-@dataclass
-class MAPServerParams(BasicMAPServerParams):
-    """Параметры СМО с MAP-потоками и уходом нетерпеливых заявок.
-
-    Описывает систему с марковским модулированным пуассоновским входным потоком,
-    а также оттоком нетерпеливых заявок. Включает матрицы интенсивностей переходов.
-
-    Attributes:
-        nu_rate (float): Интенсивность ухода заявок (ν ≥ 0).
-        Остальные параметры наследуются от BasicMAPServerParams.
-    """
-
-    nu_rate: float
-
-    def validate(self) -> None:
-        """Проверяет корректность параметров.
-
-        Выбрасывает исключение ValueError при некорректных параметрах.
-        """
-        super().validate()
-        if self.nu_rate <= 0:
-            raise ValueError("Интенсивность ν должна быть положительна.")
-        if self.initial_probabilities.shape[0] != self.max_customers**2:
-            raise ValueError(
-                "Размер начальных вероятностей должен совпадать с максимальным числом "
-                "заявок в системе возведенных в квадрат."
-            )
