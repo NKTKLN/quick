@@ -32,10 +32,8 @@ class BaseMatrixBuilder(ABC):
 
         logger.debug(
             f"Инициализирован {self.__class__.__name__} с параметрами: "
-            f"max_customers={params.max_customers}, "
-            f"processor_count={params.processor_count}, "
-            f"lambda_rate={params.lambda_rate}, mu_rate={params.mu_rate}, "
-            f"nu_rate={params.nu_rate}"
+            f"{params.max_customers=}, {params.processor_count=}, "
+            f"{params.lambda_rate=}, {params.mu_rate=}, {params.nu_rate=}"
         )
 
     @abstractmethod

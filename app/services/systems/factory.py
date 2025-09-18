@@ -12,14 +12,18 @@ from typing import Any
 from loguru import logger
 
 from app.domain import SystemMode, SystemType
-from app.services.systems.base import BaseSystem
+from app.services.systems.base import BaseServerSystem
 from app.services.systems.steady_state import MultiServerSteadyStateSystem
-from app.services.systems.transient_state import TransientStateSystem
+from app.services.systems.transient_state import TransientServerStateSystem
+from app.services.systems_behavior import (
+    MAPSystemBehavior,
+    MultiSystemBehavior,
+)
 
 
 def system_factory(
     system_type: SystemType, system_mode: SystemMode, **kwargs: Any
-) -> BaseSystem:
+) -> BaseServerSystem:
     """Фабрика для создания объекта системы массового обслуживания.
 
     Args:
@@ -29,33 +33,34 @@ def system_factory(
             (например: params, config).
 
     Returns:
-        BaseSystem: Экземпляр подходящего класса системы.
+        BaseServerSystem: Экземпляр подходящего класса системы.
 
     Raises:
         ValueError: Если указан неподдерживаемый режим работы или тип системы.
         NotImplementedError: Если выбранный режим/тип ещё не реализован.
     """
-    logger.debug(
-        f"Вызван system_factory с параметрами: system_type={system_type}, "
-        f"system_mode={system_mode}"
-    )
+    logger.debug(f"Вызван system_factory с параметрами: {system_type=}, {system_mode=}")
+
+    system_behavior = None
+    match system_type:
+        case SystemType.MULTI | SystemType.SINGLE:
+            system_behavior = MultiSystemBehavior
+        case SystemType.MAP:
+            system_behavior = MAPSystemBehavior
+        case _:
+            raise NotImplementedError(f"Система типа {system_type} не реализована")
 
     if system_mode == SystemMode.TRANSIENT:
-        match system_type:
-            case SystemType.MAP:
-                # logger.info("Создан MAPServerThroughputSystem")
-                raise NotImplementedError(
-                    "MAP-системы в переходном режиме не реализованы"
-                )
-            case _:
-                logger.info("Создан TransientStateSystem")
-                return TransientStateSystem(**kwargs)
+        logger.info("Создан TransientServerStateSystem")
+        return TransientServerStateSystem(**kwargs, system_behavior=system_behavior)
 
     if system_mode == SystemMode.STEADY:
         match system_type:
             case SystemType.MULTI:
                 logger.info("Создан MultiServerSteadyStateSystem")
-                return MultiServerSteadyStateSystem()
+                return MultiServerSteadyStateSystem(
+                    **kwargs, system_behavior=system_behavior
+                )
             case _:
                 raise NotImplementedError(
                     f"Система типа {system_type} в режиме STEADY не реализована"

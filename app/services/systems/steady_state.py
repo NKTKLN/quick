@@ -8,30 +8,16 @@ import numpy as np
 from loguru import logger
 from scipy.special import factorial
 
-from app.domain.models.map import MAPSystemParams
-from app.services.systems.base import BaseSystem
+from app.services.systems.base import BaseServerSystem
 
 
-class MultiServerSteadyStateSystem(BaseSystem):
+class MultiServerSteadyStateSystem(BaseServerSystem):
     """Класс для расчёта стационарных вероятностей состояний многоканальной СМО.
 
     Реализует вычисление вероятностей на основе аналитических выражений,
     учитывая максимальное число заявок в системе, количество процессоров,
     и параметры нагрузки.
     """
-
-    @property
-    def lambda_rate(self) -> float:
-        """Ленивая загрузка: возвращает интенсивность поступления заявок.
-
-        Raises:
-            ValueError: Если параметры имеют тип MAPSystemParams.
-        """
-        if isinstance(self.params.base_params, MAPSystemParams):
-            logger.error("Получены параметры MAPSystemParams для обычной системы")
-            raise ValueError("Параметры не должны быть экземпляром MAPSystemParams")
-
-        return self.params.base_params.lambda_rate
 
     def _calculate_p_0(self, eps: float = 1e-16, max_m: int = 10000) -> float:
         """Вычисляет начальную стационарную вероятность состояния 0 (P_0).

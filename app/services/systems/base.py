@@ -16,10 +16,11 @@ from app.domain import (
     CalculationMode,
     ComputationConfig,
 )
-from app.domain.models import ServerParams
+from app.domain.models import SystemParams
+from app.services.systems_behavior import BaseSystemBehavior
 
 
-class BaseSystem(ABC):
+class BaseServerSystem(ABC):
     """Абстрактный базовый класс системы массового обслуживания (СМО).
 
     Обеспечивает интерфейс и основные методы для вычисления вероятностей состояний,
@@ -28,7 +29,10 @@ class BaseSystem(ABC):
     """
 
     def __init__(
-        self, params: ServerParams, config: ComputationConfig | None = None
+        self,
+        params: SystemParams,
+        system_behavior: BaseSystemBehavior,
+        config: ComputationConfig | None = None,
     ) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
@@ -38,7 +42,9 @@ class BaseSystem(ABC):
         """
         self.params = params
         self.config = config
+        self.system_behavior = system_behavior(self.params)
         self._probabilities: NDArray[np.float64] | None = None
+        self._lambda_rate: float | None = None
 
         logger.debug(
             f"СМО {self.__class__.__name__} инициализирована с параметрами: "
@@ -64,19 +70,6 @@ class BaseSystem(ABC):
         """
         return self.lambda_rate / self.params.base_params.mu_rate
 
-    @property
-    @abstractmethod
-    def lambda_rate(self) -> float:
-        """Абстрактное свойство интенсивности поступления заявок в систему.
-
-        Должно быть реализовано в наследниках для определения конкретной модели
-        системы массового обслуживания.
-
-        Returns:
-            float: Значение интенсивности поступления заявок lambda.
-        """
-        pass
-
     @abstractmethod
     def calculate_probabilities(self) -> None:
         """Выполняет расчет вектора вероятностей состояний СМО.
@@ -86,6 +79,17 @@ class BaseSystem(ABC):
         поле `_probabilities`.
         """
         pass
+
+    @property
+    def lambda_rate(self) -> float:
+        """Ленивая загрузка: возвращает интенсивность поступления заявок.
+
+        Raises:
+            ValueError: Если параметры имеют тип MAPSystemParams.
+        """
+        if self._lambda_rate is None:
+            self._lambda_rate = self.system_behavior.lambda_rate
+        return self._lambda_rate
 
     @property
     def probabilities(self) -> NDArray[np.float64]:
@@ -105,8 +109,13 @@ class BaseSystem(ABC):
             NDArray[np.float64]: Пропускная способность.
         """
         logger.info("Начат расчёт пропускной способности СМО")
-
-        throughput = (1 - self.probabilities[-1]) * self.lambda_rate
+        n = self.probabilities.shape[0]
+        throughput = (
+            1
+            - self.probabilities[(n - self.params.base_params.max_customers) :].sum(
+                axis=0
+            )
+        ) * self.lambda_rate
 
         logger.success("Расчёт общей пропускной способности завершён успешно")
         return cast(NDArray, throughput)
@@ -142,6 +151,7 @@ class BaseSystem(ABC):
         logger.success("Расчёт абсолютной пропускной способности завершён успешно")
         return cast(NDArray, absolute_throughput)
 
+    # TODO:
     def calculate_p_queue(self) -> NDArray[np.float64]:
         """Вычисляет вероятность наличия заявок в очереди.
 
@@ -172,25 +182,9 @@ class BaseSystem(ABC):
         return L
 
     def calculate_avg_system_length(self) -> NDArray[np.float64]:
-        """Вычисляет среднее число заявок в системе.
+        return self.system_behavior.calculate_avg_system_length(self.probabilities)
 
-        Returns:
-            NDArray[float64]: Среднее число заявок в системе.
-        """
-        logger.info("Вычисление среднего числа заявок в системе")
-
-        n = self.params.base_params.max_customers
-        m = self.params.base_params.processor_count
-
-        k_values = np.arange(1, n + 1)
-        indices = m + k_values
-
-        selected_probabilities = self.probabilities[indices, :]
-        N_b = np.sum(k_values[:, np.newaxis] * selected_probabilities, axis=0)
-
-        logger.success("Среднее число заявок в системе вычислено")
-        return N_b
-
+    # TODO:
     def calculate_avg_busy_channels(self) -> NDArray[np.float64]:
         """Вычисляет среднее число занятых обслуживающих каналов.
 

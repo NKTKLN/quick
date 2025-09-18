@@ -8,14 +8,14 @@
 from loguru import logger
 
 from app.domain import SystemType
-from app.domain.models import ServerParams
+from app.domain.models import SystemParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
 from app.services.matrix_builders.map import MAPServerMatrixBuilder
 from app.services.matrix_builders.multi import MultiServerMatrixBuilder
 from app.services.matrix_builders.single import SingleServerMatrixBuilder
 
 
-def matrix_builder_factory(params: ServerParams) -> BaseMatrixBuilder:
+def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
     """Фабрика для создания строителей матриц СМО по типу параметров.
 
     Args:

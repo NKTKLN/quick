@@ -3,7 +3,7 @@
 from .base import (
     BaseSystemParams,
     CalculationSettings,
-    ServerParams,
+    SystemParams,
     TransientSystemParams,
 )
 from .map import MAPSystemParams
@@ -12,6 +12,6 @@ __all__ = [
     "BaseSystemParams",
     "TransientSystemParams",
     "CalculationSettings",
-    "ServerParams",
+    "SystemParams",
     "MAPSystemParams",
 ]

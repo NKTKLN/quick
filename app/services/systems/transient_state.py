@@ -1,6 +1,6 @@
 """Модуль модели системы массового обслуживания (СМО) в переходном режиме.
 
-Содержит класс `TransientStateSystem`, реализующий численное моделирование
+Содержит класс `TransientServerStateSystem`, реализующий численное моделирование
 одноканальных и многоканальных СМО с нетерпеливыми заявками в переходном режиме.
 
 Обеспечивает вычисление распределения вероятностей состояний системы,
@@ -9,13 +9,12 @@
 
 from loguru import logger
 
-from app.domain.models import MAPSystemParams
 from app.services.matrix_builders import matrix_builder_factory
 from app.services.solvers import solvers_factory
-from app.services.systems.base import BaseSystem
+from app.services.systems.base import BaseServerSystem
 
 
-class TransientStateSystem(BaseSystem):
+class TransientServerStateSystem(BaseServerSystem):
     """Класс для численного моделирования и анализа СМО в переходном режиме.
 
     Поддерживает как одноканальные, так и многоканальные системы с нетерпеливыми
@@ -23,19 +22,6 @@ class TransientStateSystem(BaseSystem):
     пропускной способности, загрузки каналов и других ключевых показателей
     качества обслуживания.
     """
-
-    @property
-    def lambda_rate(self) -> float:
-        """Ленивая загрузка: возвращает интенсивность поступления заявок.
-
-        Raises:
-            ValueError: Если параметры имеют тип MAPSystemParams.
-        """
-        if isinstance(self.params, MAPSystemParams):
-            logger.error("Получены параметры MAPSystemParams для обычной системы")
-            raise ValueError("Параметры не должны быть экземпляром MAPSystemParams")
-
-        return self.params.base_params.lambda_rate
 
     def calculate_probabilities(self) -> None:
         """Выполняет численный расчёт вероятностей состояний СМО."""

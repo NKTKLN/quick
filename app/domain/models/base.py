@@ -109,7 +109,7 @@ class CalculationSettings:
 
 
 @dataclass
-class ServerParams:
+class SystemParams:
     """Объединённые параметры СМО.
 
     Содержит базовые параметры системы и, опционально, параметры переходного режима.

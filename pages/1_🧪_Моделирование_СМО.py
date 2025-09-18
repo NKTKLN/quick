@@ -9,14 +9,13 @@ from dataclasses import asdict
 import numpy as np
 import pandas as pd
 import streamlit as st
-from numpy.typing import NDArray
 
-from app.domain import CalculationMode, ComputationConfig, SystemMode, SystemType
+from app.domain import ComputationConfig, SystemMode, SystemType
 from app.domain.models import (
     BaseSystemParams,
     CalculationSettings,
     MAPSystemParams,
-    ServerParams,
+    SystemParams,
     TransientSystemParams,
 )
 from app.services.systems import system_factory
@@ -72,7 +71,7 @@ PLOT_SETTINGS = {
 
 
 # pylint: disable=too-many-locals
-def get_user_inputs() -> tuple[ComputationConfig, ServerParams]:
+def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
@@ -139,7 +138,7 @@ def get_user_inputs() -> tuple[ComputationConfig, ServerParams]:
             q_rate=q_rate.astype(np.float64),
         )
 
-    params = ServerParams(
+    params = SystemParams(
         base_params=base_params,
         transient_params=transient_params,
         settings=settings,
@@ -147,9 +146,7 @@ def get_user_inputs() -> tuple[ComputationConfig, ServerParams]:
     return config, params
 
 
-def format_dataframe(
-    df: pd.DataFrame, precision: int = 16
-) -> pd.io.formats.style.Styler:
+def format_dataframe(df: pd.DataFrame, precision: int = 16):
     """Форматирует все числовые значения в DataFrame.
 
     Args:
@@ -163,28 +160,6 @@ def format_dataframe(
     return df.style.format(
         lambda x: f"{x:.{precision}f}" if isinstance(x, float) else x
     )
-
-
-def split_results(
-    results_dict: dict[str, NDArray[np.float64]],
-) -> tuple[dict[str, NDArray[np.float64]], list]:
-    """Разделяет словарь результатов системы на две переменных.
-
-    Разделяет результаты на две переменных одна это матрица вероятностей, а другая это
-    словарь со всеми остальными параметрами.
-
-    Args:
-        results_dict (dict[str, NDArray[np.float64]]): Словарь результатов вычисления.
-
-    Returns:
-        tuple: Кортеж из двух словарей:
-            - probability: матрица вероятностей,
-            - metrics_dict: словарь со всеми остальными ключами и значениями из
-                исходного словаря, кроме "probability".
-    """
-    results = {k: v[-1] for k, v in results_dict.items() if k != "probability"}
-    probabilities = results_dict["probability"][:, 0].tolist()
-    return results, probabilities
 
 
 # ruff: noqa: C901
@@ -207,12 +182,12 @@ def main() -> None:
             st.error(f"❌ Ошибка в параметрах: {e}")
             st.stop()
 
-        steady_system = system_factory(
-            system_mode=SystemMode.STEADY,
-            system_type=params.settings.system_type,
-            params=params,
-            config=config,
-        )
+        # steady_system = system_factory(
+        #     system_mode=SystemMode.STEADY,
+        #     system_type=params.settings.system_type,
+        #     params=params,
+        #     config=config,
+        # )
         transient_system = None
         if params.settings.system_mode == SystemMode.TRANSIENT:
             transient_system = system_factory(
@@ -224,7 +199,7 @@ def main() -> None:
 
         try:
             with st.spinner("⏳ Идёт расчёт значений..."):
-                steady_system.calculate_probabilities()
+                # steady_system.calculate_probabilities()
                 if transient_system is not None:
                     transient_system.calculate_probabilities()
         except ValueError as e:
@@ -233,18 +208,15 @@ def main() -> None:
 
         st.markdown("---")
 
-        steady_system_results, steady_system_probabilities = split_results(
-            steady_system.calculate()
-        )
-        results = {SystemMode.STEADY.value: steady_system_results}
-        probabilities = {SystemMode.STEADY.value: steady_system_probabilities}
+        steady_system_results, steady_system_probabilities = (
+            None,
+            None,
+        )  # split_results(
+        #     steady_system.calculate()
+        # )
         if transient_system is not None:
             st.subheader("📈 Визуализация динамики состояний системы")
-            (
-                results[SystemMode.TRANSIENT.value],
-                probabilities[SystemMode.TRANSIENT.value],
-            ) = split_results(transient_system.calculate())
-
+            results = transient_system.calculate()
             st.plotly_chart(
                 plot_probabilities(
                     transient_system.probabilities,
@@ -253,9 +225,11 @@ def main() -> None:
                 ),
                 use_container_width=True,
             )
-
-            for key, value in results[SystemMode.TRANSIENT.value]:
+            for key, value in results.items():
                 try:
+                    if key == "probabilities":
+                        continue
+
                     st.plotly_chart(
                         plot_metric(
                             value,
@@ -267,12 +241,12 @@ def main() -> None:
                 except Exception as e:
                     st.error(f"❌ Ошибка в результатах: {e}")
 
-        st.subheader("📊 Вероятности стационарных состояний")
-        st.dataframe(format_dataframe(pd.DataFrame(probabilities)))
+        # st.subheader("📊 Вероятности стационарных состояний")
+        # st.dataframe(format_dataframe(pd.DataFrame(probabilities)))
 
-        if params.settings.calculation_mode != CalculationMode.PROBABILITY:
-            st.subheader("📈 Основные характеристики системы")
-            st.dataframe(format_dataframe(pd.DataFrame(results)))
+        # if params.settings.calculation_mode != CalculationMode.PROBABILITY:
+        #     st.subheader("📈 Основные характеристики системы")
+        #     st.dataframe(format_dataframe(pd.DataFrame(results)))
 
 
 main()
