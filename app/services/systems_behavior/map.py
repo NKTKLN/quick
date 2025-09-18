@@ -64,7 +64,7 @@ class MAPSystemBehavior(BaseSystemBehavior):
 
         n = self.params.base_params.max_customers
 
-        N_b = np.sum(np.sum(probabilities[:, 2:], axis=1) * np.arange(1, n - 1))
+        N_b = np.sum(np.sum(probabilities[n*2:].reshape(n-2, n, probabilities.shape[-1]), axis=1) * np.arange(1, n-1)[:, np.newaxis], axis=0)
 
         logger.success("Среднее число заявок в системе вычислено")
         return N_b

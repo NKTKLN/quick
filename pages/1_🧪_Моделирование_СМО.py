@@ -208,12 +208,6 @@ def main() -> None:
 
         st.markdown("---")
 
-        steady_system_results, steady_system_probabilities = (
-            None,
-            None,
-        )  # split_results(
-        #     steady_system.calculate()
-        # )
         if transient_system is not None:
             st.subheader("📈 Визуализация динамики состояний системы")
             results = transient_system.calculate()
@@ -227,7 +221,7 @@ def main() -> None:
             )
             for key, value in results.items():
                 try:
-                    if key == "probabilities":
+                    if key == "probability":
                         continue
 
                     st.plotly_chart(
