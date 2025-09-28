@@ -12,7 +12,6 @@ from app.domain.models import SystemParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
 from app.services.matrix_builders.map import MAPServerMatrixBuilder
 from app.services.matrix_builders.multi import MultiServerMatrixBuilder
-from app.services.matrix_builders.single import SingleServerMatrixBuilder
 
 
 def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
@@ -32,9 +31,6 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
     )
 
     match params.settings.system_type:
-        case SystemType.SINGLE:
-            logger.info("Создан SingleServerMatrixBuilder")
-            return SingleServerMatrixBuilder(params.base_params)
         case SystemType.MULTI:
             logger.info("Создан MultiServerMatrixBuilder")
             return MultiServerMatrixBuilder(params.base_params)

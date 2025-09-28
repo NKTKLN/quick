@@ -43,7 +43,7 @@ def system_factory(
 
     system_behavior = None
     match system_type:
-        case SystemType.MULTI | SystemType.SINGLE:
+        case SystemType.MULTI:
             system_behavior = MultiSystemBehavior
         case SystemType.MAP:
             system_behavior = MAPSystemBehavior

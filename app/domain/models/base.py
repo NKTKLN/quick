@@ -5,7 +5,7 @@
 в зависимости от режима расчёта и типа системы.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
@@ -28,14 +28,13 @@ class BaseSystemParams:
             заявок (λ > 0). Может быть скаляром или массивом.
         max_customers (int): Максимальное количество заявок в системе (n > 0).
         processor_count (int): Количество обслуживающих каналов (m).
-            Для одноканальных систем должно быть равно 1.
     """
 
     mu_rate: float
     nu_rate: float
     lambda_rate: float | NDArray[np.float64]
     max_customers: int
-    processor_count: int = field(default=1, kw_only=True)
+    processor_count: int
 
     def validate(self) -> None:
         """Проверяет корректность параметров."""
@@ -130,13 +129,6 @@ class SystemParams:
         self.base_params.validate()
 
         if (
-            self.settings.system_type == SystemType.SINGLE
-            and self.base_params.processor_count != 1
-        ):
-            raise ValueError(
-                "Для одноканальной системы количество процессоров должно быть равно 1."
-            )
-        if (
             self.settings.system_mode == SystemMode.TRANSIENT
             and self.transient_params is None
         ):
@@ -145,15 +137,6 @@ class SystemParams:
         if self.settings.system_mode == SystemMode.TRANSIENT:
             self.transient_params.validate()
 
-            if (
-                self.settings.system_type == SystemType.SINGLE
-                and self.transient_params.initial_probabilities.shape[0]
-                != self.base_params.max_customers
-            ):
-                raise ValueError(
-                    "Размер начальных вероятностей должен совпадать с максимальным"
-                    "числом заявок в системе."
-                )
             if self.settings.system_type == SystemType.MULTI:
                 expected_size = (
                     self.base_params.max_customers
