@@ -228,9 +228,7 @@ class BaseServerSystem(ABC):
             n = self.params.base_params.max_customers
             m = self.system_behavior.D0.shape[0]
 
-            P = np.sum(self.probabilities[m * 2 :].reshape(n - 2, m, self.probabilities.shape[-1]), axis=1)
-            p_reject = P[-1]
-            print(p_reject)
+            p_reject = np.sum(self.probabilities[-m:], axis=0)
             return p_reject
 
         logger.info("Вычисление вероятности ухода заявки из очереди (Pух)")
