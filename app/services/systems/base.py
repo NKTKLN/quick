@@ -17,6 +17,7 @@ from app.domain import (
     ComputationConfig,
 )
 from app.domain.models import SystemParams
+from app.domain import SystemType
 from app.services.systems_behavior import BaseSystemBehavior
 
 
@@ -205,6 +206,10 @@ class BaseServerSystem(ABC):
         Returns:
             NDArray[np.float64]: Вероятность того, что заявка будет обслужена.
         """
+        if self.params.settings.system_type == SystemType.MULTI_SENSOR_MAP:
+            q = 1 - self.calculate_quit_probability()
+            return q
+    
         logger.info("Вычисление вероятности обслуживания заявки (Pоб)")
 
         q = self.calculate_relative_throughput()
@@ -218,12 +223,49 @@ class BaseServerSystem(ABC):
         Returns:
             NDArray[np.float64]: Вероятность отказа в обслуживании.
         """
+
+        if self.params.settings.system_type == SystemType.MULTI_SENSOR_MAP:
+            n = self.params.base_params.max_customers
+            m = self.system_behavior.D0.shape[0]
+
+            P = np.sum(self.probabilities[m * 2 :].reshape(n - 2, m, self.probabilities.shape[-1]), axis=1)
+            p_reject = P[-1]
+            print(p_reject)
+            return p_reject
+
         logger.info("Вычисление вероятности ухода заявки из очереди (Pух)")
 
         p_reject = 1 - self.calculate_relative_throughput()
 
         logger.success("Вероятность ухода из очереди успешно вычислена")
         return p_reject
+
+    def calculate_quit_probability(self) -> NDArray[np.float64]:
+        if self.params.settings.system_type != SystemType.MULTI_SENSOR_MAP:
+            return np.zeros(self.probabilities.shape[1], dtype=np.float64)
+        
+        p_quit = self.params.base_params.nu_rate / self.lambda_rate * self.calculate_avg_system_length()
+
+        return p_quit
+
+    def calculate_loss_probability(self) -> NDArray[np.float64]:
+        """Вычисляет вероятность потери пакетов в момент времени.
+
+        Returns:
+            NDArray[np.float64]: Вероятность отказа в обслуживании.
+        """
+        if self.params.settings.system_type != SystemType.MULTI_SENSOR_MAP:
+            return np.zeros(self.probabilities.shape[1], dtype=np.float64)
+
+        logger.info("Вычисление вероятности ухода заявки из очереди (Pух)")
+
+        p_reject = self.calculate_rejection_probability()
+        p_quit = self.calculate_quit_probability()
+
+        p_loss = p_reject + p_quit
+
+        logger.success("Вероятность потери пакетов в момент времени успешно вычислена")
+        return p_loss
 
     def calculate(self) -> dict[str, NDArray[np.float64]]:
         """Универсальный метод вычислений по режиму из CalculationMode.
@@ -255,6 +297,8 @@ class BaseServerSystem(ABC):
                 }
             case CalculationMode.SERVICE_PROBABILITY:
                 result = {"service_probability": self.calculate_service_probability()}
+            case CalculationMode.LOSS_PROBABILITY:
+                result = {"loss_probability": self.calculate_loss_probability()}
             case CalculationMode.AIO:
                 result = {
                     "probability": self.probabilities,
@@ -264,7 +308,9 @@ class BaseServerSystem(ABC):
                     "avg_buffer_length": self.calculate_avg_buffer_length(),
                     "avg_system_length": self.calculate_avg_system_length(),
                     "rejection_probability": self.calculate_rejection_probability(),
+                    "loss_probability": self.calculate_loss_probability(),
                     "service_probability": self.calculate_service_probability(),
+                    "quit_probability": self.calculate_quit_probability(),
                 }
             case _:
                 raise ValueError(

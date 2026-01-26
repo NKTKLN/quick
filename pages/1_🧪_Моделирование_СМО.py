@@ -4,6 +4,7 @@
 вероятностей и визуализировать результаты.
 """
 
+import json
 from dataclasses import asdict
 
 import numpy as np
@@ -62,10 +63,20 @@ PLOT_SETTINGS = {
         "yaxis_title": "Вероятность",
         "line_colors": ["#8c564b"],
     },
+    "loss_probability": {
+        "title_text": "Вероятность потери пакетов в момент времени",
+        "yaxis_title": "Вероятность",
+        "line_colors": ["#17becf"],
+    },
     "service_probability": {
         "title_text": "Вероятность обслуживания заявок",
         "yaxis_title": "Вероятность",
         "line_colors": ["#e377c2"],
+    },
+    "quit_probability": {
+        "title_text": "Вероятность ухода заявки из системы",
+        "yaxis_title": "Вероятность",
+        "line_colors": ["#7f7f7f"],
     },
 }
 
@@ -183,6 +194,23 @@ def format_dataframe(df: pd.DataFrame, precision: int = 16):
 
 # ruff: noqa: C901
 def main() -> None:
+    def numpy_to_python(obj):
+        """Рекурсивно преобразует numpy-типы и массивы в стандартные Python-типы."""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, (np.integer, np.floating, np.bool_)):
+            return obj.item()
+        elif isinstance(obj, dict):
+            return {key: numpy_to_python(value) for key, value in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [numpy_to_python(item) for item in obj]
+        elif isinstance(obj, float) and (np.isnan(obj) or np.isinf(obj)):
+            return None  # Заменяем NaN/Inf на null для JSON
+       
+        return obj
+
+
+
     """Основная функция страницы: UI, вычисление, визуализация."""
     st.title("🧪 Моделирование СМО с нетерпеливыми заявками")
     st.markdown("---")
@@ -253,6 +281,29 @@ def main() -> None:
                     )
                 except Exception as e:
                     st.error(f"❌ Ошибка в результатах: {e}")
+
+            st.markdown("---")
+            st.subheader("💾 Скачать результаты")
+                
+            try:
+                results_serializable = numpy_to_python(results)
+                json_data = json.dumps(
+                    results_serializable,
+                    ensure_ascii=False,
+                    indent=2,
+                    allow_nan=False  # Запрещаем NaN/Inf в JSON
+                )
+                
+                st.download_button(
+                    label="📥 Скачать результаты в JSON",
+                    data=json_data,
+                    file_name="simulation_results.json",
+                    mime="application/json",
+                    key="download_json_button"
+                )
+            except Exception as e:
+                st.warning(f"⚠️ Не удалось подготовить JSON для скачивания: {e}")
+                st.info("Попробуйте экспортировать данные в другом формате или обратитесь к разработчику.")
 
         # st.subheader("📊 Вероятности стационарных состояний")
         # st.dataframe(format_dataframe(pd.DataFrame(probabilities)))

@@ -6,6 +6,7 @@ from app.domain.models.base import SystemParams
 from app.services.matrix_builders.map import MAPServerMatrixBuilder
 from app.services.systems_behavior.base import BaseSystemBehavior
 
+
 # TODO:
 class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
     def __init__(self, params: SystemParams) -> None:
@@ -65,7 +66,7 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
 
         N_b = np.sum(
             np.sum(
-                probabilities[n * 2 :].reshape(n - 2, n, probabilities.shape[-1]),
+                probabilities[m * 2 :].reshape(n - 2, m, probabilities.shape[-1]),
                 axis=1,
             )
             * np.arange(1, n - 1)[:, np.newaxis],
