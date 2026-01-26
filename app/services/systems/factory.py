@@ -17,6 +17,7 @@ from app.services.systems.steady_state import MultiServerSteadyStateSystem
 from app.services.systems.transient_state import TransientServerStateSystem
 from app.services.systems_behavior import (
     MAPSystemBehavior,
+    MultiSensorMAPSystemBehavior,
     MultiSystemBehavior,
 )
 
@@ -47,6 +48,8 @@ def system_factory(
             system_behavior = MultiSystemBehavior
         case SystemType.MAP:
             system_behavior = MAPSystemBehavior
+        case SystemType.MULTI_SENSOR_MAP:
+            system_behavior = MultiSensorMAPSystemBehavior
         case _:
             raise NotImplementedError(f"Система типа {system_type} не реализована")
 

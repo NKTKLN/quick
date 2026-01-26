@@ -38,6 +38,7 @@ class BaseServerSystem(ABC):
 
         Args:
             params (ServerParams): Параметры СМО.
+            system_behavior (BaseSystemBehavior): Зависимости СМО.
             config (ComputationConfig | None, optional): Конфигурация вычислений.
         """
         self.params = params

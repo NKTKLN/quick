@@ -22,9 +22,19 @@ def get_system_mode_type() -> tuple[SystemType, CalculationMode, SystemMode]:
         tuple[SystemType, CalculationMode, SystemMode]: Значения типа системы, режима
             вычисления и режима системы.
     """
+
+    def reset_state() -> None:
+        """Очищает состояние Streamlit."""
+        keys_to_delete = [k for k in st.session_state.keys() if k != "system_type"]
+        for k in keys_to_delete:
+            del st.session_state[k]
+
     st.subheader("🔬 Тип системы")
     system_type = st.selectbox(
-        "Выберите тип СМО:", [system_type.value for system_type in SystemType]
+        "Выберите тип СМО:",
+        [system_type.value for system_type in SystemType],
+        key="system_type",
+        on_change=reset_state,
     )
     calculation_mode = st.selectbox(
         "Выберите режим расчёта:", [mode.value for mode in CalculationMode]
@@ -124,7 +134,7 @@ def get_intensity_parameters(system_type: SystemType) -> tuple:
         tuple: Параметры интенсивности, соответствующие выбранному типу системы
             и режиму расчета.
     """
-    if system_type == SystemType.MAP:
+    if system_type in (SystemType.MAP, SystemType.MULTI_SENSOR_MAP):
         return map_intensity_parameters()
     return intensity_parameters()
 

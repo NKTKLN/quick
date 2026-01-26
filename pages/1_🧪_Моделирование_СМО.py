@@ -87,12 +87,25 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
     lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
 
     p_rate, q_rate = None, None
-    if system_type == SystemType.MAP:
+    if system_type in (SystemType.MAP, SystemType.MULTI_SENSOR_MAP):
         max_customers, processor_count = system_capacity_inputs(
             system_type, default_max_customers=3
         )
+
+        if system_type == SystemType.MULTI_SENSOR_MAP:
+            sensor_count = st.number_input(
+                "Число датчиков для MAP-процесса (M)",
+                min_value=1,
+                max_value=100,
+                value=3,
+            )
+            max_customers += 2
+
         st.markdown("---")
-        p_rate, q_rate = map_intensity_matrix(max_customers)
+
+        p_rate, q_rate = map_intensity_matrix(
+            max_customers if system_type == SystemType.MAP else sensor_count
+        )
     else:
         max_customers, processor_count = system_capacity_inputs(system_type)
 
@@ -102,6 +115,8 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
         count += processor_count + 1
     elif system_type == SystemType.MAP:
         count **= 2
+    elif system_type == SystemType.MULTI_SENSOR_MAP:
+        count *= sensor_count
 
     transient_params = None
     if system_mode == SystemMode.TRANSIENT:
@@ -131,7 +146,11 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
         system_type=system_type,
     )
 
-    if system_type == SystemType.MAP and p_rate is not None and q_rate is not None:
+    if (
+        system_type in (SystemType.MAP, SystemType.MULTI_SENSOR_MAP)
+        and p_rate is not None
+        and q_rate is not None
+    ):
         base_params = MAPSystemParams(
             **asdict(base_params),
             p_rate=p_rate.astype(np.float64),
@@ -217,7 +236,7 @@ def main() -> None:
                     params.transient_params.time_array,
                     params.settings.calculation_mode.value,
                 ),
-                use_container_width=True,
+                width="stretch",
             )
             for key, value in results.items():
                 try:
@@ -230,7 +249,7 @@ def main() -> None:
                             params.transient_params.time_array,
                             **PLOT_SETTINGS[key],
                         ),
-                        use_container_width=True,
+                        width="stretch",
                     )
                 except Exception as e:
                     st.error(f"❌ Ошибка в результатах: {e}")

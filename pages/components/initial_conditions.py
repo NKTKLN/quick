@@ -46,13 +46,9 @@ def render_state_variables(count: int) -> NDArray[np.float64]:
     ):
         st.session_state.state_variables = ", ".join(["1"] * count)
 
-    st.session_state.state_variables = st.text_input(
+    st.text_input(
         "Переменные состояния — *введите через запятую* (например: 1, 2, 3)",
-        st.session_state.state_variables,
-        key="state_variables_input",
-        on_change=lambda: st.session_state.update(
-            state_variables=st.session_state.state_variables_input
-        ),
+        key="state_variables",
     )
 
     try:
@@ -82,11 +78,7 @@ def render_initial_probabilities(count: int) -> NDArray[np.float64]:
 
     st.text_input(
         "Начальные вероятности — *введите через запятую* (например: 1, 0, 0, 0)",
-        st.session_state.initial_probabilities,
-        key="initial_probabilities_input",
-        on_change=lambda: st.session_state.update(
-            initial_probabilities=st.session_state.initial_probabilities_input
-        ),
+        key="initial_probabilities",
     )
 
     try:

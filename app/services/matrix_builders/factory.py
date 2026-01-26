@@ -12,6 +12,9 @@ from app.domain.models import SystemParams
 from app.services.matrix_builders.base import BaseMatrixBuilder
 from app.services.matrix_builders.map import MAPServerMatrixBuilder
 from app.services.matrix_builders.multi import MultiServerMatrixBuilder
+from app.services.matrix_builders.multi_sensor_map import (
+    MultiSensorMAPServerMatrixBuilder,
+)
 
 
 def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
@@ -37,6 +40,9 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
         case SystemType.MAP:
             logger.info("Создан MAPServerMatrixBuilder")
             return MAPServerMatrixBuilder(params.base_params)
+        case SystemType.MULTI_SENSOR_MAP:
+            logger.info("Создан MultiSensorMAPServerMatrixBuilder")
+            return MultiSensorMAPServerMatrixBuilder(params.base_params)
         case _:
             raise ValueError(
                 f"Неподдерживаемый тип системы: {params.settings.system_type}"
