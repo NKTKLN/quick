@@ -287,6 +287,7 @@ def main() -> None:
                 
             try:
                 results_serializable = numpy_to_python(results)
+                results_serializable["time_array"] = numpy_to_python(params.transient_params.time_array)
                 json_data = json.dumps(
                     results_serializable,
                     ensure_ascii=False,
