@@ -5,9 +5,10 @@
 """
 
 import functools
+from collections.abc import Callable
 from datetime import datetime
 from pickle import PickleError, UnpicklingError
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from duckdb import Error as DuckDBError
 from loguru import logger

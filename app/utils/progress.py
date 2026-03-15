@@ -8,8 +8,8 @@
 
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Sized
-from typing import Generic, Iterable, Iterator, TypeVar
+from collections.abc import Iterable, Iterator, Sized
+from typing import Generic, TypeVar
 
 import streamlit as st
 from loguru import logger

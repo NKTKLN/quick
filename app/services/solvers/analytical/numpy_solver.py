@@ -104,7 +104,7 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         for k in Progress.wrap(range(matrix_size), description="Вычисление слоёв M"):
             outer_row = xsi_matrix[-1, k] * xsi_matrix_inv[k, :]
             m_matrix[-1, :, :] += np.real(np.outer(outer_row, exp_g_t[k]))
-            logger.debug(f"Слой {k+1}/{matrix_size} матрицы M добавлен")
+            logger.debug(f"Слой {k + 1}/{matrix_size} матрицы M добавлен")
 
         logger.info("Генерация матрицы M(t) завершена")
         return m_matrix
@@ -144,7 +144,7 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
             m_matrix += np.real(
                 outer[:, :, np.newaxis] * exp_g_t[k, np.newaxis, np.newaxis]
             )
-            logger.debug(f"Слой {k+1}/{matrix_size} матрицы M добавлен")
+            logger.debug(f"Слой {k + 1}/{matrix_size} матрицы M добавлен")
 
         logger.info("Генерация матрицы M(t) завершена")
         return m_matrix

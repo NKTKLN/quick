@@ -1,3 +1,15 @@
+"""Содержит реализацию поведения системы массового обслуживания с MAP-потоком.
+
+Модуль определяет класс MAPSystemBehavior, который расширяет базовый интерфейс
+поведения СМО для случая входного потока типа MAP. Класс отвечает за вычисление
+интенсивности поступления заявок и среднего числа заявок в системе на основе
+матриц переходов MAP-процесса и вектора вероятностей состояний.
+
+Основная сущность:
+    MAPSystemBehavior — класс поведения СМО с MAP-потоком, использующий
+    матричное представление процесса поступления заявок.
+"""
+
 import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
@@ -8,6 +20,20 @@ from app.services.systems_behavior.base import BaseSystemBehavior
 
 
 class MAPSystemBehavior(BaseSystemBehavior):
+    """Класс поведения системы массового обслуживания с MAP-потоком.
+
+    Класс реализует вычисление характеристик СМО для моделей, в которых
+    входной поток задаётся марковским процессом поступления заявок (MAP).
+    Для этого используются матрицы D0 и D1, формируемые построителем
+    MAPServerMatrixBuilder.
+
+    Attributes:
+        transition_matrix (MAPServerMatrixBuilder): Построитель матриц MAP-процесса.
+        D0 (np.ndarray): Матрица переходов без поступления заявки.
+        D1 (np.ndarray): Матрица переходов с поступлением заявки.
+        DDD (np.ndarray): Суммарная матрица переходов MAP-процесса.
+    """
+
     def __init__(self, params: SystemParams) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.
 
@@ -20,7 +46,16 @@ class MAPSystemBehavior(BaseSystemBehavior):
         self.D1 = self.transition_matrix._d_1_matrix_generator()
         self.DDD = self.D0 + self.D1
 
-    def _calculate_teta(self):
+    def _calculate_teta(self) -> None:
+        """Вычисляет стационарный вектор вероятностей состояний MAP-процесса.
+
+        Метод формирует систему линейных уравнений на основе матрицы переходов
+        MAP-процесса и сохраняет результат во внутреннем атрибуте `teta_vec`.
+
+        Raises:
+            ValueError: Если детерминант базовой матрицы равен нулю и решение
+            системы невозможно.
+        """
         n = self.DDD.shape[0]
 
         base_matrix = np.vstack([self.DDD.T[: n - 1], np.ones(n)])

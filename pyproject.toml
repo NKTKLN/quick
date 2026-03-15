@@ -19,15 +19,10 @@ dependencies = [
     "pandas-stubs (>=2.2.3.250527,<3.0.0.0)",
     "scipy-stubs (>=1.15.3.0,<2.0.0.0)",
     "plotly (>=6.1.2,<7.0.0)",
-    "deptry (>=0.23.0,<0.24.0)",
     "pydantic (>=2.11.7,<3.0.0)",
-    "pylint (>=3.3.7,<4.0.0)",
     "loguru (>=0.7.3,<0.8.0)",
-    "pytest (>=8.4.1,<9.0.0)",
     "nbformat (>=5.10.4,<6.0.0)",
-    "nbqa (>=1.9.1,<2.0.0)",
 ]
-
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -37,30 +32,15 @@ build-backend = "poetry.core.masonry.api"
 ruff = "^0.11.6"
 mypy = "^1.15.0"
 pre-commit = "^4.2.0"
-interrogate = "^1.7.0"
-vulture = "^2.14"
 pip-audit = "^2.9.0"
-black = "^25.1.0"
 pyupgrade-directories = "^0.3.0"
 commitizen = "^4.8.3"
-
-[tool.black]
-line-length = 88
-target-version = ['py312']
-exclude = '''
-/(
-    \.git
-  | \.venv
-  | build
-  | dist
-  | __pycache__
-  | tmp
-)/
-'''
+deptry = "^0.24.0"
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py313"
+extend-include = ["*.ipynb"]
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
 
 [tool.ruff.format]
@@ -71,59 +51,35 @@ docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
-ignore = ["E203", "D100"]
-select = ["E", "F", "W", "C90", "B", "B9", "I", "D", "S"]
+select = ["E", "W", "F", "I", "D", "B", "B9", "C90", "S", "UP", "SIM", "ARG", "PTH"]
+ignore = ["E203", "D100", "E501", "ARG004"]
+fixable = ["ALL"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = ["S101", "D", "PLR2004"]  # assert, docstrings, magic values in tests
+"**/*.ipynb" = ["T201"]                   # print
+
 [tool.mypy]
-python_version = "3.12"
+mypy_path = ["src"]
+files = ["src", "tests"]
+python_version = "3.13"
 warn_return_any = true
-disallow_untyped_defs = true
-disallow_any_unimported = true
-disallow_incomplete_defs = true
-disallow_untyped_calls = true
-strict_optional = true
-check_untyped_defs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true
-pretty = true
 show_error_codes = true
+pretty = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+strict_optional = true
+disallow_untyped_calls = true
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
-
-[tool.interrogate]
-fail-under = 90
-exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
-ignore-init-method = true
-ignore-init-module = true
-ignore-magic = true
-ignore-semiprivate = true
-ignore-private = true
-verbose = 1
-color = true
-
-[tool.vulture]
-exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
-
-[tool.pylint]
-disable = ["logging-fstring-interpolation", "invalid-name", "non-ascii-file-name", "non-ascii-name", "use-dict-literal", "too-few-public-methods", "fixme", "unnecessary-pass"]
-max-line-length = 88
-max-module-lines = 500
-good-names = ["i", "j", "k", "ex", "_"]
-const-rgx = "[A-Z_][A-Z0-9_]*"
-variable-rgx = "[a-z_][a-z0-9_]*"
-class-rgx = "[A-Z][a-zA-Z0-9]*"
-function-rgx = "[a-z_][a-z0-9_]*"
-method-rgx = "[a-z_][a-z0-9_]*"
-ignore = [".git", "__pycache__", "build", "dist", ".venv", "tmp"]
-
-[tool.pylint.format]
-max-line-length = 88
-
-[tool.pyupgrade]
-py312-plus = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"

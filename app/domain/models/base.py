@@ -45,9 +45,8 @@ class BaseSystemParams:
         if isinstance(self.lambda_rate, np.ndarray):
             if np.any(self.lambda_rate <= 0) or self.lambda_rate.shape[0] == 0:
                 raise ValueError("Интенсивность λ должна быть положительна.")
-        else:
-            if self.lambda_rate <= 0:
-                raise ValueError("Интенсивность λ должна быть положительна.")
+        elif self.lambda_rate <= 0:
+            raise ValueError("Интенсивность λ должна быть положительна.")
         if self.max_customers <= 0:
             raise ValueError("max_customers должна быть положительна.")
         if self.processor_count <= 0:

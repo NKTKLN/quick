@@ -1,102 +1,95 @@
 version: '3'
 
 tasks:
-  install:
+  # ======== Environment ========
+  sync:
     desc: Install dependencies using poetry
     cmds:
       - poetry install --no-root
-    
+
   precommit:
     desc: Install git hooks via pre-commit
+    deps: [sync]
     cmds:
       - poetry run pre-commit install
 
   init:
-    desc: Full project setup — install deps, configure pre-commit and Commitizen
-    deps: [install, precommit, commitizen]
+    desc: Full project setup — install deps and configure pre-commit
+    deps: [sync, precommit]
 
+  # ======== Commitizen ========
   cz-commit:
     desc: Create a commit using Commitizen (Conventional Commits standard)
+    deps: [sync]
     cmds:
       - poetry run cz commit
 
   cz-check:
     desc: Check if commit messages follow Conventional Commits
+    deps: [sync]
     cmds:
       - poetry run cz check
 
   cz-bump:
     desc: Bump version, tag, and update changelog using Commitizen
+    deps: [sync]
     cmds:
       - poetry run cz bump
 
   release:
     desc: Bump version and push tags (run after merge to main)
+    deps: [sync]
     cmds:
       - poetry run cz bump
       - git push --follow-tags
 
-  code-upgrade:
-    desc: Updates code syntax to newer versions
-    platforms: [linux, darwin]
+  # ======== Formatting ========
+  fmt:
+    desc: Auto-fix lint issues and format code
+    deps: [sync]
     cmds:
-      - find . -type f -name "*.py"
-        ! -path "./.git/*"
-        ! -path "./__pycache__/*"
-        ! -path "./build/*"
-        ! -path "./dist/*"
-        ! -path "./.venv/*"
-        ! -path "./tmp/*"
-        -exec poetry run pyupgrade {} +
+      - poetry run ruff format .
+      - poetry run ruff check . --fix --unsafe-fixes
 
-  format:
-    desc: Code formatting with black and ruff
-    deps: [code-upgrade]
-    cmds:
-      - poetry run black .
-      - poetry run ruff check . --fix
-
+  # ======== Static analysis ========
   lint:
-    desc: Static code analysis with ruff and mypy
+    desc: Run Ruff and MyPy
+    deps: [sync]
     cmds:
       - poetry run ruff check .
+      - poetry run ruff format --check .
       - poetry run mypy .
-      - poetry run pylint --jobs=4 .
 
-  docstyle:
-    desc: Docstring style check
-    cmds:
-      - poetry run interrogate .
-
+  # ======== Dependency hygiene ========
   audit:
-    desc: Dependency vulnerability audit
+    desc: Security audit
+    deps: [sync]
     cmds:
       - poetry run pip-audit --ignore-vuln PYSEC-2022-42969
 
-  deadcode:
-    desc: Find unused code
-    cmds:
-      - poetry run vulture .
-
-  check:
-    desc: Full linting, audit run, and code checks
-    deps: [format, lint, docstyle, audit] #, deadcode
-
   unused-libs:
-    desc: Check for unused libraries
+    desc: Detect unused dependencies
+    deps: [sync]
     cmds:
       - poetry run deptry .
 
+  # ======== Full quality gate ========
+  check:
+    desc: Run full quality checks
+    deps: [lint, audit, unused-libs]
+
+  # ======== Run app ========
   run:
     desc: Run the application
     cmds:
       - poetry run streamlit run streamlit_app.py
 
+  # ======== Docker ========
   docker-build:
     desc: Build the application in docker
     cmds:
       - docker build -t quick-system .
-  
+
   docker-run:
     desc: Run the application in docker
     platforms: [linux, darwin]

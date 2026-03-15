@@ -25,7 +25,7 @@ def get_system_mode_type() -> tuple[SystemType, CalculationMode, SystemMode]:
 
     def reset_state() -> None:
         """Очищает состояние Streamlit."""
-        keys_to_delete = [k for k in st.session_state.keys() if k != "system_type"]
+        keys_to_delete = [k for k in st.session_state if k != "system_type"]
         for k in keys_to_delete:
             del st.session_state[k]
 

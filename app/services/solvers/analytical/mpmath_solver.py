@@ -145,7 +145,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
                     outer_ij = xsi_matrix[last_index, k] * xsi_matrix_inv[k, j]
                     for t in range(time_end_step):
                         m_matrix[last_index, j, t] += mp.re(outer_ij * exp_g_t[k, t])
-                logger.debug(f"Слой {k+1}/{matrix_size} матрицы M добавлен")
+                logger.debug(f"Слой {k + 1}/{matrix_size} матрицы M добавлен")
             logger.debug("Вычисление матрицы M(t) завершено")
             return m_matrix
 
@@ -194,7 +194,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
                         outer_ij = xsi_matrix[i, k] * xsi_matrix_inv[k, j]
                         for t in range(time_end_step):
                             m_matrix[i, j, t] += mp.re(outer_ij * exp_g_t[k, t])
-                logger.debug(f"Слой {k+1}/{matrix_size} матрицы M добавлен")
+                logger.debug(f"Слой {k + 1}/{matrix_size} матрицы M добавлен")
 
             logger.debug("Вычисление матрицы M(t) завершено")
             return m_matrix

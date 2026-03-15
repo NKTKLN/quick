@@ -4,9 +4,9 @@
 ключу и управление соединением.
 """
 
-import os
 import threading
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -52,19 +52,17 @@ class DuckDBClient:
             FileNotFoundError: Если файл schema.sql не найден.
             RuntimeError: Если произошла ошибка при выполнении SQL схемы.
         """
-        current_file_path = os.path.abspath(__file__)
-        current_dir = os.path.dirname(current_file_path)
-        schema_path = os.path.abspath(
-            os.path.join(current_dir, "..", "sql", "schema.sql")
-        )
+        current_file_path = Path(__file__).resolve()
+        current_dir = current_file_path.parent
+        schema_path = (current_dir / ".." / "sql" / "schema.sql").resolve()
 
         logger.debug(f"Загрузка схемы из файла: {schema_path}")
-        if not os.path.exists(schema_path):
+        if not schema_path.exists():
             logger.error(f"Файл схемы не найден: {schema_path}")
             raise FileNotFoundError(f"Файл схемы не найден: {schema_path}")
 
         try:
-            with open(schema_path, encoding="utf-8") as f:
+            with schema_path.open(encoding="utf-8") as f:
                 schema_sql = f.read()
                 self.connection.execute(schema_sql)
                 logger.info("Схема базы данных успешно инициализирована.")

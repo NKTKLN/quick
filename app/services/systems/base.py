@@ -15,9 +15,9 @@ from numpy.typing import NDArray
 from app.domain import (
     CalculationMode,
     ComputationConfig,
+    SystemType,
 )
 from app.domain.models import SystemParams
-from app.domain import SystemType
 from app.services.systems_behavior import BaseSystemBehavior
 
 
@@ -184,6 +184,11 @@ class BaseServerSystem(ABC):
         return L
 
     def calculate_avg_system_length(self) -> NDArray[np.float64]:
+        """Вычисляет среднее число заявок в системе.
+
+        Returns:
+            NDArray[np.float64]: Среднее число заявок в системе.
+        """
         return self.system_behavior.calculate_avg_system_length(self.probabilities)
 
     # TODO:
@@ -209,7 +214,7 @@ class BaseServerSystem(ABC):
         if self.params.settings.system_type == SystemType.MULTI_SENSOR_MAP:
             q = 1 - self.calculate_quit_probability()
             return q
-    
+
         logger.info("Вычисление вероятности обслуживания заявки (Pоб)")
 
         q = self.calculate_relative_throughput()
@@ -223,9 +228,7 @@ class BaseServerSystem(ABC):
         Returns:
             NDArray[np.float64]: Вероятность отказа в обслуживании.
         """
-
         if self.params.settings.system_type == SystemType.MULTI_SENSOR_MAP:
-            n = self.params.base_params.max_customers
             m = self.system_behavior.D0.shape[0]
 
             p_reject = np.sum(self.probabilities[-m:], axis=0)
@@ -239,10 +242,22 @@ class BaseServerSystem(ABC):
         return p_reject
 
     def calculate_quit_probability(self) -> NDArray[np.float64]:
+        """Вычисляет вероятность ухода заявки из системы.
+
+        Для систем, отличных от MULTI_SENSOR_MAP, возвращает нулевой массив,
+        так как уход заявок в такой постановке не учитывается.
+
+        Returns:
+            NDArray[np.float64]: Вероятность ухода заявки из системы.
+        """
         if self.params.settings.system_type != SystemType.MULTI_SENSOR_MAP:
             return np.zeros(self.probabilities.shape[1], dtype=np.float64)
-        
-        p_quit = self.params.base_params.nu_rate / self.lambda_rate * self.calculate_avg_system_length()
+
+        p_quit = (
+            self.params.base_params.nu_rate
+            / self.lambda_rate
+            * self.calculate_avg_system_length()
+        )
 
         return p_quit
 
@@ -265,6 +280,7 @@ class BaseServerSystem(ABC):
         logger.success("Вероятность потери пакетов в момент времени успешно вычислена")
         return p_loss
 
+    # ruff: noqa: C901
     def calculate(self) -> dict[str, NDArray[np.float64]]:
         """Универсальный метод вычислений по режиму из CalculationMode.
 
