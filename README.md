@@ -24,8 +24,8 @@ QUICK предоставляет удобный веб-интерфейс для
 
 ## 📦 Зависимости
 
-- [Python](https://www.python.org/downloads/)
-- [Poetry](https://python-poetry.org/docs/#installation)
+- [Python 3.13+](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [Docker](https://docs.docker.com/get-docker/) (опционально)
 - [Task](https://taskfile.dev/) (опционально)
 
@@ -61,13 +61,13 @@ LOG_PATH=
 2. Установите зависимости:
 
    ```bash
-   poetry install --no-root
+   uv sync --group web
    ```
 
 3. Запустите приложение:
 
    ```bash
-   streamlit run streamlit_app.py
+   streamlit run web/app.py
    ```
 
 ### 🐳 Запуск в Docker

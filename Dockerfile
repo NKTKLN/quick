@@ -1,51 +1,56 @@
-# ===== Стадия 1: Сборщик =====
+# ===== Stage 1: Assembler =====
 FROM python:3.13-slim AS builder
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    POETRY_VERSION=2.1.3 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_NO_INTERACTION=1
-
-RUN apt-get update && apt-get install --no-install-recommends -y \
-        build-essential \
-        curl \
-        python3-venv \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN curl -sSL https://install.python-poetry.org | python3 - \
-    && ln -s $POETRY_HOME/bin/poetry /usr/local/bin/poetry
+# Базовое окружение Python + настройки uv + виртуальное окружение в /opt/venv
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock* ./
+# Установка бинарника uv (быстрый резолвер/установщик зависимостей)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-RUN poetry install --no-root --only main --no-interaction --no-ansi
+# Сначала копируем только файлы зависимостей (лучше кешируются слои)
+COPY pyproject.toml uv.lock ./
 
-# ===== Стадия 2: Финальная =====
+# Создаём виртуальное окружение + устанавливаем прод-зависимости (по lock-файлу, без dev)
+RUN uv venv /opt/venv \
+    && uv sync --frozen --no-dev --group web
+
+# Копируем исходный код после зависимостей для эффективного кеширования
+COPY . .
+
+# Устанавливаем пакет в виртуальное окружение (чтобы работал `python -m app.main`)
+RUN uv pip install .
+
+# ===== Stage 2: Final =====
 FROM python:3.13-slim AS final
 
+# Окружение Python для рантайма; используем заранее собранное виртуальное окружение
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DUCKDB_PATH=cache/data.duck_db
+    PATH="/opt/venv/bin:$PATH"
 
-# Создаем непривилегированного пользователя заранее, чтобы избежать проблем с правами
+# Зависимости только для выполнения (чтобы образ был меньше)
+RUN apt-get update && apt-get install --no-install-recommends -y \
+      curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создаём непривилегированного пользователя (фиксированный UID/GID для удобства в Kubernetes)
 RUN groupadd -g 10000 shrimp && \
     useradd -m -u 10000 -g shrimp shrimp
 
 WORKDIR /app
 
-# Копируем только необходимые файлы из билдера
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin/streamlit /usr/local/bin/streamlit
+# Переносим виртуальное окружение и приложение из этапа сборки
+COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app /app
 
-# Копируем остальное
-COPY . .
-
-# Устанавливаем права сразу после копирования
-RUN chown -R shrimp:shrimp /app
+# Исправляем владельца, чтобы непривилегированный пользователь мог читать и запускать всё
+RUN chown -R shrimp:shrimp /app /opt/venv
 
 USER shrimp
 
@@ -54,5 +59,6 @@ EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD curl --fail http://localhost:8501/_stcore/health || exit 1
 
-ENTRYPOINT ["streamlit", "run", "streamlit_app.py"]
+# Запуск модуля как entrypoint
+ENTRYPOINT ["streamlit", "run", "web/streamlit_app.py"]
 CMD ["--server.port=8501", "--server.address=0.0.0.0"]

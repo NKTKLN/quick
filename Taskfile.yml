@@ -3,44 +3,43 @@ version: '3'
 tasks:
   # ======== Environment ========
   sync:
-    desc: Install dependencies using poetry
+    desc: Sync dependencies using uv
     cmds:
-      - poetry install --no-root
+      - uv sync --group dev --group web
 
   precommit:
-    desc: Install git hooks via pre-commit
+    desc: Install git hooks
     deps: [sync]
     cmds:
-      - poetry run pre-commit install
+      - uv run pre-commit install
 
   init:
-    desc: Full project setup — install deps and configure pre-commit
+    desc: Full project setup
     deps: [sync, precommit]
 
   # ======== Commitizen ========
   cz-commit:
-    desc: Create a commit using Commitizen (Conventional Commits standard)
+    desc: Commit using Conventional Commits
     deps: [sync]
     cmds:
-      - poetry run cz commit
+      - uv run cz commit
 
   cz-check:
-    desc: Check if commit messages follow Conventional Commits
+    desc: Check commit messages
     deps: [sync]
     cmds:
-      - poetry run cz check
+      - uv run cz check
 
   cz-bump:
-    desc: Bump version, tag, and update changelog using Commitizen
+    desc: Bump version and update changelog
     deps: [sync]
     cmds:
-      - poetry run cz bump
+      - uv run cz bump
 
   release:
-    desc: Bump version and push tags (run after merge to main)
-    deps: [sync]
+    desc: Bump version and push tags
+    deps: [cz-bump]
     cmds:
-      - poetry run cz bump
       - git push --follow-tags
 
   # ======== Formatting ========
@@ -48,30 +47,30 @@ tasks:
     desc: Auto-fix lint issues and format code
     deps: [sync]
     cmds:
-      - poetry run ruff format .
-      - poetry run ruff check . --fix --unsafe-fixes
+      - uv run ruff format .
+      - uv run ruff check . --fix --unsafe-fixes
 
   # ======== Static analysis ========
   lint:
     desc: Run Ruff and MyPy
     deps: [sync]
     cmds:
-      - poetry run ruff check .
-      - poetry run ruff format --check .
-      - poetry run mypy .
+      - uv run ruff check .
+      - uv run ruff format --check .
+      - uv run mypy .
 
   # ======== Dependency hygiene ========
   audit:
     desc: Security audit
     deps: [sync]
     cmds:
-      - poetry run pip-audit --ignore-vuln PYSEC-2022-42969
+      - uv run pip-audit --ignore-vuln PYSEC-2022-42969
 
   unused-libs:
     desc: Detect unused dependencies
     deps: [sync]
     cmds:
-      - poetry run deptry .
+      - uv run deptry . --config pyproject.toml
 
   # ======== Full quality gate ========
   check:
@@ -82,22 +81,21 @@ tasks:
   run:
     desc: Run the application
     cmds:
-      - poetry run streamlit run streamlit_app.py
+      - uv run streamlit run web/app.py
 
   # ======== Docker ========
   docker-build:
-    desc: Build the application in docker
+    desc: Build Docker image
     cmds:
       - docker build -t quick-system .
 
   docker-run:
-    desc: Run the application in docker
-    platforms: [linux, darwin]
+    desc: Run Docker container
     cmds:
       - docker run -it --rm -p 8501:8501
           -v $(pwd)/cache:/app/cache
           quick-system
 
   docker:
-    desc: Start the application in docker
+    desc: Build and run Docker
     deps: [docker-build, docker-run]
