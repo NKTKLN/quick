@@ -11,16 +11,15 @@ import numpy as np
 import streamlit as st
 from numpy.typing import NDArray
 
-from quick.domain import CalculationMode, SystemMode, SystemType
+from quick.domain import SystemMode, SystemType
 from quick.utils import map_intensity_matrix_generator
 
 
-def get_system_mode_type() -> tuple[SystemType, CalculationMode, SystemMode]:
+def get_system_mode_type() -> tuple[SystemType, SystemMode]:
     """Отображает UI-компонент с двумя полями выбора (тип системы и режим вычисления).
 
     Returns:
-        tuple[SystemType, CalculationMode, SystemMode]: Значения типа системы, режима
-            вычисления и режима системы.
+        tuple[SystemType, SystemMode]: Значения типа системы и режима системы.
     """
 
     def reset_state() -> None:
@@ -36,15 +35,11 @@ def get_system_mode_type() -> tuple[SystemType, CalculationMode, SystemMode]:
         key="system_type",
         on_change=reset_state,
     )
-    calculation_mode = st.selectbox(
-        "Выберите режим расчёта:", [mode.value for mode in CalculationMode]
-    )
     system_mode = st.selectbox(
         "Выберите режим системы:", [mode.value for mode in SystemMode]
     )
     return (
         SystemType(system_type),
-        CalculationMode(calculation_mode),
         SystemMode(system_mode),
     )
 
@@ -128,7 +123,6 @@ def get_intensity_parameters(system_type: SystemType) -> tuple:
 
     Args:
         system_type (SystemType): Тип системы.
-        calculation_mode (CalculationMode): Режим расчета.
 
     Returns:
         tuple: Параметры интенсивности, соответствующие выбранному типу системы

@@ -48,7 +48,7 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
     config = render_calculation_config()
     st.markdown("---")
 
-    system_type, calculation_mode, system_mode = get_system_mode_type()
+    system_type, system_mode = get_system_mode_type()
     st.subheader("⚙️ Параметры системы")
 
     lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
@@ -81,7 +81,6 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
     )
 
     settings = CalculationSettings(
-        calculation_mode=calculation_mode,
         system_mode=system_mode,
         system_type=system_type,
     )

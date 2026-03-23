@@ -11,10 +11,10 @@ from loguru import logger
 from numpy.typing import NDArray
 from scipy.special import factorial
 
-from quick.services.systems.base import BaseServerSystem
+from quick.services.systems.base import BaseMultiServerSystem
 
 
-class MultiServerSteadyStateSystem(BaseServerSystem):
+class MultiServerSteadyStateSystem(BaseMultiServerSystem):
     """Класс для расчёта стационарных вероятностей состояний многоканальной СМО.
 
     Реализует вычисление вероятностей на основе аналитических выражений,

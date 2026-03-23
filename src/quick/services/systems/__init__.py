@@ -1,14 +1,15 @@
 """Пакет систем расчёта СМО."""
 
-from .base import BaseServerSystem
 from .factory import system_factory
 from .steady_state import MultiServerSteadyStateSystem
-from .transient_state import TransientServerStateSystem
+from .transient_state import (
+    TransientMAPServerStateSystem,
+    TransientMultiServerStateSystem,
+)
 
 __all__ = [
-    "BaseSystem",
-    "BaseServerSystem",
     "MultiServerSteadyStateSystem",
-    "TransientServerStateSystem",
+    "TransientMultiServerStateSystem",
+    "TransientMAPServerStateSystem",
     "system_factory",
 ]

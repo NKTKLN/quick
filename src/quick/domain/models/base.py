@@ -11,7 +11,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 from quick.domain.enums import (
-    CalculationMode,
     SystemMode,
     SystemType,
 )
@@ -96,12 +95,10 @@ class CalculationSettings:
     """Настройки расчёта СМО.
 
     Attributes:
-        calculation_mode (CalculationMode): Режим расчёта.
         system_type (SystemType): Тип системы.
         system_mode (SystemMode): Режим системы.
     """
 
-    calculation_mode: CalculationMode
     system_type: SystemType
     system_mode: SystemMode
 

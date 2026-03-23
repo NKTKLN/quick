@@ -32,8 +32,8 @@ from quick.domain.models import (
     SystemParams,
 )
 from quick.services.systems import system_factory
+from quick.services.systems.base import BaseServerSystem
 from quick.services.systems.steady_state import MultiServerSteadyStateSystem
-from quick.services.systems.transient_state import TransientServerStateSystem
 
 from .constants import PLOT_SETTINGS
 from .serializers import results_to_json
@@ -87,21 +87,16 @@ def prepare_system(
     return system
 
 
-def render_transient_results(
-    system: TransientServerStateSystem, params: SystemParams
-) -> None:
+def render_transient_results(system: BaseServerSystem, params: SystemParams) -> None:
     """Отображает результаты режима и кнопку экспорта JSON.
 
     Args:
-        system (TransientServerStateSystem): Объект системы.
+        system (BaseServerSystem): Объект системы.
         params (SystemParams): Параметры системы.
 
     Returns:
         None: Функция ничего не возвращает.
     """
-    if system is None:
-        return
-
     st.subheader("📈 Визуализация динамики состояний системы")
     results = system.calculate()
 
@@ -109,7 +104,7 @@ def render_transient_results(
         plot_probabilities(
             system.probabilities,
             params.transient_params.time_array,
-            params.settings.calculation_mode.value,
+            "Вероятности",
         ),
         width="stretch",
     )
@@ -162,9 +157,6 @@ def render_steady_table(system: MultiServerSteadyStateSystem) -> None:
     Returns:
         None
     """
-    if system is None:
-        return
-
     probabilities = getattr(system, "probabilities", None)
     if probabilities is None:
         st.warning("⚠️ Вероятности стационарных состояний отсутствуют.")

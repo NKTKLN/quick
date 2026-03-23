@@ -9,7 +9,6 @@ from .computation_config import (
 from .enums import (
     CalculationEngine,
     CalculationMethod,
-    CalculationMode,
     SystemMode,
     SystemType,
 )
@@ -17,7 +16,6 @@ from .enums import (
 __all__ = [
     "ConfigInitParams",
     "CalculationEngine",
-    "CalculationMode",
     "CalculationMethod",
     "SystemType",
     "SystemMode",

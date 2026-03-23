@@ -14,7 +14,10 @@ from loguru import logger
 from quick.domain import SystemMode, SystemType
 from quick.services.systems.base import BaseServerSystem
 from quick.services.systems.steady_state import MultiServerSteadyStateSystem
-from quick.services.systems.transient_state import TransientServerStateSystem
+from quick.services.systems.transient_state import (
+    TransientMAPServerStateSystem,
+    TransientMultiServerStateSystem,
+)
 from quick.services.systems_behavior import (
     MAPSystemBehavior,
     MultiSensorMAPSystemBehavior,
@@ -55,9 +58,21 @@ def system_factory(
             raise NotImplementedError(f"Система типа {system_type} не реализована")
 
     if system_mode == SystemMode.TRANSIENT:
-        logger.info("Создан TransientServerStateSystem")
-        return TransientServerStateSystem(**kwargs, system_behavior=system_behavior)
-
+        match system_type:
+            case SystemType.MULTI:
+                logger.info("Создан TransientMultiServerStateSystem")
+                return TransientMultiServerStateSystem(
+                    **kwargs, system_behavior=system_behavior
+                )
+            case SystemType.MAP | SystemType.MULTI_SENSOR_MAP:
+                logger.info("Создан TransientMAPServerStateSystem")
+                return TransientMAPServerStateSystem(
+                    **kwargs, system_behavior=system_behavior
+                )
+            case _:
+                raise NotImplementedError(
+                    f"Система типа {system_type} в режиме TRANSIENT не реализована"
+                )
     if system_mode == SystemMode.STEADY:
         match system_type:
             case SystemType.MULTI:
