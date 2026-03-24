@@ -72,25 +72,6 @@ class BaseMAPServerSystem(BaseServerSystem):
         """
         return self.system_behavior.calculate_avg_system_length(self.probabilities)
 
-    def calculate_avg_buffer_length(self) -> NDArray[np.float64]:
-        """Вычисляет среднее число заявок в буфере N_b(t).
-
-        Returns:
-            NDArray[np.float64]: Среднее число заявок в буфере.
-        """
-        logger.info("Вычисление среднего числа заявок в буфере N_b(t)")
-
-        n = self.params.base_params.max_customers
-        probs = self._reshape_map_probabilities()
-
-        buffer_states = probs[2 : n + 2]
-        k̄ = np.arange(1, buffer_states.shape[0] + 1, dtype=np.float64).reshape(-1, 1, 1)
-
-        N_b = cast(NDArray[np.float64], (k̄ * buffer_states).sum(axis=(0, 1)))
-
-        logger.success("Среднее число заявок в буфере успешно вычислено")
-        return N_b
-
     def calculate_rejection_probability(self) -> NDArray[np.float64]:
         """Вычисляет вероятность отказа P_fail(t).
 
@@ -116,7 +97,7 @@ class BaseMAPServerSystem(BaseServerSystem):
         p_quit = (
             self.params.base_params.nu_rate
             / self.lambda_rate
-            * self.calculate_avg_buffer_length()
+            * self.calculate_avg_system_length()
         )
 
         logger.success("Вероятность ухода успешно вычислена")
@@ -172,7 +153,6 @@ class BaseMAPServerSystem(BaseServerSystem):
         calculations: dict[str, Callable] = {
             "probability": lambda: self.probabilities,
             "throughput": self.calculate_throughput,
-            "avg_buffer_length": self.calculate_avg_buffer_length,
             "avg_system_length": self.calculate_avg_system_length,
             "rejection_probability": self.calculate_rejection_probability,
             "loss_probability": self.calculate_loss_probability,

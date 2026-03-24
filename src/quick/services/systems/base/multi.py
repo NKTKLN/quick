@@ -52,7 +52,7 @@ class BaseMultiServerSystem(BaseServerSystem):
         """
         logger.info("Вычисление относительной пропускной способности P_s(t)")
 
-        N_b = self.calculate_avg_system_length()  # TODO
+        N_b = self.calculate_avg_system_length()
 
         relative_throughput = (
             1 - (self.params.base_params.nu_rate / self.lambda_rate) * N_b
@@ -69,7 +69,7 @@ class BaseMultiServerSystem(BaseServerSystem):
         """
         logger.info("Вычисление абсолютной пропускной способности A_s(t)")
 
-        N_b = self.calculate_avg_system_length()  # TODO
+        N_b = self.calculate_avg_system_length()
 
         absolute_throughput = self.lambda_rate - self.params.base_params.nu_rate * N_b
 
@@ -89,21 +89,6 @@ class BaseMultiServerSystem(BaseServerSystem):
 
         logger.success("Вероятность наличия заявок в очереди успешно вычислена")
         return cast(NDArray, p_queue)
-
-    def calculate_avg_buffer_length(self) -> NDArray[np.float64]:
-        """Вычисляет среднее число заявок в буфере N_b(t).
-
-        Returns:
-            NDArray[np.float64]: Среднее число заявок в буфере.
-        """
-        logger.info("Вычисление среднего числа заявок в буфере N_b(t)")
-
-        k̄ = self.calculate_avg_busy_channels()
-
-        N_b = (self.rho + (self.beta - 1) * k̄) / self.beta
-
-        logger.success("Среднее число заявок в буфере вычислено")
-        return N_b
 
     def calculate_avg_system_length(self) -> NDArray[np.float64]:
         """Вычисляет среднее число заявок в системе.
@@ -150,7 +135,6 @@ class BaseMultiServerSystem(BaseServerSystem):
             "throughput": self.calculate_throughput,
             "absolute_throughput": self.calculate_absolute_throughput,
             "relative_throughput": self.calculate_relative_throughput,
-            "avg_buffer_length": self.calculate_avg_buffer_length,
             "avg_system_length": self.calculate_avg_system_length,
             "rejection_probability": self.calculate_rejection_probability,
         }

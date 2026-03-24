@@ -18,13 +18,13 @@ COPY pyproject.toml uv.lock ./
 
 # Создаём виртуальное окружение + устанавливаем прод-зависимости (по lock-файлу, без dev)
 RUN uv venv /opt/venv \
-    && uv sync --frozen --no-dev --group web
+    && uv sync --frozen --no-dev --group web --no-install-project
 
 # Копируем исходный код после зависимостей для эффективного кеширования
 COPY . .
 
-# Устанавливаем пакет в виртуальное окружение (чтобы работал `python -m app.main`)
-RUN uv pip install .
+# Устанавливаем пакет в виртуальное окружение
+RUN uv sync --frozen --no-dev --group web
 
 # ===== Stage 2: Final =====
 FROM python:3.13-slim AS final
@@ -60,5 +60,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD curl --fail http://localhost:8501/_stcore/health || exit 1
 
 # Запуск модуля как entrypoint
-ENTRYPOINT ["streamlit", "run", "web/streamlit_app.py"]
+ENTRYPOINT ["streamlit", "run", "web/app.py"]
 CMD ["--server.port=8501", "--server.address=0.0.0.0"]
