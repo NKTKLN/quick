@@ -1,7 +1,8 @@
 """Модуль параметров систем массового обслуживания с Марковскими входными потоками.
 
-Содержит классы, описывающие параметры для СМО с марковским модулированным пуассоновским
-входным потоком (MAP), возможностью ухода заявок и анализом пропускной способности.
+Реализует класс MAPSystemParams, который описывает параметры системы массового
+обслуживания с марковским модулированным пуассоновским входным потоком (MAP) и
+возможностью ухода заявок.
 """
 
 from dataclasses import dataclass
@@ -9,7 +10,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from quick.domain.models.base import BaseSystemParams
+from .base import BaseSystemParams
 
 
 @dataclass
@@ -22,11 +23,13 @@ class MAPSystemParams(BaseSystemParams):
     Attributes:
         p_rate (NDArray[np.float64]): Матрица интенсивностей обслуживания.
         q_rate (NDArray[np.float64]): Матрица интенсивностей поступления.
+        sensor_count (int): Количество сенсоров в системе (m).
         Остальные параметры наследуются от BaseSystemParams.
     """
 
     p_rate: NDArray[np.float64]
     q_rate: NDArray[np.float64]
+    sensor_count: int
 
     def validate(self) -> None:
         """Проверяет корректность параметров.
@@ -52,5 +55,10 @@ class MAPSystemParams(BaseSystemParams):
             raise ValueError(
                 "Значения матрицы интенсивности поступления должны находиться в "
                 "диапазоне [0, 1]."
+            )
+        if np.sum(self.q_rate) == 0 or np.sum(self.q_rate) == 0:  # TODO
+            raise ValueError(
+                "Все значения матрицы интенсивности поступления или "
+                "обслуживания не должны равняться нулю."
             )
         # TODO: Спросить про корректность матриц интенсивности (Пока не надо)

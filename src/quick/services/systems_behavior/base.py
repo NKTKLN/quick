@@ -15,7 +15,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models.base import SystemParams
+from quick.domain.models.base_params import SystemParams
 
 
 class BaseSystemBehavior(ABC):
@@ -39,7 +39,8 @@ class BaseSystemBehavior(ABC):
 
         logger.debug(
             f"Инициализирован {self.__class__.__name__} с параметрами: "
-            f"{params.base_params=}, {params.transient_params=}, {params.settings=}"
+            f"{params.base_params=}, {params.transient_params=}, "
+            f"{params.calculation_settings=}"
         )
 
     @property

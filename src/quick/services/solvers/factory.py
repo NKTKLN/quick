@@ -11,12 +11,17 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain import CalculationEngine, CalculationMethod, ComputationConfig
+from quick.domain import (
+    CalculationEngine,
+    CalculationMethod,
+    ComputationConfig,
+    SystemType,
+)
 from quick.domain.computation_config import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from quick.domain.models import TransientSystemParams
+from quick.domain.models import SystemParams
 from quick.services.solvers.analytical import (
     AnalyticalMergedProbabilitySolver,
     AnalyticalMpmathProbabilitySolver,
@@ -27,7 +32,7 @@ from quick.services.solvers.numerical import NumericalProbabilitySolver
 
 
 def solvers_factory(
-    params: TransientSystemParams,
+    params: SystemParams,
     coefficients_matrix: NDArray[np.float64],
     config: ComputationConfig,
 ) -> BasicProbabilitySolver:
@@ -37,7 +42,7 @@ def solvers_factory(
     инициализирует соответствующий решатель на основе переданных аргументов.
 
     Args:
-        params (TransientSystemParams): Параметры СМО.
+        params (SystemParams): Параметры СМО.
         coefficients_matrix (NDArray[np.float64]): Матрица коэффициентов системы
             уравнений размером (n x n).
         config (ComputationConfig): Конфигурация вычислений.
@@ -50,28 +55,32 @@ def solvers_factory(
     """
     logger.debug(f"Вызван solvers_factory с параметрами: config={config}")
 
+    if params.transient_params is None:
+        logger.error("Переходные параметры не заданы.")
+        raise ValueError("Переходные параметры должны быть заданы.")
+
     if config.calculation_method == CalculationMethod.ANALYTICAL:
         match config.calculation_engine:
             case CalculationEngine.NUMPY:
                 logger.info("Создан AnalyticalNumpyProbabilitySolver")
                 return AnalyticalNumpyProbabilitySolver(
-                    params, coefficients_matrix, config
+                    params.transient_params, coefficients_matrix, config
                 )
             case CalculationEngine.MPMATH:
                 logger.info("Создан AnalyticalMpmathProbabilitySolver")
                 return AnalyticalMpmathProbabilitySolver(
-                    params, coefficients_matrix, cast(MpmathComputationConfig, config)
+                    params.transient_params,
+                    coefficients_matrix,
+                    cast(MpmathComputationConfig, config),
                 )
             case CalculationEngine.MERGED:
                 logger.info("Создан AnalyticalMergedProbabilitySolver")
                 return AnalyticalMergedProbabilitySolver(
-                    params, coefficients_matrix, cast(MergedComputationConfig, config)
+                    params.transient_params,
+                    coefficients_matrix,
+                    cast(MergedComputationConfig, config),
                 )
             case _:
-                logger.error(
-                    "Неподдерживаемый вычислительный движок: "
-                    f"{config.calculation_engine}"
-                )
                 raise ValueError(
                     "Неподдерживаемый вычислительный движок: "
                     f"{config.calculation_engine}"
@@ -79,6 +88,20 @@ def solvers_factory(
 
     if config.calculation_method == CalculationMethod.NUMERICAL:
         logger.info("Создан NumericalProbabilitySolver")
-        return NumericalProbabilitySolver(params, coefficients_matrix, config)
+        return NumericalProbabilitySolver(
+            params.transient_params, coefficients_matrix, config
+        )
+
+    if config.calculation_method == CalculationMethod.IMITATION:
+        match params.calculation_settings.system_type:
+            case SystemType.MULTI:
+                pass
+            case SystemType.MAP:
+                pass
+            case _:
+                raise ValueError(
+                    "Неподдерживаемый тип системы:"
+                    f"{params.calculation_settings.system_type}"
+                )
 
     raise ValueError(f"Неподдерживаемый метод расчета: {config.calculation_method}")

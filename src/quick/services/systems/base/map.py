@@ -13,10 +13,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.services.systems_behavior import (
-    MAPSystemBehavior,
-    MultiSensorMAPSystemBehavior,
-)
+from quick.domain.models.system_params import MAPSystemParams
 
 from .base import BaseServerSystem
 
@@ -36,16 +33,16 @@ class BaseMAPServerSystem(BaseServerSystem):
             NDArray[np.float64]: Массив формы [num_macro_states, M].
 
         Raises:
-            ValueError: Если размер вектора вероятностей не кратен числу фаз MAP.
+            ValueError: Если параметры системы не являются MAPSystemParams или
+                если размер вектора вероятностей не кратен числу фаз MAP.
         """
-        if not isinstance(self.system_behavior, MAPSystemBehavior) and not isinstance(
-            self.system_behavior, MultiSensorMAPSystemBehavior
-        ):
-            raise TypeError(
-                "system_behavior должен быть MAPSystemBehavior или MultiSensorMAPSystemBehavior"
-            )
+        if not isinstance(self.params.base_params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MAPSystemParams"
+            )  # TODO: TypeError or ValueError
 
-        m = self.system_behavior.D0.shape[0]
+        m = self.params.base_params.sensor_count
         probs = self.probabilities
 
         if probs.ndim == 1:

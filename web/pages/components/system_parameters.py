@@ -128,46 +128,9 @@ def get_intensity_parameters(system_type: SystemType) -> tuple:
         tuple: Параметры интенсивности, соответствующие выбранному типу системы
             и режиму расчета.
     """
-    if system_type in (SystemType.MAP, SystemType.MULTI_SENSOR_MAP):
+    if system_type == SystemType.MAP:
         return map_intensity_parameters()
     return intensity_parameters()
-
-
-def system_capacity_inputs(
-    system_type: SystemType,
-    default_max_customers: int = 4,
-    default_processor_count: int = 2,
-) -> tuple[int, int]:
-    """Отображает UI-компонент для ввода емкости системы и количества процессоров.
-
-    Args:
-        system_type (SystemType): Тип системы. Если "Многолинейная", появляется поле
-            для количества процессоров.
-        default_max_customers (int, optional): Значение по умолчанию для максимального
-            количества заявок в системе. По умолчанию 4.
-        default_processor_count (int, optional): Значение по умолчанию для количества
-            процессоров в многолинейной системе. По умолчанию 2.
-
-    Returns:
-        tuple[int, int | None]: Максимальное количество заявок (n) и количество
-            процессоров (m), если применимо.
-    """
-    max_customers = st.number_input(
-        "Максимальное количество заявок в системе (n)",
-        min_value=1,
-        max_value=100,
-        value=default_max_customers,
-    )
-
-    processor_count = 1
-    if system_type == SystemType.MULTI:
-        processor_count = st.number_input(
-            "Количество обслуживающих процессоров (m)",
-            min_value=1,
-            max_value=100,
-            value=default_processor_count,
-        )
-    return max_customers, processor_count
 
 
 def _generate_matrix(

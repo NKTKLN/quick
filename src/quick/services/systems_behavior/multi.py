@@ -17,7 +17,8 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models.base import SystemParams
+from quick.domain.models import SystemParams
+from quick.domain.models.system_params import MultiSystemParams
 from quick.services.systems_behavior.base import BaseSystemBehavior
 
 
@@ -47,8 +48,17 @@ class MultiSystemBehavior(BaseSystemBehavior):
 
         Returns:
             NDArray[float64]: Среднее число заявок в системе.
+
+        Raises:
+            ValueError: Если параметры системы не являются MultiSystemParams.
         """
         logger.info("Вычисление среднего числа заявок в системе")
+
+        if not isinstance(self.params.base_params, MultiSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MultiSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MultiSystemParams"
+            )
 
         n = self.params.base_params.max_customers
         m = self.params.base_params.processor_count

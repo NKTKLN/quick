@@ -13,7 +13,6 @@ from .system_parameters import (
     intensity_parameters,
     map_intensity_matrix,
     map_intensity_parameters,
-    system_capacity_inputs,
 )
 from .time_settings import render_time_settings
 
@@ -25,7 +24,6 @@ __all__ = [
     "render_initial_probabilities",
     "render_initial_conditions",
     "render_time_settings",
-    "system_capacity_inputs",
     "get_system_mode_type",
     "intensity_parameters",
     "map_intensity_parameters",

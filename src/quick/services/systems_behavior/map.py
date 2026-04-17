@@ -1,13 +1,15 @@
-"""Содержит реализацию поведения системы массового обслуживания с Марковскими входными потоками.
+"""Содержит реализацию поведения многосенсорной системы массового обслуживания с Марковскими входными потоками.
 
-Модуль определяет класс MAPSystemBehavior, который расширяет базовый интерфейс
-поведения СМО для случая входного потока типа MAP. Класс отвечает за вычисление
-интенсивности поступления заявок и среднего числа заявок в системе на основе
-матриц переходов MAP-процесса и вектора вероятностей состояний.
+Модуль определяет класс MultiSensorMAPSystemBehavior, который расширяет базовый
+интерфейс поведения СМО для случая многосенсорной системы с входным потоком
+типа MAP. Класс отвечает за вычисление интенсивности поступления заявок и
+среднего числа заявок в системе на основе матриц переходов MAP-процесса и
+вектора вероятностей состояний.
 
 Основная сущность:
-    MAPSystemBehavior — класс поведения СМО с Марковскими входными потоками, использующий
-    матричное представление процесса поступления заявок.
+    MultiSensorMAPSystemBehavior — класс поведения многосенсорной СМО
+    с Марковскими входными потоками, использующий матричное представление процесса
+    поступления заявок.
 """
 
 from typing import cast
@@ -16,22 +18,23 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models.base import SystemParams
-from quick.domain.models.map import MAPSystemParams
-from quick.services.matrix_builders.map import MAPServerMatrixBuilder
+from quick.domain.models.base_params import SystemParams
+from quick.domain.models.system_params import MAPSystemParams
+from quick.services.matrix_builders.map import MultiSensorMAPServerMatrixBuilder
 from quick.services.systems_behavior.base import BaseSystemBehavior
 
 
-class MAPSystemBehavior(BaseSystemBehavior):
-    """Класс поведения системы массового обслуживания с Марковскими входными потоками.
+class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
+    """Класс поведения многосенсорной системы массового обслуживания с Марковскими входными потоками.
 
     Класс реализует вычисление характеристик СМО для моделей, в которых
-    входной поток задаётся марковским процессом поступления заявок (MAP).
-    Для этого используются матрицы D0 и D1, формируемые построителем
-    MAPServerMatrixBuilder.
+    входной поток задаётся марковским процессом поступления заявок (MAP),
+    а состояние системы дополнительно зависит от числа сенсоров.
+    Для вычислений используются матрицы D0 и D1, формируемые построителем
+    MultiSensorMAPServerMatrixBuilder.
 
     Attributes:
-        transition_matrix (MAPServerMatrixBuilder): Построитель матриц MAP-процесса.
+        transition_matrix (MultiSensorMAPServerMatrixBuilder): Построитель матриц MAP-процесса.
         D0 (np.ndarray): Матрица переходов без поступления заявки.
         D1 (np.ndarray): Матрица переходов с поступлением заявки.
         DDD (np.ndarray): Суммарная матрица переходов MAP-процесса.
@@ -45,10 +48,9 @@ class MAPSystemBehavior(BaseSystemBehavior):
         """
         super().__init__(params)
 
-        if not isinstance(self.params.base_params, MAPSystemParams):
-            raise TypeError("base_params должен быть MAPSystemBehavior")
-
-        self.transition_matrix = MAPServerMatrixBuilder(self.params.base_params)
+        self.transition_matrix = MultiSensorMAPServerMatrixBuilder(
+            cast(MAPSystemParams, self.params.base_params)
+        )
         self.D0 = self.transition_matrix._d_0_matrix_generator()
         self.D1 = self.transition_matrix._d_1_matrix_generator()
         self.DDD = self.D0 + self.D1
@@ -99,16 +101,26 @@ class MAPSystemBehavior(BaseSystemBehavior):
 
         Returns:
             NDArray[float64]: Среднее число заявок в системе.
+
+        Raises:
+            ValueError: Если параметры системы не являются MAPSystemParams.
         """
         logger.info("Вычисление среднего числа заявок в системе")
 
+        if not isinstance(self.params.base_params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MAPSystemParams"
+            )
+
         n = self.params.base_params.max_customers
+        m = self.params.base_params.sensor_count
 
         N_b = cast(
             NDArray[np.float64],
             np.sum(
                 np.sum(
-                    probabilities[n * 2 :].reshape(n - 2, n, probabilities.shape[-1]),
+                    probabilities[m * 2 :].reshape(n - 2, m, probabilities.shape[-1]),
                     axis=1,
                 )
                 * np.arange(1, n - 1)[:, np.newaxis],

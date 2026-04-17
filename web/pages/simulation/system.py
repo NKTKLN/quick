@@ -28,9 +28,7 @@ from pages.components import (
 )
 
 from quick.domain import ComputationConfig, SystemMode
-from quick.domain.models import (
-    SystemParams,
-)
+from quick.domain.models import SystemParams
 from quick.services.systems import system_factory
 from quick.services.systems.base import BaseServerSystem
 from quick.services.systems.steady_state import MultiServerSteadyStateSystem
@@ -61,17 +59,17 @@ def prepare_system(
         st.stop()
 
     system = None
-    if params.settings.system_mode == SystemMode.TRANSIENT:
+    if params.calculation_settings.system_mode == SystemMode.TRANSIENT:
         system = system_factory(
             system_mode=SystemMode.TRANSIENT,
-            system_type=params.settings.system_type,
+            system_type=params.calculation_settings.system_type,
             params=params,
             config=config,
         )
-    elif params.settings.system_mode == SystemMode.STEADY:
+    elif params.calculation_settings.system_mode == SystemMode.STEADY:
         system = system_factory(
             system_mode=SystemMode.STEADY,
-            system_type=params.settings.system_type,
+            system_type=params.calculation_settings.system_type,
             params=params,
             config=config,
         )

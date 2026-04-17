@@ -10,46 +10,9 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from quick.domain.enums import (
-    SystemMode,
-    SystemType,
-)
+from quick.domain.enums import SystemMode, SystemType
 
-
-@dataclass
-class BaseSystemParams:
-    """Базовые параметры СМО.
-
-    Attributes:
-        mu_rate (float): Интенсивность обслуживания заявок (μ > 0).
-        nu_rate (float): Интенсивность дополнительных процессов (ν > 0).
-        lambda_rate (float | NDArray[np.float64]): Интенсивность поступления
-            заявок (λ > 0). Может быть скаляром или массивом.
-        max_customers (int): Максимальное количество заявок в системе (n > 0).
-        processor_count (int): Количество обслуживающих каналов (m).
-    """
-
-    mu_rate: float
-    nu_rate: float
-    lambda_rate: float | NDArray[np.float64]
-    max_customers: int
-    processor_count: int
-
-    def validate(self) -> None:
-        """Проверяет корректность параметров."""
-        if self.mu_rate <= 0:
-            raise ValueError("Интенсивность μ должна быть положительна.")
-        if self.nu_rate <= 0:
-            raise ValueError("Интенсивность ν должна быть положительна.")
-        if isinstance(self.lambda_rate, np.ndarray):
-            if np.any(self.lambda_rate <= 0) or self.lambda_rate.shape[0] == 0:
-                raise ValueError("Интенсивность λ должна быть положительна.")
-        elif self.lambda_rate <= 0:
-            raise ValueError("Интенсивность λ должна быть положительна.")
-        if self.max_customers <= 0:
-            raise ValueError("max_customers должна быть положительна.")
-        if self.processor_count <= 0:
-            raise ValueError("Переменная processor_count должна быть положительна.")
+from .system_params import BaseSystemParams, MAPSystemParams, MultiSystemParams
 
 
 @dataclass
@@ -113,24 +76,26 @@ class SystemParams:
         base_params (BaseSystemParams): Базовые параметры.
         transient_params (TransientSystemParams | None): Параметры переходного режима.
             Обязательны, если расчёт выполняется в переходном режиме.
-        settings (CalculationSettings): Настройки типа и режима системы.
+        calculation_settings (CalculationSettings): Настройки типа и режима системы.
     """
 
     base_params: BaseSystemParams
-    settings: CalculationSettings
+    calculation_settings: CalculationSettings
     transient_params: TransientSystemParams | None = None
 
     def validate(self) -> None:
         """Проверяет корректность параметров."""
         self.base_params.validate()
 
-        if self.settings.system_mode == SystemMode.TRANSIENT:
+        if self.calculation_settings.system_mode == SystemMode.TRANSIENT:
             if self.transient_params is None:
                 raise ValueError("transient_params обязательны в переходном режиме")
 
             self.transient_params.validate()
 
-            if self.settings.system_type == SystemType.MULTI:
+            if self.calculation_settings.system_type == SystemType.MULTI and isinstance(
+                self.base_params, MultiSystemParams
+            ):
                 expected_size = (
                     self.base_params.max_customers
                     + self.base_params.processor_count
@@ -144,8 +109,12 @@ class SystemParams:
                         "Размер начальных вероятностей должен совпадать с максимальным "
                         "числом заявок в системе + колличество процессоров + 1."
                     )
-            if self.settings.system_type == SystemType.MAP:
-                expected_size = self.base_params.max_customers**2
+            if self.calculation_settings.system_type == SystemType.MAP and isinstance(
+                self.base_params, MAPSystemParams
+            ):
+                expected_size = (
+                    self.base_params.max_customers * self.base_params.sensor_count
+                )
                 if (
                     self.transient_params.initial_probabilities.shape[0]
                     != expected_size

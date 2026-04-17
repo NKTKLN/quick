@@ -37,7 +37,7 @@ class TransientMultiServerStateSystem(BaseMultiServerSystem):
         logger.info("Начат расчёт вероятностей состояний СМО")
         transition_matrix = matrix_builder_factory(self.params).build()
         prob_solver = solvers_factory(
-            params=self.params.transient_params,
+            params=self.params,
             coefficients_matrix=transition_matrix,
             config=self.config,
         )
@@ -65,7 +65,7 @@ class TransientMAPServerStateSystem(BaseMAPServerSystem):
         logger.info("Начат расчёт вероятностей состояний СМО")
         transition_matrix = matrix_builder_factory(self.params).build()
         prob_solver = solvers_factory(
-            params=self.params.transient_params,
+            params=self.params,
             coefficients_matrix=transition_matrix,
             config=self.config,
         )

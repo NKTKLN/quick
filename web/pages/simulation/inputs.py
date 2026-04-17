@@ -24,16 +24,18 @@ from pages.components import (
     render_calculation_config,
     render_initial_conditions,
     render_time_settings,
-    system_capacity_inputs,
 )
 
 from quick.domain import ComputationConfig, SystemMode, SystemType
 from quick.domain.models import (
-    BaseSystemParams,
     CalculationSettings,
-    MAPSystemParams,
     SystemParams,
     TransientSystemParams,
+)
+from quick.domain.models.system_params import (
+    BaseSystemParams,
+    MAPSystemParams,
+    MultiSystemParams,
 )
 
 
@@ -76,6 +78,7 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
         nu_rate=nu_rate,
         max_customers=max_customers,
         processor_count=processor_count,
+        sensor_count=sensor_count,
         p_rate=p_rate,
         q_rate=q_rate,
     )
@@ -88,7 +91,7 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
     params = SystemParams(
         base_params=base_params,
         transient_params=transient_params,
-        settings=settings,
+        calculation_settings=settings,
     )
 
     return config, params
@@ -108,32 +111,47 @@ def _get_capacity_and_map_params(
             - processor_count (int | None): Число обслуживающих приборов, если применимо.
             - p_rate (np.ndarray | None): Матрица интенсивностей P для MAP-процесса.
             - q_rate (np.ndarray | None): Матрица интенсивностей Q для MAP-процесса.
-            - sensor_count (int | None): Число датчиков для MULTI_SENSOR_MAP, если применимо.
+            - sensor_count (int | None): Число датчиков для MAP, если применимо.
     """
     p_rate, q_rate = None, None
     sensor_count = None
+    processor_count = None
 
-    if system_type in (SystemType.MAP, SystemType.MULTI_SENSOR_MAP):
-        max_customers, processor_count = system_capacity_inputs(
-            system_type,
-            default_max_customers=3,
-        )
-
-        if system_type == SystemType.MULTI_SENSOR_MAP:
-            sensor_count = st.number_input(
-                "Число датчиков для MAP-процесса (M)",
+    if system_type == SystemType.MAP:
+        max_customers = (
+            st.number_input(
+                "Максимальное количество заявок в системе (n)",
                 min_value=1,
                 max_value=100,
                 value=3,
             )
-            max_customers += 2
+            + 2
+        )
+
+        sensor_count = st.number_input(
+            "Число датчиков для MAP-процесса (m)",
+            min_value=1,
+            max_value=100,
+            value=3,
+        )
 
         st.markdown("---")
 
-        map_dimension = max_customers if system_type == SystemType.MAP else sensor_count
-        p_rate, q_rate = map_intensity_matrix(map_dimension)
+        p_rate, q_rate = map_intensity_matrix(sensor_count)
     else:
-        max_customers, processor_count = system_capacity_inputs(system_type)
+        max_customers = st.number_input(
+            "Максимальное количество заявок в системе (n)",
+            min_value=1,
+            max_value=100,
+            value=4,
+        )
+
+        processor_count = st.number_input(
+            "Количество обслуживающих процессоров (m)",
+            min_value=1,
+            max_value=100,
+            value=2,
+        )
 
     return max_customers, processor_count, p_rate, q_rate, sensor_count
 
@@ -150,7 +168,7 @@ def _calculate_state_count(
         system_type (SystemType): Тип выбранной системы.
         max_customers (int): Максимальное число заявок в системе.
         processor_count (int | None): Число обслуживающих приборов.
-        sensor_count (int | None): Число датчиков для MULTI_SENSOR_MAP.
+        sensor_count (int | None): Число датчиков для MAP.
 
     Returns:
         int: Общее число состояний системы.
@@ -159,9 +177,7 @@ def _calculate_state_count(
 
     if system_type == SystemType.MULTI and processor_count is not None:
         count += processor_count + 1
-    elif system_type == SystemType.MAP:
-        count **= 2
-    elif system_type == SystemType.MULTI_SENSOR_MAP and sensor_count is not None:
+    elif system_type == SystemType.MAP and sensor_count is not None:
         count *= sensor_count
 
     return count
@@ -205,6 +221,7 @@ def _build_base_params(
     nu_rate: float,
     max_customers: int,
     processor_count: int | None,
+    sensor_count: int | None,
     p_rate: np.ndarray | None,
     q_rate: np.ndarray | None,
 ) -> BaseSystemParams | MAPSystemParams:
@@ -216,6 +233,7 @@ def _build_base_params(
         mu_rate (float): Интенсивность обслуживания.
         nu_rate (float): Дополнительная интенсивность системы.
         max_customers (int): Максимальное число заявок в системе.
+        sensor_count (int): Число датчиков для MAP-процесса.
         processor_count (int | None): Число обслуживающих приборов.
         p_rate (np.ndarray | None): Матрица интенсивностей P для MAP-процесса.
         q_rate (np.ndarray | None): Матрица интенсивностей Q для MAP-процесса.
@@ -230,18 +248,20 @@ def _build_base_params(
         nu_rate=nu_rate,
         lambda_rate=lambda_rate,
         max_customers=max_customers,
-        processor_count=processor_count,
     )
 
-    if (
-        system_type in (SystemType.MAP, SystemType.MULTI_SENSOR_MAP)
-        and p_rate is not None
-        and q_rate is not None
-    ):
+    if system_type == SystemType.MULTI:
+        return MultiSystemParams(
+            **asdict(base_params),
+            processor_count=processor_count,
+        )
+
+    if system_type == SystemType.MAP and p_rate is not None and q_rate is not None:
         return MAPSystemParams(
             **asdict(base_params),
             p_rate=p_rate.astype(np.float64),
             q_rate=q_rate.astype(np.float64),
+            sensor_count=sensor_count,
         )
 
     return base_params

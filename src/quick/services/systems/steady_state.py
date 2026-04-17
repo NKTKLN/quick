@@ -11,6 +11,7 @@ from loguru import logger
 from numpy.typing import NDArray
 from scipy.special import factorial
 
+from quick.domain.models.system_params import MultiSystemParams
 from quick.services.systems.base import BaseMultiServerSystem
 
 
@@ -76,7 +77,16 @@ class MultiServerSteadyStateSystem(BaseMultiServerSystem):
 
         Returns:
             np.ndarray: Вектор вероятностей состояний для m процессоров.
+
+        Raises:
+            ValueError: Если параметры системы не являются MultiSystemParams.
         """
+        if not isinstance(self.params.base_params, MultiSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MultiSystemParams")
+            raise ValueError(
+                "Базовые параметры должны быть экземпляром MultiSystemParams"
+            )
+
         n = self.params.base_params.max_customers
         m = self.params.base_params.processor_count
 

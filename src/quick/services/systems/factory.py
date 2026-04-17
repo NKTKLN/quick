@@ -19,7 +19,6 @@ from quick.services.systems.transient_state import (
     TransientMultiServerStateSystem,
 )
 from quick.services.systems_behavior import (
-    MAPSystemBehavior,
     MultiSensorMAPSystemBehavior,
     MultiSystemBehavior,
 )
@@ -51,8 +50,6 @@ def system_factory(
         case SystemType.MULTI:
             system_behavior = MultiSystemBehavior
         case SystemType.MAP:
-            system_behavior = MAPSystemBehavior
-        case SystemType.MULTI_SENSOR_MAP:
             system_behavior = MultiSensorMAPSystemBehavior
         case _:
             raise NotImplementedError(f"Система типа {system_type} не реализована")
@@ -64,7 +61,7 @@ def system_factory(
                 return TransientMultiServerStateSystem(
                     **kwargs, system_behavior=system_behavior
                 )
-            case SystemType.MAP | SystemType.MULTI_SENSOR_MAP:
+            case SystemType.MAP:
                 logger.info("Создан TransientMAPServerStateSystem")
                 return TransientMAPServerStateSystem(
                     **kwargs, system_behavior=system_behavior

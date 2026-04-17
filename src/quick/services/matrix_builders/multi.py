@@ -9,7 +9,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models import MAPSystemParams
+from quick.domain.models.system_params import MultiSystemParams
 from quick.services.matrix_builders.base import BaseMatrixBuilder
 
 
@@ -20,6 +20,20 @@ class MultiServerMatrixBuilder(BaseMatrixBuilder):
     очереди.
     """
 
+    def __init__(self, params: MultiSystemParams) -> None:
+        """Инициализирует базовый построитель с параметрами модели.
+
+        Args:
+            params (MultiSystemParams): Параметры модели СМО.
+        """
+        self.params = params
+
+        logger.debug(
+            f"Инициализирован MAPServerMatrixBuilder с параметрами: "
+            f"{params.max_customers=}, {params.processor_count=}, "
+            f"{params.lambda_rate=}, {params.mu_rate=}, {params.nu_rate=}"
+        )
+
     def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для многоканальной СМО.
 
@@ -28,11 +42,11 @@ class MultiServerMatrixBuilder(BaseMatrixBuilder):
                 размера (n+m+1) x (n+m+1).
 
         Raises:
-            ValueError: Если параметры системы являются MAPSystemParams.
+            ValueError: Если параметры системы не являются MultiSystemParams.
         """
-        if isinstance(self.params, MAPSystemParams):
-            logger.error("Параметры являются экземпляром MAPSystemParams")
-            raise ValueError("Параметры не должны быть экземпляром MAPSystemParams")
+        if not isinstance(self.params, MultiSystemParams):
+            logger.error("Параметры являются экземпляром MultiSystemParams")
+            raise ValueError("Параметры не должны быть экземпляром MultiSystemParams")
 
         logger.info("Начато построение матрицы коэффициентов.")
         n, m = self.params.max_customers, self.params.processor_count

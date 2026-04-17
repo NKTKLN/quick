@@ -44,8 +44,7 @@ class BasicProbabilitySolver(ABC):
 
         logger.debug(
             f"Решатель {self.__class__.__name__} инициализирован с параметрами: "
-            f"{params.__class__.__name__}, "
-            f"config={config.__class__.__name__}"
+            f"{params.__class__.__name__}, {config.__class__.__name__=}"
         )
 
     @abstractmethod
