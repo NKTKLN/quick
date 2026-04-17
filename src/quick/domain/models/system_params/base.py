@@ -24,7 +24,7 @@ class BaseSystemParams:
     max_customers: int
 
     def validate(self) -> None:
-        """Проверяет корректность параметров."""
+        """Проверяет корректность параметров."""  # TODO: raise
         if self.mu_rate <= 0:
             raise ValueError("Интенсивность μ должна быть положительна.")
         if self.nu_rate <= 0:

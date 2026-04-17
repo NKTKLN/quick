@@ -34,7 +34,7 @@ class MAPSystemParams(BaseSystemParams):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах.
+        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
         """
         super().validate()
         if self.p_rate.shape != self.q_rate.shape:

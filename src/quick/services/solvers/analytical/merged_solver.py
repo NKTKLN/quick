@@ -55,10 +55,12 @@ class AnalyticalMergedProbabilitySolver(AnalyticalMpmathProbabilitySolver):
         Returns:
             NDArray[np.int64]: Массив индексов последних некорректных временных
                 точек для каждой пары.
+
+        # TODO
         """
         logger.debug("Начата проверка на некорректные значения в матрице M(t)")
 
-        if not isinstance(self.config, MergedComputationConfig):
+        if not isinstance(self.config, MergedComputationConfig):  # TODO
             raise ValueError("Конфиг должн быть экземпляром MergedComputationConfig")
 
         matrix_size = data_matrix.shape[0]
@@ -144,7 +146,7 @@ class AnalyticalMergedProbabilitySolver(AnalyticalMpmathProbabilitySolver):
         mpmath_m_matrix[correction_mask] = numpy_m_matrix[correction_mask]
         logger.debug("Первичная коррекция завершена")
 
-        # Вторичная коррекци для сумм точек и их значений
+        # Вторичная коррекции для сумм точек и их значений
         logger.debug("Начало вторичной проверки и коррекции с суммами")
         mpmath_invalid_indices = self._get_invalid_indices(
             mpmath_m_matrix, check_sum=True

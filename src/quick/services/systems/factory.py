@@ -52,6 +52,7 @@ def system_factory(
         case SystemType.MAP:
             system_behavior = MultiSensorMAPSystemBehavior
         case _:
+            # TODO
             raise NotImplementedError(f"Система типа {system_type} не реализована")
 
     if system_mode == SystemMode.TRANSIENT:
@@ -67,6 +68,7 @@ def system_factory(
                     **kwargs, system_behavior=system_behavior
                 )
             case _:
+                # TODO
                 raise NotImplementedError(
                     f"Система типа {system_type} в режиме TRANSIENT не реализована"
                 )
@@ -78,8 +80,10 @@ def system_factory(
                     **kwargs, system_behavior=system_behavior
                 )
             case _:
+                # TODO
                 raise NotImplementedError(
                     f"Система типа {system_type} в режиме STEADY не реализована"
                 )
 
+    # TODO
     raise ValueError(f"Неподдерживаемый режим функционирования: {system_mode}")

@@ -27,7 +27,8 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
         ValueError: При передаче неподдерживаемого типа параметров.
     """
     logger.debug(
-        f"Вызван matrix_builder_factory для типа системы: {params.calculation_settings.system_type}"
+        "Вызван matrix_builder_factory для типа системы: "
+        f"{params.calculation_settings.system_type}"
     )
 
     match params.calculation_settings.system_type:
@@ -38,6 +39,7 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
             logger.info("Создан MultiSensorMAPServerMatrixBuilder")
             return MultiSensorMAPServerMatrixBuilder(params.base_params)
         case _:
+            # TODO
             raise ValueError(
                 "Неподдерживаемый тип системы: "
                 f"{params.calculation_settings.system_type}"

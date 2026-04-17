@@ -63,7 +63,7 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
 
         Raises:
             ValueError: Если детерминант базовой матрицы равен нулю и решение
-            системы невозможно.
+                системы невозможно.
         """
         n = self.DDD.shape[0]
 

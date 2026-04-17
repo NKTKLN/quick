@@ -51,6 +51,8 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
             tuple[NDArray[np.float64], NDArray[np.float64]]:
                 Кортеж из массива собственных значений и матрицы собственных векторов.
         """
+        # TODO
+
         logger.debug("Начинаем вычисление собственных значений и векторов...")
         eigenvalues, xsi_matrix = scipy_eig(self.coefficients_matrix)
 

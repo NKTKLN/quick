@@ -47,8 +47,7 @@ class BaseServerSystem(ABC):
 
         logger.debug(
             f"СМО {self.__class__.__name__} инициализирована с параметрами: "
-            f"{params.__class__.__name__}, "
-            f"config={config.__class__.__name__}"
+            f"{params.__class__.__name__=}, {config.__class__.__name__=}"
         )
 
     @property

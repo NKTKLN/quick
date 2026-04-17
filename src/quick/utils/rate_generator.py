@@ -42,7 +42,7 @@ def map_intensity_matrix_generator(
 
     logger.info(
         "Генерируем матрицы интенсивности MAP-потока с параметрами: "
-        f"n={n}, p_max={p_max}, q_max={q_max}, depth={depth}"
+        f"{n=}, {p_max=}, {q_max=}, {depth=}"
     )
 
     p = np.random.uniform(0, p_max, size=(n, n))

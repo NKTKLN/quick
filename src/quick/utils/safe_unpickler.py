@@ -51,7 +51,7 @@ class SafeUnpickler(pickle.Unpickler):
         Raises:
             pickle.UnpicklingError: Если класс не разрешён.
         """
-        if (module, name) in self.ALLOWED_CLASSES:
+        if (module, name) in self.ALLOWED_CLASSES:  # TODO: swap
             logger.debug(f"Разрешён класс для загрузки: {module}.{name}")
             return super().find_class(module, name)
 

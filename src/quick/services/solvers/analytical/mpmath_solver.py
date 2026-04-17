@@ -44,8 +44,8 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
                 уравнений размером (n x n).
             config (MpmathComputationConfig): Конфигурация вычислений.
         """
-        self._precision: int = config.precision
         super().__init__(params, coefficients_matrix, config)
+        self._precision: int = config.precision  # TODO
 
     @duckdb_cache("coefficients_matrix")
     def _compute_eigenvalues(self) -> tuple[Any, Any]:

@@ -5,7 +5,6 @@ from .merged_solver import AnalyticalMergedProbabilitySolver
 from .mpmath_solver import AnalyticalMpmathProbabilitySolver
 from .numpy_solver import AnalyticalNumpyProbabilitySolver
 
-# pylint: disable=R0801
 __all__ = [
     "AnalyticalBasicProbabilitySolver",
     "AnalyticalNumpyProbabilitySolver",

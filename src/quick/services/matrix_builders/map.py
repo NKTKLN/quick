@@ -60,7 +60,7 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
         matrix = self.params.p_rate.copy()
         matrix *= self.params.lambda_rate[:, np.newaxis]
         np.fill_diagonal(matrix, -self.params.lambda_rate)
-        logger.debug(f"Матрица D₀ сгенерирована. shape={matrix.shape}")
+        logger.debug(f"Матрица D₀ сгенерирована. {matrix.shape=}")
         return matrix
 
     def _d_1_matrix_generator(self) -> NDArray[np.float64]:
@@ -81,14 +81,14 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
         logger.debug("Генерация матрицы D₁ из q_rate и λ.")
         matrix = self.params.q_rate.copy()
         matrix *= self.params.lambda_rate[:, np.newaxis]
-        logger.debug(f"Матрица D₁ сгенерирована. shape={matrix.shape}")
+        logger.debug(f"Матрица D₁ сгенерирована. {matrix.shape=}")
         return matrix
 
     def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для СМО с Марковскими входными потоками.
 
         Returns:
-            NDArray[np.float64]: Квадратная матрица коэффициентов (n² x n²).
+            NDArray[np.float64]: Квадратная матрица коэффициентов (n² x n²). # TODO
 
         Raises:
             ValueError: Если базовые параметры системы не являются MAPSystemParams.

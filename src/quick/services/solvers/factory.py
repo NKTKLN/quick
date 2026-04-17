@@ -53,7 +53,7 @@ def solvers_factory(
     Raises:
         ValueError: Если передан неподдерживаемый метод расчёта или движок.
     """
-    logger.debug(f"Вызван solvers_factory с параметрами: config={config}")
+    logger.debug(f"Вызван solvers_factory с параметрами: {config=}")
 
     if params.transient_params is None:
         logger.error("Переходные параметры не заданы.")
@@ -81,6 +81,7 @@ def solvers_factory(
                     cast(MergedComputationConfig, config),
                 )
             case _:
+                # TODO
                 raise ValueError(
                     "Неподдерживаемый вычислительный движок: "
                     f"{config.calculation_engine}"
@@ -99,9 +100,11 @@ def solvers_factory(
             case SystemType.MAP:
                 pass
             case _:
+                # TODO
                 raise ValueError(
                     "Неподдерживаемый тип системы:"
                     f"{params.calculation_settings.system_type}"
                 )
 
+    # TODO
     raise ValueError(f"Неподдерживаемый метод расчета: {config.calculation_method}")

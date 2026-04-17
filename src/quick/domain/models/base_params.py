@@ -33,7 +33,7 @@ class TransientSystemParams:
     initial_probabilities: NDArray[np.float64]
 
     def validate(self) -> None:
-        """Проверяет корректность параметров."""
+        """Проверяет корректность параметров."""  # TODO
         if self.time_array is None or self.time_array.shape[0] == 0:
             raise ValueError("Временной массив не задан.")
         if np.any(self.state_variables < 0):
@@ -84,7 +84,7 @@ class SystemParams:
     transient_params: TransientSystemParams | None = None
 
     def validate(self) -> None:
-        """Проверяет корректность параметров."""
+        """Проверяет корректность параметров."""  # TODO
         self.base_params.validate()
 
         if self.calculation_settings.system_mode == SystemMode.TRANSIENT:

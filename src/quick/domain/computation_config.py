@@ -28,7 +28,7 @@ class ComputationConfig:
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах.
+        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
         """
 
 
@@ -46,7 +46,7 @@ class MpmathComputationConfig(ComputationConfig):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах.
+        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
         """
         super().validate()
         if self.precision <= 0:
@@ -59,7 +59,7 @@ class MergedComputationConfig(MpmathComputationConfig):
 
     Attributes:
         tolerance (float): Допустимая погрешность при сравнении результатов из
-                           разных источников (по умолчанию 1e-12).
+            разных источников (по умолчанию 1e-12).
     """
 
     tolerance: float = 1e-12
@@ -67,7 +67,7 @@ class MergedComputationConfig(MpmathComputationConfig):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах.
+        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
         """
         super().validate()
         if self.tolerance <= 0:

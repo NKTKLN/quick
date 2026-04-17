@@ -55,11 +55,13 @@ class TransientMAPServerStateSystem(BaseMAPServerSystem):
     """
 
     def calculate_probabilities(self) -> None:
-        """Выполняет численный расчёт вероятностей состояний СМО."""
+        """Выполняет численный расчёт вероятностей состояний СМО."""  # TODO
         if self.params.transient_params is None:
+            # TODO
             raise TypeError("transient_params должен быть не None")
 
         if self.config is None:
+            # TODO
             raise TypeError("config должен быть не None")
 
         logger.info("Начат расчёт вероятностей состояний СМО")

@@ -15,6 +15,8 @@ from loguru import logger
 
 from quick.db.client import DuckDBClient
 from quick.domain import ComputationConfig
+
+# from quick.services.solvers.base import BasicProbabilitySolver
 from quick.settings import ConfigLoader
 from quick.utils import PickleSerializer
 
@@ -64,6 +66,10 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 Any: Результат выполнения метода, либо загруженный из кэша.
             """
             config = ConfigLoader.get_config()
+
+            # if not isinstance(self, BasicProbabilitySolver):  # TODO
+            #     raise
+
             computation_config: ComputationConfig = self.config
             if computation_config.disable_cache or config.disable_cache:
                 logger.debug(
@@ -85,7 +91,7 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
                 }
             except AttributeError as e:
                 logger.error(f"Не удалось извлечь атрибуты self для ключа: {e}")
-                raise
+                raise  # TODO
 
             cache_key_data = {"self": self_cache_info, "args": args, "kwargs": kwargs}
 
@@ -156,5 +162,5 @@ def _extract_nested_attribute(obj: Any, path: str) -> Any:
         for attr in path.split("."):
             obj = getattr(obj, attr)
         return obj
-    except AttributeError as e:
+    except AttributeError as e:  # TODO
         raise AttributeError(f"Не удалось получить '{path}': {e}") from e
