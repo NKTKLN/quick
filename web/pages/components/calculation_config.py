@@ -32,7 +32,7 @@ def render_calculation_config() -> ComputationConfig:
             [method.value for method in CalculationMethod],
         )
     )
-    if calculation_method == CalculationMethod.NUMERICAL:
+    if calculation_method != CalculationMethod.ANALYTICAL:
         return ComputationConfig(
             calculation_engine=CalculationEngine.NUMPY,
             calculation_method=calculation_method,

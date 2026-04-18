@@ -30,9 +30,9 @@ def main() -> None:
         system = prepare_system(config, params)
 
         st.markdown("---")
-        if params.calculation_settings.system_mode == SystemMode.TRANSIENT:
+        if params.calculation_params.system_mode == SystemMode.TRANSIENT:
             render_transient_results(system, params)
-        elif params.calculation_settings.system_mode == SystemMode.STEADY:
+        elif params.calculation_params.system_mode == SystemMode.STEADY:
             render_steady_table(system)
 
 

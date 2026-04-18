@@ -59,17 +59,17 @@ def prepare_system(
         st.stop()
 
     system = None
-    if params.calculation_settings.system_mode == SystemMode.TRANSIENT:
+    if params.calculation_params.system_mode == SystemMode.TRANSIENT:
         system = system_factory(
             system_mode=SystemMode.TRANSIENT,
-            system_type=params.calculation_settings.system_type,
+            system_type=params.calculation_params.system_type,
             params=params,
             config=config,
         )
-    elif params.calculation_settings.system_mode == SystemMode.STEADY:
+    elif params.calculation_params.system_mode == SystemMode.STEADY:
         system = system_factory(
             system_mode=SystemMode.STEADY,
-            system_type=params.calculation_settings.system_type,
+            system_type=params.calculation_params.system_type,
             params=params,
             config=config,
         )

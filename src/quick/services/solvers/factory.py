@@ -21,18 +21,23 @@ from quick.domain.computation_config import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from quick.domain.models import SystemParams
-from quick.services.solvers.analytical import (
+from quick.domain.models import ImitationSystemParams, SystemParams
+
+from .analytical import (
     AnalyticalMergedProbabilitySolver,
     AnalyticalMpmathProbabilitySolver,
     AnalyticalNumpyProbabilitySolver,
 )
-from quick.services.solvers.base import BasicProbabilitySolver
-from quick.services.solvers.numerical import NumericalProbabilitySolver
+from .base import BasicProbabilitySolver
+from .imitation import (
+    MAPImitationProbabilitySolver,
+    MultiServerImitationProbabilitySolver,
+)
+from .numerical import NumericalProbabilitySolver
 
 
 def solvers_factory(
-    params: SystemParams,
+    params: type[SystemParams],
     coefficients_matrix: NDArray[np.float64],
     config: ComputationConfig,
 ) -> BasicProbabilitySolver:
@@ -94,16 +99,19 @@ def solvers_factory(
         )
 
     if config.calculation_method == CalculationMethod.IMITATION:
-        match params.calculation_settings.system_type:
+        if not isinstance(params, ImitationSystemParams):
+            raise  # TODO
+
+        match params.calculation_params.system_type:
             case SystemType.MULTI:
-                pass
+                return MultiServerImitationProbabilitySolver(params)
             case SystemType.MAP:
-                pass
+                return MAPImitationProbabilitySolver(params)
             case _:
                 # TODO
                 raise ValueError(
                     "Неподдерживаемый тип системы:"
-                    f"{params.calculation_settings.system_type}"
+                    f"{params.calculation_params.system_type}"
                 )
 
     # TODO

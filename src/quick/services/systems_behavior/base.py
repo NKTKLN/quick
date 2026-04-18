@@ -40,7 +40,7 @@ class BaseSystemBehavior(ABC):
         logger.debug(
             f"Инициализирован {self.__class__.__name__} с параметрами: "
             f"{params.base_params=}, {params.transient_params=}, "
-            f"{params.calculation_settings=}"
+            f"{params.calculation_params=}"
         )
 
     @property

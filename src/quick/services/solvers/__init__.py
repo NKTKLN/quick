@@ -1,4 +1,4 @@
-"""Пакет решателей вероятностей для систем массового обслуживания."""
+"""Пакет решателей вероятностей для СМО."""
 
 from .base import BasicProbabilitySolver
 from .factory import solvers_factory

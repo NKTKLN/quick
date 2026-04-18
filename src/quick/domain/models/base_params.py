@@ -54,7 +54,7 @@ class TransientSystemParams:
 
 
 @dataclass
-class CalculationSettings:
+class CalculationParams:
     """Настройки расчёта СМО.
 
     Attributes:
@@ -80,20 +80,20 @@ class SystemParams:
     """
 
     base_params: BaseSystemParams
-    calculation_settings: CalculationSettings
+    calculation_params: CalculationParams
     transient_params: TransientSystemParams | None = None
 
     def validate(self) -> None:
         """Проверяет корректность параметров."""  # TODO
         self.base_params.validate()
 
-        if self.calculation_settings.system_mode == SystemMode.TRANSIENT:
+        if self.calculation_params.system_mode == SystemMode.TRANSIENT:
             if self.transient_params is None:
                 raise ValueError("transient_params обязательны в переходном режиме")
 
             self.transient_params.validate()
 
-            if self.calculation_settings.system_type == SystemType.MULTI and isinstance(
+            if self.calculation_params.system_type == SystemType.MULTI and isinstance(
                 self.base_params, MultiSystemParams
             ):
                 expected_size = (
@@ -109,7 +109,7 @@ class SystemParams:
                         "Размер начальных вероятностей должен совпадать с максимальным "
                         "числом заявок в системе + колличество процессоров + 1."
                     )
-            if self.calculation_settings.system_type == SystemType.MAP and isinstance(
+            if self.calculation_params.system_type == SystemType.MAP and isinstance(
                 self.base_params, MAPSystemParams
             ):
                 expected_size = (

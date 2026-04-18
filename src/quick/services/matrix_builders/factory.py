@@ -28,10 +28,10 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
     """
     logger.debug(
         "Вызван matrix_builder_factory для типа системы: "
-        f"{params.calculation_settings.system_type}"
+        f"{params.calculation_params.system_type}"
     )
 
-    match params.calculation_settings.system_type:
+    match params.calculation_params.system_type:
         case SystemType.MULTI:
             logger.info("Создан MultiServerMatrixBuilder")
             return MultiServerMatrixBuilder(params.base_params)
@@ -41,6 +41,5 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
         case _:
             # TODO
             raise ValueError(
-                "Неподдерживаемый тип системы: "
-                f"{params.calculation_settings.system_type}"
+                f"Неподдерживаемый тип системы: {params.calculation_params.system_type}"
             )
