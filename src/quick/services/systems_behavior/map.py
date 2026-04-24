@@ -103,15 +103,13 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
             NDArray[float64]: Среднее число заявок в системе.
 
         Raises:
-            ValueError: Если параметры системы не являются MAPSystemParams.
+            TypeError: Если параметры системы не являются MAPSystemParams.
         """
         logger.info("Вычисление среднего числа заявок в системе")
 
         if not isinstance(self.params.base_params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise ValueError(
-                "Базовые параметры должны быть экземпляром MAPSystemParams"
-            )
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
         n = self.params.base_params.max_customers
         m = self.params.base_params.sensor_count

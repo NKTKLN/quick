@@ -51,14 +51,14 @@ class SafeUnpickler(pickle.Unpickler):
         Raises:
             pickle.UnpicklingError: Если класс не разрешён.
         """
-        if (module, name) in self.ALLOWED_CLASSES:  # TODO: swap
-            logger.debug(f"Разрешён класс для загрузки: {module}.{name}")
-            return super().find_class(module, name)
+        if (module, name) not in self.ALLOWED_CLASSES:
+            logger.error(f"Попытка загрузить запрещённый класс: {module}.{name}")
+            raise pickle.UnpicklingError(
+                f"Попытка загрузить запрещённый класс: {module}.{name}"
+            )
 
-        logger.error(f"Попытка загрузить запрещённый класс: {module}.{name}")
-        raise pickle.UnpicklingError(
-            f"Попытка загрузить запрещённый класс: {module}.{name}"
-        )
+        logger.debug(f"Разрешён класс для загрузки: {module}.{name}")
+        return super().find_class(module, name)
 
 
 def safe_loads(data: bytes) -> object:

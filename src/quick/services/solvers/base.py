@@ -26,9 +26,9 @@ class BasicProbabilitySolver(ABC):
 
     def __init__(
         self,
-        params: TransientSystemParams,
+        params: type[TransientSystemParams],
         coefficients_matrix: NDArray[np.float64],
-        config: ComputationConfig | None = None,
+        config: type[ComputationConfig] | None = None,
     ) -> None:
         """Инициализирует базовый решатель.
 

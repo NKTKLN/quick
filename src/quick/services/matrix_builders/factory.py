@@ -39,7 +39,9 @@ def matrix_builder_factory(params: SystemParams) -> BaseMatrixBuilder:
             logger.info("Создан MultiSensorMAPServerMatrixBuilder")
             return MultiSensorMAPServerMatrixBuilder(params.base_params)
         case _:
-            # TODO
+            logger.error(
+                f"Неподдерживаемый тип системы: {params.calculation_params.system_type}"
+            )
             raise ValueError(
                 f"Неподдерживаемый тип системы: {params.calculation_params.system_type}"
             )

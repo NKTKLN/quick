@@ -38,9 +38,7 @@ class BaseMAPServerSystem(BaseServerSystem):
         """
         if not isinstance(self.params.base_params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise ValueError(
-                "Базовые параметры должны быть экземпляром MAPSystemParams"
-            )  # TODO: TypeError or ValueError
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
         m = self.params.base_params.sensor_count
         probs = self.probabilities

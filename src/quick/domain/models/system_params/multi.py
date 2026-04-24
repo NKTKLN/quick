@@ -23,7 +23,8 @@ class MultiSystemParams(BaseSystemParams):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
+        Raises:
+            ValueError: При некорректных параметрах.
         """
         super().validate()
         if self.processor_count <= 0:

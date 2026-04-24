@@ -50,9 +50,11 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         Returns:
             tuple[NDArray[np.float64], NDArray[np.float64]]:
                 Кортеж из массива собственных значений и матрицы собственных векторов.
-        """
-        # TODO
 
+        Raises:
+            ValueError: Если собственные значения или собственные векторы имеют
+                существенную комплексную часть.
+        """
         logger.debug("Начинаем вычисление собственных значений и векторов...")
         eigenvalues, xsi_matrix = scipy_eig(self.coefficients_matrix)
 

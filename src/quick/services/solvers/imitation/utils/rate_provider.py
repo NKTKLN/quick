@@ -1,4 +1,9 @@
-# TODO
+"""Модуль поставщиков интенсивностей для СМО.
+
+Реализует классы BaseRateProvider, TimeSeriesRateProvider и
+TimeSeriesMAPRateProvider, которые задают интерфейс и реализации источников
+интенсивностей поступления, обслуживания и ухода заявок.
+"""
 
 from abc import ABC, abstractmethod
 
@@ -56,8 +61,6 @@ class BaseRateProvider(ABC):
 class TimeSeriesRateProvider(BaseRateProvider):
     """Источник интенсивностей λ(t), μ(t), ν(t), основанный на временных рядах.
 
-    Если один из рядов не задан, используется значение из base_params.
-
     Attributes:
         base_params (BaseSystemParams): Базовые параметры системы.
         lambda_series (Optional[TimeSeries]): Временной ряд λ(t), если задан.
@@ -94,20 +97,47 @@ class TimeSeriesRateProvider(BaseRateProvider):
         self.time_series_params = time_series_params
 
     def get_lambda_rate(self, time_point: float) -> float:
-        """Возвращает λ(t) из временного ряда или постоянное значение."""
-        if self.time_series_params.lambda_rate is None:
+        """Возвращает значение λ(t) в заданный момент времени.
+
+        Args:
+            time_point (float): Момент времени, для которого требуется значение интенсивности.
+
+        Returns:
+            float: Значение λ(t) из временного ряда или константа из base_params,
+                если временной ряд не задан.
+        """
+        if (
+            self.time_series_params is None
+            or self.time_series_params.lambda_rate is None
+        ):
             return float(self.base_params.lambda_rate)
         return self.time_series_params.lambda_rate.value_at(time_point)
 
     def get_mu_rate(self, time_point: float) -> float:
-        """Возвращает μ(t) из временного ряда или постоянное значение."""
-        if self.time_series_params.mu_rate is None:
+        """Возвращает значение μ(t) в заданный момент времени.
+
+        Args:
+            time_point (float): Момент времени, для которого требуется значение интенсивности.
+
+        Returns:
+            float: Значение μ(t) из временного ряда или константа из base_params,
+                если временной ряд не задан.
+        """
+        if self.time_series_params is None or self.time_series_params.mu_rate is None:
             return self.base_params.mu_rate
         return self.time_series_params.mu_rate.value_at(time_point)
 
     def get_nu_rate(self, time_point: float) -> float:
-        """Возвращает ν(t) из временного ряда или постоянное значение."""
-        if self.time_series_params.nu_rate is None:
+        """Возвращает значение ν(t) в заданный момент времени.
+
+        Args:
+            time_point (float): Момент времени, для которого требуется значение интенсивности.
+
+        Returns:
+            float: Значение ν(t) из временного ряда или константа из base_params,
+                если временной ряд не задан.
+        """
+        if self.time_series_params is None or self.time_series_params.nu_rate is None:
             return self.base_params.nu_rate
         return self.time_series_params.nu_rate.value_at(time_point)
 
@@ -116,7 +146,18 @@ class TimeSeriesMAPRateProvider(TimeSeriesRateProvider):
     """Поставщик времезависимых параметров lambda(t), mu(t), nu(t)."""
 
     def get_lambda_rate(self, time_point: float) -> NDArray[np.float64]:
-        """Возвращает lambda(t)."""
-        if self.time_series_params.lambda_rate is None:
+        """Возвращает значение λ(t) в виде массива для MAP-потока.
+
+        Args:
+            time_point (float): Момент времени, для которого требуется значение интенсивности.
+
+        Returns:
+            NDArray[np.float64]: Матрица (или вектор) λ(t), полученная из временного ряда
+                или скопированная из base_params, если временной ряд не задан.
+        """
+        if (
+            self.time_series_params is None
+            or self.time_series_params.lambda_rate is None
+        ):
             return self.base_params.lambda_rate.copy()
         return self.time_series_params.lambda_rate.value_at(time_point)

@@ -46,7 +46,7 @@ class MultiServerMatrixBuilder(BaseMatrixBuilder):
         """
         if not isinstance(self.params, MultiSystemParams):
             logger.error("Параметры являются экземпляром MultiSystemParams")
-            raise ValueError("Параметры не должны быть экземпляром MultiSystemParams")
+            raise TypeError("Параметры не должны быть экземпляром MultiSystemParams")
 
         logger.info("Начато построение матрицы коэффициентов.")
         n, m = self.params.max_customers, self.params.processor_count

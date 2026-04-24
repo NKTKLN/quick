@@ -42,13 +42,12 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
             NDArray[np.float64]: Матрица D₀ для текущих параметров потока.
 
         Raises:
-            ValueError: Если базовые параметры системы не являются MAPSystemParams.
+            TypeError: Если базовые параметры системы не являются MAPSystemParams.
+            ValueError: Если матрицы p_rate и q_rate имеют разную размерность.
         """
         if not isinstance(self.params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise ValueError(
-                "Базовые параметры должны быть экземпляром MAPSystemParams"
-            )
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
         if self.params.p_rate.shape != self.params.q_rate.shape:
             logger.error("Матрицы p_rate и q_rate должны иметь одинаковую размерность.")
@@ -74,9 +73,7 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
         """
         if not isinstance(self.params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise ValueError(
-                "Базовые параметры должны быть экземпляром MAPSystemParams"
-            )
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
         logger.debug("Генерация матрицы D₁ из q_rate и λ.")
         matrix = self.params.q_rate.copy()
@@ -88,16 +85,14 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
         """Формирует матрицу коэффициентов для СМО с Марковскими входными потоками.
 
         Returns:
-            NDArray[np.float64]: Квадратная матрица коэффициентов (n² x n²). # TODO
+            NDArray[np.float64]: Квадратная матрица коэффициентов.
 
         Raises:
             ValueError: Если базовые параметры системы не являются MAPSystemParams.
         """
         if not isinstance(self.params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise ValueError(
-                "Базовые параметры должны быть экземпляром MAPSystemParams"
-            )
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
         logger.info("Начато построение матрицы коэффициентов.")
         n, m = self.params.max_customers, self.params.sensor_count

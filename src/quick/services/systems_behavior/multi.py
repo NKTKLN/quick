@@ -50,13 +50,13 @@ class MultiSystemBehavior(BaseSystemBehavior):
             NDArray[float64]: Среднее число заявок в системе.
 
         Raises:
-            ValueError: Если параметры системы не являются MultiSystemParams.
+            TypeError: Если параметры системы не являются MultiSystemParams.
         """
         logger.info("Вычисление среднего числа заявок в системе")
 
         if not isinstance(self.params.base_params, MultiSystemParams):
             logger.error("Базовые параметры не являются экземпляром MultiSystemParams")
-            raise ValueError(
+            raise TypeError(
                 "Базовые параметры должны быть экземпляром MultiSystemParams"
             )
 

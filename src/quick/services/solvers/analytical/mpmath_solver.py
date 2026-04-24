@@ -20,8 +20,9 @@ from quick.domain import (
     MpmathComputationConfig,
 )
 from quick.domain.models import TransientSystemParams
-from quick.services.solvers.analytical.base import AnalyticalBasicProbabilitySolver
 from quick.utils import Progress
+
+from .base import AnalyticalBasicProbabilitySolver
 
 
 class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
@@ -45,7 +46,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             config (MpmathComputationConfig): Конфигурация вычислений.
         """
         super().__init__(params, coefficients_matrix, config)
-        self._precision: int = config.precision  # TODO
+        self._precision = config.precision
 
     @duckdb_cache("coefficients_matrix")
     def _compute_eigenvalues(self) -> tuple[Any, Any]:
@@ -56,7 +57,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
                 собственных векторов.
 
         Raises:
-            ValueError: Если конфиг не является MpmathComputationConfig или
+            TypeError: Если конфиг не является MpmathComputationConfig или
                 MergedComputationConfig.
         """
         logger.debug("Начинаем вычисление собственных значений и векторов...")
@@ -64,7 +65,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             self.config, MpmathComputationConfig | MergedComputationConfig
         ):
             logger.error("Конфиг неверного типа для mpmath решателя.")
-            raise ValueError(
+            raise TypeError(
                 "Конфиг должн быть экземпляром MpmathComputationConfig или "
                 "MergedComputationConfig"
             )

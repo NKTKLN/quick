@@ -21,7 +21,7 @@ class BaseMatrixBuilder(ABC):
     дифференциальных уравнений, описывающих поведение СМО.
     """
 
-    def __init__(self, params: BaseSystemParams) -> None:
+    def __init__(self, params: type[BaseSystemParams]) -> None:
         """Инициализирует базовый построитель с параметрами модели.
 
         Args:

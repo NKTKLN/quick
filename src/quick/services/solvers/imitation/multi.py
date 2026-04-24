@@ -58,7 +58,7 @@ class MultiServerImitationProbabilitySolver:
                 Если None → используется ConstantRateProvider.
 
         Raises:
-            ValueError: Если параметры системы не являются MultiSystemParams.
+            TypeError: Если параметры системы не являются MultiSystemParams.
         """
         self.system_params = system_params
         self.system_params.validate()
@@ -74,7 +74,7 @@ class MultiServerImitationProbabilitySolver:
 
         if not isinstance(self.base_params, MultiSystemParams):
             logger.error("Параметры являются экземпляром MultiSystemParams")
-            raise ValueError("Параметры не должны быть экземпляром MultiSystemParams")
+            raise TypeError("Параметры не должны быть экземпляром MultiSystemParams")
 
         self.max_state: int = (
             self.base_params.max_customers + self.base_params.processor_count
@@ -110,6 +110,8 @@ class MultiServerImitationProbabilitySolver:
         Returns:
             NDArray[np.int32]:
                 Массив длины len(time_array), где i-й элемент — значение N(t_i).
+
+        # TODO
         """
         times = self.time_array
         T = times.shape[0]
@@ -117,7 +119,7 @@ class MultiServerImitationProbabilitySolver:
 
         if not isinstance(self.base_params, MultiSystemParams):
             logger.error("Параметры являются экземпляром MultiSystemParams")
-            raise ValueError("Параметры не должны быть экземпляром MultiSystemParams")
+            raise TypeError("Параметры не должны быть экземпляром MultiSystemParams")
 
         states_over_time = np.zeros(T, dtype=np.int32)
 
@@ -206,7 +208,9 @@ class MultiServerImitationProbabilitySolver:
         S = self.num_states
         counts = np.zeros((T, S), dtype=np.float64)
 
-        for run in Progress.wrap(range(self.sim_config.trajectories), description="Вычисление траекторий"):
+        for run in Progress.wrap(
+            range(self.sim_config.trajectories), description="Вычисление траекторий"
+        ):
             states_over_time = self._simulate_single_trajectory()
 
             for t_idx in range(T):

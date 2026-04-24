@@ -17,6 +17,7 @@ from quick.db.client import DuckDBClient
 from quick.domain import ComputationConfig
 
 # from quick.services.solvers.base import BasicProbabilitySolver
+from quick.services.solvers.base import BasicProbabilitySolver
 from quick.settings import ConfigLoader
 from quick.utils import PickleSerializer
 
@@ -64,11 +65,24 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
 
             Returns:
                 Any: Результат выполнения метода, либо загруженный из кэша.
+
+            Raises:
+                TypeError: Если декорируемый метод вызван не у экземпляра
+                    BasicProbabilitySolver.
+                AttributeError: Если один или несколько путей из attribute_paths
+                    не могут быть извлечены из объекта self.
             """
             config = ConfigLoader.get_config()
 
-            # if not isinstance(self, BasicProbabilitySolver):  # TODO
-            #     raise
+            if not isinstance(self, BasicProbabilitySolver):
+                logger.error(
+                    "Некорректный тип self: "
+                    f"ожидался BasicProbabilitySolver, получен {type(self)}"
+                )
+                raise TypeError(
+                    "Декорируемый метод должен принадлежать классу "
+                    "BasicProbabilitySolver"
+                )
 
             computation_config: ComputationConfig = self.config
             if computation_config.disable_cache or config.disable_cache:
@@ -83,26 +97,15 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
 
             logger.debug(f"Запрос к кэшу для метода: {method.__name__}")
 
-            # Формирование части ключа из self
-            try:
-                self_cache_info: dict[str, Any] = {
-                    path: _extract_nested_attribute(self, path)
-                    for path in attribute_paths
-                }
-            except AttributeError as e:
-                logger.error(f"Не удалось извлечь атрибуты self для ключа: {e}")
-                raise  # TODO
-
-            cache_key_data = {"self": self_cache_info, "args": args, "kwargs": kwargs}
-
-            logger.debug(
-                f"Формирование кэш-ключа для метода {method.__name__}: {cache_key_data}"
+            key_blob = _build_key_blob(
+                self,
+                args,
+                kwargs,
+                attribute_paths,
+                method.__name__,
             )
 
-            try:
-                key_blob = PickleSerializer.dump_key_to_pickle(cache_key_data)
-            except (PickleError, TypeError) as e:
-                logger.warning(f"Ошибка сериализации ключа для {method.__name__}: {e}")
+            if key_blob is None:
                 return method(self, *args, **kwargs)
 
             # Попытка загрузить результат из кэша
@@ -145,6 +148,53 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
     return decorator
 
 
+def _build_key_blob(
+    self: Any,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    attribute_paths: tuple[str, ...],
+    method_name: str,
+) -> bytes | None:
+    """Формирует сериализованный кэш-ключ для метода.
+
+    Args:
+        self (Any): Экземпляр класса, для которого вызывается метод.
+        args (tuple[Any, ...]): Позиционные аргументы метода.
+        kwargs (dict[str, Any]): Именованные аргументы метода.
+        attribute_paths (tuple[str, ...]): Пути к атрибутам `self`,
+            включаемые в кэш-ключ (например, "config.name").
+        method_name (str): Имя метода (используется для логирования).
+
+    Returns:
+        bytes | None: Сериализованный ключ (pickle blob) или `None`,
+            если произошла ошибка сериализации.
+
+    Raises:
+        AttributeError: Если один из путей `attribute_paths`
+            не может быть извлечён из `self`.
+    """
+    try:
+        self_cache_info = {
+            path: _extract_nested_attribute(self, path) for path in attribute_paths
+        }
+    except AttributeError as e:
+        logger.error(f"Не удалось извлечь атрибуты self для ключа: {e}")
+        raise AttributeError(
+            "Не удалось извлечь один или несколько атрибутов из self "
+            f"для формирования кэш-ключа: {attribute_paths}"
+        ) from e
+
+    cache_key_data = {"self": self_cache_info, "args": args, "kwargs": kwargs}
+
+    logger.debug(f"Формирование кэш-ключа для метода {method_name}: {cache_key_data}")
+
+    try:
+        return PickleSerializer.dump_key_to_pickle(cache_key_data)
+    except (PickleError, TypeError) as e:
+        logger.warning(f"Ошибка сериализации ключа для {method_name}: {e}")
+        return None
+
+
 def _extract_nested_attribute(obj: Any, path: str) -> Any:
     """Извлекает значение вложенного атрибута по точечной нотации.
 
@@ -162,5 +212,5 @@ def _extract_nested_attribute(obj: Any, path: str) -> Any:
         for attr in path.split("."):
             obj = getattr(obj, attr)
         return obj
-    except AttributeError as e:  # TODO
+    except AttributeError as e:
         raise AttributeError(f"Не удалось получить '{path}': {e}") from e

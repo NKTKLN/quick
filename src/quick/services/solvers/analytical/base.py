@@ -15,8 +15,6 @@ from numpy.typing import NDArray
 from quick.db import duckdb_cache
 from quick.domain import (
     ComputationConfig,
-    MergedComputationConfig,
-    MpmathComputationConfig,
 )
 from quick.domain.models import TransientSystemParams
 from quick.services.solvers.base import BasicProbabilitySolver
@@ -33,7 +31,7 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
         self,
         params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
-        config: ComputationConfig | MpmathComputationConfig | MergedComputationConfig,
+        config: type[ComputationConfig],
     ) -> None:
         """Инициализирует базовый решатель.
 

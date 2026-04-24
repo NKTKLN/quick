@@ -95,6 +95,8 @@ class MAPImitationProbabilitySolver:
         self,
         system_params: ImitationSystemParams,
     ) -> None:
+        # TODO
+
         self.system_params = system_params
         self.sim_config = system_params.simulation_params
 
@@ -109,7 +111,7 @@ class MAPImitationProbabilitySolver:
 
         if not isinstance(self.base_params, MAPSystemParams):
             logger.error("Параметры являются экземпляром MAPSystemParams")
-            raise ValueError("Параметры не должны быть экземпляром MAPSystemParams")
+            raise TypeError("Параметры не должны быть экземпляром MAPSystemParams")
 
         self.time_array: NDArray[np.float64] = self.transient_params.time_array
         self.initial_probabilities: NDArray[np.float64] = (
@@ -142,7 +144,7 @@ class MAPImitationProbabilitySolver:
         lambda_t = self.rate_provider.get_lambda_rate(time_point)
         mu_t = self.rate_provider.get_mu_rate(time_point)
         nu_t = self.rate_provider.get_nu_rate(time_point)
-        
+
         return self.generator_builder.build_q_row(
             lambda_rate=lambda_t,
             mu_rate=mu_t,
@@ -241,7 +243,9 @@ class MAPImitationProbabilitySolver:
         t_count = self.time_array.shape[0]
         counts = np.zeros((t_count, self.num_states), dtype=np.float64)
 
-        for run in Progress.wrap(range(self.sim_config.trajectories), description="Вычисление траекторий"):
+        for run in Progress.wrap(
+            range(self.sim_config.trajectories), description="Вычисление траекторий"
+        ):
             states_over_time = self._simulate_single_trajectory()
 
             for t_idx in range(t_count):

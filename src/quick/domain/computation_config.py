@@ -26,10 +26,8 @@ class ComputationConfig:
     compute_only_last_state: bool = False
 
     def validate(self) -> None:
-        """Проверяет корректность параметров.
-
-        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
-        """
+        """Проверяет корректность параметров."""
+        ...
 
 
 @dataclass
@@ -46,7 +44,8 @@ class MpmathComputationConfig(ComputationConfig):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
+        Raises:
+            ValueError: При некорректных параметрах.
         """
         super().validate()
         if self.precision <= 0:
@@ -67,7 +66,8 @@ class MergedComputationConfig(MpmathComputationConfig):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
+        Raises:
+            ValueError: При некорректных параметрах.
         """
         super().validate()
         if self.tolerance <= 0:

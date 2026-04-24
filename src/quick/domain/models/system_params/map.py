@@ -34,7 +34,8 @@ class MAPSystemParams(BaseSystemParams):
     def validate(self) -> None:
         """Проверяет корректность параметров.
 
-        Выбрасывает исключение ValueError при некорректных параметрах. # TODO
+        Raises:
+            ValueError: При некорректных параметрах.
         """
         super().validate()
         if self.p_rate.shape != self.q_rate.shape:
@@ -56,9 +57,14 @@ class MAPSystemParams(BaseSystemParams):
                 "Значения матрицы интенсивности поступления должны находиться в "
                 "диапазоне [0, 1]."
             )
-        if np.sum(self.q_rate) == 0 or np.sum(self.q_rate) == 0:  # TODO
+        if np.sum(self.q_rate) == 0:
             raise ValueError(
-                "Все значения матрицы интенсивности поступления или "
-                "обслуживания не должны равняться нулю."
+                "Все значения матрицы интенсивности поступления "
+                "не должны равняться нулю."
+            )
+        if np.sum(self.q_rate) == 0:
+            raise ValueError(
+                "Все значения матрицы интенсивности обслуживания "
+                "не должны равняться нулю."
             )
         # TODO: Спросить про корректность матриц интенсивности (Пока не надо)

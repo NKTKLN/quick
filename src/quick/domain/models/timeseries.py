@@ -1,4 +1,8 @@
-# TODO
+"""Модуль временных рядов параметров СМО.
+
+Реализует классы TimeSeries и TimeSeriesBaseSystemParams, которые используются
+для задания параметров системы массового обслуживания (СМО), зависящих от времени.
+"""
 
 from dataclasses import dataclass
 
@@ -8,10 +12,7 @@ from numpy.typing import NDArray
 
 @dataclass
 class TimeSeries:
-    """Временной ряд измерений.
-
-    Описывает неубывающий массив временных точек и соответствующие им значения,
-    используемые для моделирования динамических параметров системы.
+    """Временной ряд параметров.
 
     Attributes:
         times (NDArray[np.float64]): Массив времён измерений.
@@ -24,7 +25,11 @@ class TimeSeries:
     values: NDArray[np.float64]
 
     def validate(self) -> None:
-        """Проверяет корректность параметров."""
+        """Проверяет корректность параметров.
+
+        Raises:
+            ValueError: При некорректных параметрах.
+        """
         if self.times.shape[0] != self.values.shape[0]:
             raise ValueError("times и values должны иметь одинаковую форму.")
         if self.times.shape[0] == 0:
@@ -34,11 +39,6 @@ class TimeSeries:
 
     def value_at(self, time_point: float) -> float:
         """Возвращает значение в момент времени time_point по схеме LOСF.
-
-        Поведение:
-        - Если time_point < times[0], возвращается values[0].
-        - Если time_point > times[-1], возвращается values[-1].
-        - Иначе возвращается последнее значение, соответствующее time <= time_point.
 
         Args:
             time_point (float): Момент времени, для которого требуется значение.
@@ -56,8 +56,7 @@ class TimeSeries:
 
 @dataclass
 class TimeSeriesBaseSystemParams:
-    # TODO
-    """Базовые параметры СМО.
+    """Базовые параметры СМО, зывисымые от времени.
 
     Attributes:
         mu_rate (NDArray[np.float64]): Интенсивность обслуживания заявок (μ > 0).
@@ -70,7 +69,11 @@ class TimeSeriesBaseSystemParams:
     lambda_rate: TimeSeries | None = None
 
     def validate(self) -> None:
-        """Проверяет корректность параметров."""  # TODO
+        """Проверяет корректность параметров.
+
+        Raises:
+            ValueError: При некорректных параметрах.
+        """
         if self.lambda_rate is not None:
             self.lambda_rate.validate()
         if self.mu_rate is not None:

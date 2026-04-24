@@ -1,45 +1,30 @@
 """Фабричный модуль для создания решателей вероятностной модели СМО.
 
-Предоставляет функцию `solvers_factory`, которая инстанцирует объект решателя
-вероятностной системы на основе заданного метода расчета (`CalculationMethod`)
-и вычислительного движка (`CalculationEngine`).
+Предоставляет функцию solvers_factory, которая инстанцирует объект решателя
+вероятностной системы на основе заданного метода расчета (CalculationMethod)
+и вычислительного движка (CalculationEngine).
 """
-
-from typing import cast
 
 import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
 from quick.domain import (
-    CalculationEngine,
     CalculationMethod,
     ComputationConfig,
-    SystemType,
-)
-from quick.domain.computation_config import (
-    MergedComputationConfig,
-    MpmathComputationConfig,
 )
 from quick.domain.models import ImitationSystemParams, SystemParams
 
-from .analytical import (
-    AnalyticalMergedProbabilitySolver,
-    AnalyticalMpmathProbabilitySolver,
-    AnalyticalNumpyProbabilitySolver,
-)
+from .analytical import analytical_solvers_factory
 from .base import BasicProbabilitySolver
-from .imitation import (
-    MAPImitationProbabilitySolver,
-    MultiServerImitationProbabilitySolver,
-)
-from .numerical import NumericalProbabilitySolver
+from .imitation import imitation_solvers_factory
+from .numerical import numerical_solvers_factory
 
 
 def solvers_factory(
     params: type[SystemParams],
     coefficients_matrix: NDArray[np.float64],
-    config: ComputationConfig,
+    config: type[ComputationConfig],
 ) -> BasicProbabilitySolver:
     """Создаёт и возвращает решатель вероятностной модели СМО.
 
@@ -64,55 +49,32 @@ def solvers_factory(
         logger.error("Переходные параметры не заданы.")
         raise ValueError("Переходные параметры должны быть заданы.")
 
-    if config.calculation_method == CalculationMethod.ANALYTICAL:
-        match config.calculation_engine:
-            case CalculationEngine.NUMPY:
-                logger.info("Создан AnalyticalNumpyProbabilitySolver")
-                return AnalyticalNumpyProbabilitySolver(
-                    params.transient_params, coefficients_matrix, config
+    match config.calculation_method:
+        case CalculationMethod.ANALYTICAL:
+            return analytical_solvers_factory(
+                params.transient_params, coefficients_matrix, config
+            )
+
+        case CalculationMethod.NUMERICAL:
+            return numerical_solvers_factory(
+                params.transient_params, coefficients_matrix, config
+            )
+
+        case CalculationMethod.IMITATION:
+            if not isinstance(params, ImitationSystemParams):
+                logger.error(
+                    "Некорректный тип параметров для имитационного метода: "
+                    f"ожидался ImitationSystemParams, получен {type(params)}"
                 )
-            case CalculationEngine.MPMATH:
-                logger.info("Создан AnalyticalMpmathProbabilitySolver")
-                return AnalyticalMpmathProbabilitySolver(
-                    params.transient_params,
-                    coefficients_matrix,
-                    cast(MpmathComputationConfig, config),
-                )
-            case CalculationEngine.MERGED:
-                logger.info("Создан AnalyticalMergedProbabilitySolver")
-                return AnalyticalMergedProbabilitySolver(
-                    params.transient_params,
-                    coefficients_matrix,
-                    cast(MergedComputationConfig, config),
-                )
-            case _:
-                # TODO
-                raise ValueError(
-                    "Неподдерживаемый вычислительный движок: "
-                    f"{config.calculation_engine}"
+                raise TypeError(
+                    "Для имитационного метода params должен быть экземпляром "
+                    "ImitationSystemParams"
                 )
 
-    if config.calculation_method == CalculationMethod.NUMERICAL:
-        logger.info("Создан NumericalProbabilitySolver")
-        return NumericalProbabilitySolver(
-            params.transient_params, coefficients_matrix, config
-        )
+            return imitation_solvers_factory(params)
 
-    if config.calculation_method == CalculationMethod.IMITATION:
-        if not isinstance(params, ImitationSystemParams):
-            raise  # TODO
-
-        match params.calculation_params.system_type:
-            case SystemType.MULTI:
-                return MultiServerImitationProbabilitySolver(params)
-            case SystemType.MAP:
-                return MAPImitationProbabilitySolver(params)
-            case _:
-                # TODO
-                raise ValueError(
-                    "Неподдерживаемый тип системы:"
-                    f"{params.calculation_params.system_type}"
-                )
-
-    # TODO
-    raise ValueError(f"Неподдерживаемый метод расчета: {config.calculation_method}")
+        case _:
+            logger.error(f"Неподдерживаемый метод расчета: {config.calculation_method}")
+            raise ValueError(
+                f"Неподдерживаемый метод расчета: {config.calculation_method}"
+            )

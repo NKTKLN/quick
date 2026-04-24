@@ -29,7 +29,7 @@ class BaseServerSystem(ABC):
     def __init__(
         self,
         params: SystemParams,
-        system_behavior: type[BaseSystemBehavior],  # TODO < example
+        system_behavior: type[BaseSystemBehavior],
         config: ComputationConfig | None = None,
     ) -> None:
         """Инициализирует систему массового обслуживания с заданными параметрами.

@@ -56,12 +56,18 @@ class AnalyticalMergedProbabilitySolver(AnalyticalMpmathProbabilitySolver):
             NDArray[np.int64]: Массив индексов последних некорректных временных
                 точек для каждой пары.
 
-        # TODO
+        Raises:
+            TypeError: Если self.config не является экземпляром MergedComputationConfig.
+            ValueError: Если data_matrix имеет некорректную размерность или форму.
         """
         logger.debug("Начата проверка на некорректные значения в матрице M(t)")
 
-        if not isinstance(self.config, MergedComputationConfig):  # TODO
-            raise ValueError("Конфиг должн быть экземпляром MergedComputationConfig")
+        if not isinstance(self.config, MergedComputationConfig):
+            logger.error(
+                "Некорректный тип конфигурации: "
+                f"ожидался MergedComputationConfig, получен {type(self.config)}"
+            )
+            raise TypeError("Конфиг должн быть экземпляром MergedComputationConfig")
 
         matrix_size = data_matrix.shape[0]
         time_steps = data_matrix.shape[2]
