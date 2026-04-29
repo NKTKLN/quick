@@ -1,8 +1,4 @@
-"""Компонент интерфейса Streamlit для настройки параметров вычислений.
-
-Позволяет выбрать тип вычислений (NumPy, Mpmath или объединённый), настроить точность и
-погрешность, а также включить или отключить кэширование.
-"""
+"""Компонент интерфейса Streamlit для настройки параметров вычислений."""
 
 import streamlit as st
 
@@ -13,6 +9,7 @@ from quick.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
+from quick.domain.models import SimulationParams
 from quick.settings import ConfigLoader
 
 
@@ -98,3 +95,24 @@ def render_calculation_config() -> ComputationConfig:
             config.disable_cache = disable_cache
 
     return config
+
+
+def render_imitation_config() -> SimulationParams:
+    """Отображает UI-компоненты для задания параметров имитационного моделирования.
+
+    Returns:
+        SimulationParams: Объект с параметрами имитационного моделирования,
+            содержащий число траекторий и seed генератора случайных чисел.
+    """
+    col1, col2 = st.columns(2)
+
+    with col1:
+        trajectories = st.number_input(
+            "Количество траекторий Монте-Карло.", min_value=0, value=10000
+        )
+    with col2:
+        seed = st.number_input("Начальное значение для ГПСЧ", min_value=0, value=None)
+
+    simulation_params = SimulationParams(trajectories, seed)
+
+    return simulation_params

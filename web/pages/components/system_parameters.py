@@ -5,6 +5,7 @@
 - Максимальной емкости системы и количества процессоров.
 """
 
+from ast import literal_eval
 from typing import cast
 
 import numpy as np
@@ -12,6 +13,7 @@ import streamlit as st
 from numpy.typing import NDArray
 
 from quick.domain import SystemMode, SystemType
+from quick.domain.models import TimeSeries, TimeSeriesBaseSystemParams
 from quick.utils import map_intensity_matrix_generator
 
 
@@ -205,3 +207,122 @@ def map_intensity_matrix(
     )
 
     return p_rate, q_rate
+
+
+def _parse_array(text: str, field_name: str) -> np.ndarray:
+    """Преобразует строковое представление массива в numpy.ndarray.
+
+    Args:
+        text (str): Строка с представлением массива (например, "[1, 2, 3]"
+            или "[[1, 2], [3, 4]]").
+        field_name (str): Имя поля (используется в сообщениях об ошибках).
+
+    Returns:
+        np.ndarray: Массив numpy с типом float64.
+
+    Raises:
+        ValueError: Если строка не может быть преобразована в массив,
+            если массив имеет размерность, отличную от 1D или 2D,
+            или если массив пустой.
+    """
+    try:
+        value = literal_eval(text)
+        arr = np.array(value, dtype=np.float64)
+
+        if arr.ndim not in (1, 2):
+            raise ValueError(f"{field_name} должен быть 1D или 2D массивом")
+
+        if arr.size == 0:
+            raise ValueError(f"{field_name} не должен быть пустым")
+
+        return arr
+    except Exception as e:
+        raise ValueError(f"Ошибка в поле '{field_name}': {e}") from e
+
+
+def get_time_series_parameters() -> TimeSeriesBaseSystemParams:
+    """Отображает UI-компоненты для ввода параметров, зависящих от времени.
+
+    Позволяет пользователю задать временные ряды для интенсивностей:
+    - поступления заявок (λ),
+    - обслуживания (μ),
+    - ухода нетерпеливых заявок (ν).
+
+    Returns:
+        TimeSeriesBaseSystemParams: Объект с параметрами временных рядов.
+            Если пользователь отключил использование временных рядов,
+            возвращается объект с параметами по умолчанию.
+
+    Raises:
+        StreamlitAPIException: Прерывает выполнение (st.stop),
+            если введённые данные некорректны и не могут быть
+            преобразованы в массивы.
+    """
+    st.subheader("🕔 Параметры, зависимые от времени")
+
+    time_series_params = TimeSeriesBaseSystemParams()
+
+    use_timeseries = st.checkbox(
+        "Использовать параметры, зависимые от времени", value=True
+    )
+    if not use_timeseries:
+        return time_series_params
+
+    lambda_times_text = st.text_area(
+        "lambda_times",
+        value="[0.045000, 0.092000, 0.138000, 0.184000, 0.231000, 0.277000, 0.323000, 0.369000, 0.416000, 0.462000]",
+    )
+
+    lambda_values_text = st.text_area(
+        "lambda_values",
+        value="""[
+    [169.675095, 447.755615, 936.126038],
+    [210.134125, 454.556976, 952.228271],
+    [209.509659, 454.173676, 951.484375],
+    [206.140350, 450.753174, 952.228271],
+    [209.509659, 454.173676, 951.484375],
+    [207.964615, 454.556976, 951.484375],
+    [204.347824, 452.647064, 947.045105],
+    [210.134125, 454.556976, 951.484375],
+    [209.198807, 453.791077, 950.741577],
+    [210.447769, 452.647064, 952.228271]
+]""",
+    )
+
+    mu_times_text = st.text_area(
+        "mu_times",
+        value="[0.045000, 0.092000, 0.138000, 0.184000, 0.231000, 0.277000, 0.323000, 0.369000, 0.416000, 0.462000]",
+    )
+
+    mu_values_text = st.text_area(
+        "mu_values",
+        value="[509.308807, 510.693085, 509.832611, 509.854919, 509.877228, 509.709900, 510.078186, 510.044678, 509.866058, 510.066986]",
+    )
+
+    nu_times_text = st.text_area(
+        "nu_times",
+        value="[0.045000, 0.092000, 0.138000, 0.184000, 0.231000, 0.277000, 0.323000, 0.369000, 0.416000, 0.462000]",
+    )
+
+    nu_values_text = st.text_area(
+        "nu_values",
+        value="[100.000000, 100.000000, 100.000000, 100.000000, 100.000000, 100.000000, 100.000000, 100.000000, 100.000000, 100.000000]",
+    )
+
+    try:
+        lambda_times = _parse_array(lambda_times_text, "lambda_times")
+        lambda_values = _parse_array(lambda_values_text, "lambda_values")
+        mu_times = _parse_array(mu_times_text, "mu_times")
+        mu_values = _parse_array(mu_values_text, "mu_values")
+        nu_times = _parse_array(nu_times_text, "nu_times")
+        nu_values = _parse_array(nu_values_text, "nu_values")
+
+        time_series_params.lambda_rate = TimeSeries(lambda_times, lambda_values)
+        time_series_params.mu_rate = TimeSeries(mu_times, mu_values)
+        time_series_params.nu_rate = TimeSeries(nu_times, nu_values)
+
+    except ValueError as e:
+        st.error(str(e))
+        st.stop()
+
+    return time_series_params
