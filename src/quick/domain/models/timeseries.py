@@ -5,6 +5,7 @@
 """
 
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -37,21 +38,22 @@ class TimeSeries:
         if not np.all(np.diff(self.times) >= 0):
             raise ValueError("times должен быть неубывающим.")
 
-    def value_at(self, time_point: float) -> float:
+    def value_at(self, time_point: float) -> float | NDArray[np.float64]:
         """Возвращает значение в момент времени time_point по схеме LOСF.
 
         Args:
             time_point (float): Момент времени, для которого требуется значение.
 
         Returns:
-            float: Значение временного ряда, соответствующее моменту time_point.
+            float | NDArray[np.float64]: Значение временного ряда,
+                соответствующее моменту time_point.
         """
         idx = int(np.searchsorted(self.times, time_point, side="right") - 1)
         if idx < 0:
             idx = 0
         if idx >= self.values.shape[0]:
             idx = self.values.shape[0] - 1
-        return self.values[idx]
+        return cast(float | NDArray[np.float64], self.values[idx])
 
 
 @dataclass

@@ -37,19 +37,12 @@ def render_calculation_config() -> ComputationConfig:
 
     calculation_type = st.selectbox(
         "Выберите тип вычисления:",
-        [
-            "Numpy (быстрое, для небольших систем)",
-            "Mpmath (точное, для больших систем)",
-            "Объединенное (для сложных систем с высокой точностью)",
-        ],
+        [engine.value for engine in CalculationEngine],
         index=2,
     )
 
     precision = 50
-    if calculation_type in [
-        "Mpmath (точное, для больших систем)",
-        "Объединенное (для сложных систем с высокой точностью)",
-    ]:
+    if calculation_type in [CalculationEngine.MPMATH, CalculationEngine.MERGED]:
         precision = st.slider(
             "Настройка точности вычислений (колличество знаков после запятой):",
             min_value=16,
@@ -59,7 +52,7 @@ def render_calculation_config() -> ComputationConfig:
         )
 
     tolerance = precision
-    if calculation_type == "Объединенное (для сложных систем с высокой точностью)":
+    if calculation_type == CalculationEngine.MERGED:
         tolerance = st.slider(
             "Настройка допустимой погрешности (колличество знаков после запятой):",
             min_value=1,
@@ -68,20 +61,20 @@ def render_calculation_config() -> ComputationConfig:
             value=precision,
         )
 
-    if calculation_type == "Numpy (быстрое, для небольших систем)":
+    if calculation_type == CalculationEngine.NUMPY:
         config = ComputationConfig(
-            calculation_engine=CalculationEngine.NUMPY,
+            calculation_engine=CalculationEngine(calculation_type),
             calculation_method=CalculationMethod(calculation_method),
         )
-    elif calculation_type == "Mpmath (точное, для больших систем)":
+    elif calculation_type == CalculationEngine.MPMATH:
         config = MpmathComputationConfig(
-            calculation_engine=CalculationEngine.MPMATH,
+            calculation_engine=CalculationEngine(calculation_type),
             calculation_method=CalculationMethod(calculation_method),
         )
         config.precision = precision
     else:
         config = MergedComputationConfig(
-            calculation_engine=CalculationEngine.MERGED,
+            calculation_engine=CalculationEngine(calculation_type),
             calculation_method=CalculationMethod(calculation_method),
         )
         config.precision = precision

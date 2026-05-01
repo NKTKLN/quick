@@ -247,7 +247,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
 
         Returns:
             NDArray[mp.mpf]: 3D матрица M размером (n x n x t),
-                где t — количество временных точек.
+                где t - количество временных точек.
         """
         logger.debug("Начинаем генерацию матрицы M(t)...")
         with mp.workdps(self._precision):

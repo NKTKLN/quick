@@ -24,8 +24,7 @@ def _format_time(seconds: float) -> str:
         seconds (float): Время в секундах.
 
     Returns:
-        str: Отформатированное время. Если есть часы — формат "ЧЧ:ММ:СС",
-            иначе — "ММ:СС".
+        str: Отформатированное время.
     """
     m, s = divmod(int(seconds), 60)
     h, m = divmod(m, 60)
@@ -53,6 +52,7 @@ class AbstractProgress[T](ABC):
             Iterator[T]: Итератор, который выдаёт элементы из iterable с
             отслеживанием прогресса.
         """
+        raise NotImplementedError
 
 
 class StreamlitProgressStrategy(AbstractProgress[T]):

@@ -32,11 +32,3 @@ def imitation_solvers_factory(
         case SystemType.MAP:
             logger.info("Создан MAPImitationProbabilitySolver")
             return MAPImitationProbabilitySolver(params)
-
-        case _:
-            logger.error(
-                f"Неподдерживаемый тип системы: {params.calculation_params.system_type}"
-            )
-            raise ValueError(
-                f"Неподдерживаемый тип системы: {params.calculation_params.system_type}"
-            )

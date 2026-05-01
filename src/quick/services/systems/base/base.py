@@ -76,7 +76,7 @@ class BaseServerSystem(ABC):
         моделью СМО. Результат расчёта должен сохраняться во внутреннем
         поле `_probabilities`.
         """
-        pass
+        raise NotImplementedError
 
     @property
     def lambda_rate(self) -> float | NDArray[np.float64]:
@@ -111,4 +111,4 @@ class BaseServerSystem(ABC):
         Returns:
             dict[str, NDArray[np.float64]]: Результат вычислений.
         """
-        pass
+        raise NotImplementedError

@@ -67,7 +67,7 @@ class NumericalProbabilitySolver(BasicProbabilitySolver):
         )
         logger.debug(
             "Временной интервал: "
-            f"{self.params.time_array[0]} — {self.params.time_array[-1]}"
+            f"{self.params.time_array[0]} - {self.params.time_array[-1]}"
         )
         logger.debug(f"Начальные вероятности: {self.params.initial_probabilities}")
 

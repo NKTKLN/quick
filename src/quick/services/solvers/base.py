@@ -26,9 +26,9 @@ class BasicProbabilitySolver(ABC):
 
     def __init__(
         self,
-        params: type[TransientSystemParams],
+        params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
-        config: type[ComputationConfig] | None = None,
+        config: ComputationConfig | None = None,
     ) -> None:
         """Инициализирует базовый решатель.
 
@@ -55,3 +55,4 @@ class BasicProbabilitySolver(ABC):
             NDArray[np.float64]: Матрица вероятностей состояний (размерность
                 зависит от параметров СМО).
         """
+        raise NotImplementedError

@@ -21,12 +21,14 @@ class MAPSystemParams(BaseSystemParams):
     а также оттоком нетерпеливых заявок. Включает матрицы интенсивностей переходов.
 
     Attributes:
+        lambda_rate (NDArray[np.float64]): Интенсивность поступления заявок (λ > 0).
         p_rate (NDArray[np.float64]): Матрица интенсивностей обслуживания.
         q_rate (NDArray[np.float64]): Матрица интенсивностей поступления.
         sensor_count (int): Количество сенсоров в системе (m).
         Остальные параметры наследуются от BaseSystemParams.
     """
 
+    lambda_rate: NDArray[np.float64]
     p_rate: NDArray[np.float64]
     q_rate: NDArray[np.float64]
     sensor_count: int
@@ -54,7 +56,7 @@ class MAPSystemParams(BaseSystemParams):
             )
         if np.any((self.q_rate < 0) | (self.q_rate > 1)):
             raise ValueError(
-                "Значения матрицы интенсивности поступления должны находиться в "
+                "Значения матрицы интенсивности поступления b должны находиться в "
                 "диапазоне [0, 1]."
             )
         if np.sum(self.q_rate) == 0:
@@ -62,7 +64,7 @@ class MAPSystemParams(BaseSystemParams):
                 "Все значения матрицы интенсивности поступления "
                 "не должны равняться нулю."
             )
-        if np.sum(self.q_rate) == 0:
+        if np.sum(self.p_rate) == 0:
             raise ValueError(
                 "Все значения матрицы интенсивности обслуживания "
                 "не должны равняться нулю."

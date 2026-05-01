@@ -133,7 +133,7 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
 
         Returns:
             NDArray[np.float64]: Трехмерная матрица M(t) размером (n x n x t),
-                где t — количество временных шагов.
+                где t - количество временных шагов.
         """
         logger.debug("Начинаем генерацию матрицы M(t)...")
         matrix_size = xsi_matrix.shape[0]

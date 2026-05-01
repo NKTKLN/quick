@@ -52,9 +52,6 @@ def system_factory(
             system_behavior = MultiSystemBehavior
         case SystemType.MAP:
             system_behavior = MultiSensorMAPSystemBehavior
-        case _:
-            logger.error(f"Неизвестный тип системы: {system_type}")
-            raise NotImplementedError(f"Система типа {system_type} не реализована")
 
     if system_mode == SystemMode.TRANSIENT:
         match system_type:
@@ -68,26 +65,13 @@ def system_factory(
                 return TransientMAPServerStateSystem(
                     **kwargs, system_behavior=system_behavior
                 )
-            case _:
-                logger.error(
-                    f"Тип системы {system_type} не поддерживается в режиме TRANSIENT"
-                )
-                raise NotImplementedError(
-                    f"Система типа {system_type} в режиме TRANSIENT не реализована"
-                )
+
     if system_mode == SystemMode.STEADY:
         match system_type:
             case SystemType.MULTI:
                 logger.info("Создан MultiServerSteadyStateSystem")
                 return MultiServerSteadyStateSystem(
                     **kwargs, system_behavior=system_behavior
-                )
-            case _:
-                logger.error(
-                    f"Тип системы {system_type} не поддерживается в режиме STEADY"
-                )
-                raise NotImplementedError(
-                    f"Система типа {system_type} в режиме STEADY не реализована"
                 )
 
     logger.error(f"Неподдерживаемый режим функционирования: {system_mode}")

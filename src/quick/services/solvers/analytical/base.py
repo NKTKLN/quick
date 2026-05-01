@@ -31,7 +31,7 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
         self,
         params: TransientSystemParams,
         coefficients_matrix: NDArray[np.float64],
-        config: type[ComputationConfig],
+        config: ComputationConfig,
     ) -> None:
         """Инициализирует базовый решатель.
 
@@ -53,6 +53,7 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
             tuple[NDArray[np.float64], NDArray[np.float64]] | tuple[Any, Any]:
                 Кортеж из массива собственных значений и матрицы собственных векторов.
         """
+        raise NotImplementedError
 
     @abstractmethod
     def generate_m_matrix(
@@ -72,6 +73,7 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
             NDArray[np.float64]: Матрица M(t), двух- или трёхмерная, в зависимости
                 от типа вычисления.
         """
+        raise NotImplementedError
 
     @duckdb_cache("params.initial_probabilities")
     def generate_p_matrix(

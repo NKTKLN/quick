@@ -22,9 +22,9 @@ from .numerical import numerical_solvers_factory
 
 
 def solvers_factory(
-    params: type[SystemParams],
+    params: SystemParams,
     coefficients_matrix: NDArray[np.float64],
-    config: type[ComputationConfig],
+    config: ComputationConfig,
 ) -> BasicProbabilitySolver:
     """Создаёт и возвращает решатель вероятностной модели СМО.
 
@@ -72,9 +72,3 @@ def solvers_factory(
                 )
 
             return imitation_solvers_factory(params)
-
-        case _:
-            logger.error(f"Неподдерживаемый метод расчета: {config.calculation_method}")
-            raise ValueError(
-                f"Неподдерживаемый метод расчета: {config.calculation_method}"
-            )

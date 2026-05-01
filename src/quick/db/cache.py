@@ -17,7 +17,6 @@ from quick.db.client import DuckDBClient
 from quick.domain import ComputationConfig
 
 # from quick.services.solvers.base import BasicProbabilitySolver
-from quick.services.solvers.base import BasicProbabilitySolver
 from quick.settings import ConfigLoader
 from quick.utils import PickleSerializer
 
@@ -74,15 +73,15 @@ def duckdb_cache(*attribute_paths: str) -> Callable[[T], T]:
             """
             config = ConfigLoader.get_config()
 
-            if not isinstance(self, BasicProbabilitySolver):
-                logger.error(
-                    "Некорректный тип self: "
-                    f"ожидался BasicProbabilitySolver, получен {type(self)}"
-                )
-                raise TypeError(
-                    "Декорируемый метод должен принадлежать классу "
-                    "BasicProbabilitySolver"
-                )
+            # if not isinstance(self, BasicProbabilitySolver):
+            #     logger.error(
+            #         "Некорректный тип self: "
+            #         f"ожидался BasicProbabilitySolver, получен {type(self)}"
+            #     )
+            #     raise TypeError(
+            #         "Декорируемый метод должен принадлежать классу "
+            #         "BasicProbabilitySolver"
+            #     )
 
             computation_config: ComputationConfig = self.config
             if computation_config.disable_cache or config.disable_cache:
