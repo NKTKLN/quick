@@ -6,8 +6,6 @@ from quick.domain import (
     CalculationEngine,
     CalculationMethod,
     ComputationConfig,
-    MergedComputationConfig,
-    MpmathComputationConfig,
 )
 from quick.domain.models import SimulationParams
 from quick.settings import ConfigLoader
@@ -26,59 +24,18 @@ def render_calculation_config() -> ComputationConfig:
     calculation_method = CalculationMethod(
         st.selectbox(
             "Выберите метод вычисления:",
-            [method.value for method in CalculationMethod],
+            [CalculationMethod.IMITATION.value],
+            disabled=True
         )
     )
-    if calculation_method != CalculationMethod.ANALYTICAL:
-        return ComputationConfig(
-            calculation_engine=CalculationEngine.NUMPY,
-            calculation_method=calculation_method,
-        )
 
-    calculation_type = st.selectbox(
-        "Выберите тип вычисления:",
-        [engine.value for engine in CalculationEngine],
-        index=2,
-    )
-
-    precision = 50
-    if calculation_type in [CalculationEngine.MPMATH, CalculationEngine.MERGED]:
-        precision = st.slider(
-            "Настройка точности вычислений (колличество знаков после запятой):",
-            min_value=16,
-            max_value=256,
-            step=1,
-            value=precision,
-        )
-
-    tolerance = precision
-    if calculation_type == CalculationEngine.MERGED:
-        tolerance = st.slider(
-            "Настройка допустимой погрешности (колличество знаков после запятой):",
-            min_value=1,
-            max_value=256,
-            step=1,
-            value=precision,
-        )
+    calculation_type = CalculationEngine.NUMPY
 
     if calculation_type == CalculationEngine.NUMPY:
         config = ComputationConfig(
             calculation_engine=CalculationEngine(calculation_type),
             calculation_method=CalculationMethod(calculation_method),
         )
-    elif calculation_type == CalculationEngine.MPMATH:
-        config = MpmathComputationConfig(
-            calculation_engine=CalculationEngine(calculation_type),
-            calculation_method=CalculationMethod(calculation_method),
-        )
-        config.precision = precision
-    else:
-        config = MergedComputationConfig(
-            calculation_engine=CalculationEngine(calculation_type),
-            calculation_method=CalculationMethod(calculation_method),
-        )
-        config.precision = precision
-        config.tolerance = 10 ** (-tolerance)
 
     app_config = ConfigLoader.get_config()
     if not app_config.disable_cache:

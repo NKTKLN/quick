@@ -21,7 +21,7 @@ class ComputationConfig:
     """
 
     calculation_engine: CalculationEngine | None = None
-    calculation_method: CalculationMethod = CalculationMethod.ANALYTICAL
+    calculation_method: CalculationMethod = CalculationMethod.IMITATION
     disable_cache: bool = False
     compute_only_last_state: bool = False
 

@@ -15,10 +15,8 @@ from quick.domain import (
 )
 from quick.domain.models import ImitationSystemParams, SystemParams
 
-from .analytical import analytical_solvers_factory
 from .base import BasicProbabilitySolver
 from .imitation import imitation_solvers_factory
-from .numerical import numerical_solvers_factory
 
 
 def solvers_factory(
@@ -43,6 +41,8 @@ def solvers_factory(
     Raises:
         ValueError: Если передан неподдерживаемый метод расчёта или движок.
     """
+    _ = coefficients_matrix
+    
     logger.debug(f"Вызван solvers_factory с параметрами: {config=}")
 
     if params.transient_params is None:
@@ -50,16 +50,6 @@ def solvers_factory(
         raise ValueError("Переходные параметры должны быть заданы.")
 
     match config.calculation_method:
-        case CalculationMethod.ANALYTICAL:
-            return analytical_solvers_factory(
-                params.transient_params, coefficients_matrix, config
-            )
-
-        case CalculationMethod.NUMERICAL:
-            return numerical_solvers_factory(
-                params.transient_params, coefficients_matrix, config
-            )
-
         case CalculationMethod.IMITATION:
             if not isinstance(params, ImitationSystemParams):
                 logger.error(

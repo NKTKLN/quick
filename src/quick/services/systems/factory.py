@@ -19,7 +19,6 @@ from quick.services.systems_behavior import (
 )
 from quick.services.systems_behavior.base import BaseSystemBehavior
 
-from .steady_state import MultiServerSteadyStateSystem
 from .transient_state import (
     TransientMAPServerStateSystem,
     TransientMultiServerStateSystem,
@@ -63,14 +62,6 @@ def system_factory(
             case SystemType.MAP:
                 logger.info("Создан TransientMAPServerStateSystem")
                 return TransientMAPServerStateSystem(
-                    **kwargs, system_behavior=system_behavior
-                )
-
-    if system_mode == SystemMode.STEADY:
-        match system_type:
-            case SystemType.MULTI:
-                logger.info("Создан MultiServerSteadyStateSystem")
-                return MultiServerSteadyStateSystem(
                     **kwargs, system_behavior=system_behavior
                 )
 
