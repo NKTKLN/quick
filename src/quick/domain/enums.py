@@ -39,6 +39,7 @@ class CalculationMethod(Enum):
     Attributes:
         ANALYTICAL: Аналитический метод вычислений.
         NUMERICAL: Численный (приближённый) метод вычислений.
+        IMITATION: Имитационный метод расчёта.
     """
 
     ANALYTICAL = "Аналитический"
