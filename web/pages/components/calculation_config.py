@@ -35,10 +35,12 @@ def render_calculation_config() -> ComputationConfig:
             calculation_method=calculation_method,
         )
 
-    calculation_type = st.selectbox(
-        "Выберите тип вычисления:",
-        [engine.value for engine in CalculationEngine],
-        index=2,
+    calculation_type = CalculationEngine(
+        st.selectbox(
+            "Выберите тип вычисления:",
+            [engine.value for engine in CalculationEngine],
+            index=2,
+        )
     )
 
     precision = 50
@@ -63,19 +65,19 @@ def render_calculation_config() -> ComputationConfig:
 
     if calculation_type == CalculationEngine.NUMPY:
         config = ComputationConfig(
-            calculation_engine=CalculationEngine(calculation_type),
-            calculation_method=CalculationMethod(calculation_method),
+            calculation_engine=calculation_type,
+            calculation_method=calculation_method,
         )
     elif calculation_type == CalculationEngine.MPMATH:
         config = MpmathComputationConfig(
-            calculation_engine=CalculationEngine(calculation_type),
-            calculation_method=CalculationMethod(calculation_method),
+            calculation_engine=calculation_type,
+            calculation_method=calculation_method,
         )
         config.precision = precision
     else:
         config = MergedComputationConfig(
-            calculation_engine=CalculationEngine(calculation_type),
-            calculation_method=CalculationMethod(calculation_method),
+            calculation_engine=calculation_type,
+            calculation_method=calculation_method,
         )
         config.precision = precision
         config.tolerance = 10 ** (-tolerance)

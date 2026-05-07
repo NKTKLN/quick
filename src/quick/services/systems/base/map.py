@@ -33,8 +33,8 @@ class BaseMAPServerSystem(BaseServerSystem):
             NDArray[np.float64]: Массив формы [num_macro_states, M].
 
         Raises:
-            ValueError: Если параметры системы не являются MAPSystemParams или
-                если размер вектора вероятностей не кратен числу фаз MAP.
+            TypeError: Если параметры системы не являются MAPSystemParams.
+            ValueError: Если размер вектора вероятностей не кратен числу фаз MAP.
         """
         if not isinstance(self.params.base_params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
@@ -52,11 +52,15 @@ class BaseMAPServerSystem(BaseServerSystem):
                 f"{probs.shape[0]} % {m} != 0"
             )
 
+        if probs.shape[1] == 1:
+            return cast(
+                NDArray[np.float64],
+                probs.reshape(probs.shape[0] // m, m, -1).sum(axis=2),
+            )
+
         return cast(
             NDArray[np.float64],
-            probs.reshape(probs.shape[0] // m, m, -1).sum(axis=2)
-            if probs.shape[1] == 1
-            else probs.reshape(probs.shape[0] // m, m, probs.shape[1]),
+            probs.reshape(probs.shape[0] // m, m, probs.shape[1]),
         )
 
     def calculate_avg_system_length(self) -> NDArray[np.float64]:
@@ -106,9 +110,13 @@ class BaseMAPServerSystem(BaseServerSystem):
         """
         logger.info("Вычисление вероятности потерь P_loss(t)")
 
-        p_loss = (
-            self.calculate_rejection_probability() + self.calculate_quit_probability()
-        )
+        rejection_probability = self.calculate_rejection_probability()
+        quit_probability = self.calculate_quit_probability()
+
+        if quit_probability.ndim == 2 and rejection_probability.ndim == 1:
+            rejection_probability = rejection_probability[:, np.newaxis]
+
+        p_loss = rejection_probability + quit_probability
 
         logger.success("Вероятность потерь успешно вычислена")
         return p_loss

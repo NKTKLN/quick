@@ -12,10 +12,6 @@ from numpy.typing import NDArray
 
 from quick.domain.models.system_params import MAPSystemParams
 from quick.services.matrix_builders.base import BaseMatrixBuilder
-from quick.services.matrix_builders.utils import (
-    map_d_0_matrix_generator,
-    map_d_1_matrix_generator,
-)
 
 
 class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
@@ -43,6 +39,52 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
             f"{params.lambda_rate=}, {params.mu_rate=}, {params.nu_rate=}"
         )
 
+    def _d_0_matrix_generator(self) -> NDArray[np.float64]:
+        """Генерирует матрицу D₀ по MAP-параметрам.
+
+        Returns:
+            NDArray[np.float64]: Матрица D₀ для текущих параметров потока.
+
+        Raises:
+            TypeError: Если базовые параметры системы не являются MAPSystemParams.
+            ValueError: Если матрицы p_rate и q_rate имеют разную размерность.
+        """
+        if not isinstance(self.params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
+
+        if self.params.p_rate.shape != self.params.q_rate.shape:
+            logger.error("Матрицы p_rate и q_rate должны иметь одинаковую размерность.")
+            raise ValueError(
+                "Матрицы p_rate и q_rate должны иметь одинаковую размерность."
+            )
+
+        logger.debug("Генерация матрицы D₀ из p_rate и λ.")
+        matrix = self.params.p_rate.copy()
+        matrix *= self.params.lambda_rate[:, np.newaxis]
+        np.fill_diagonal(matrix, -self.params.lambda_rate)
+        logger.debug(f"Матрица D₀ сгенерирована. {matrix.shape=}")
+        return matrix
+
+    def _d_1_matrix_generator(self) -> NDArray[np.float64]:
+        """Генерирует матрицу D₁ по MAP-параметрам.
+
+        Returns:
+            NDArray[np.float64]: Матрица D₁ для текущих параметров потока.
+
+        Raises:
+            ValueError: Если базовые параметры системы не являются MAPSystemParams.
+        """
+        if not isinstance(self.params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
+
+        logger.debug("Генерация матрицы D₁ из q_rate и λ.")
+        matrix = self.params.q_rate.copy()
+        matrix *= self.params.lambda_rate[:, np.newaxis]
+        logger.debug(f"Матрица D₁ сгенерирована. {matrix.shape=}")
+        return matrix
+
     def build(self) -> NDArray[np.float64]:
         """Формирует матрицу коэффициентов для СМО с Марковскими входными потоками.
 
@@ -67,8 +109,8 @@ class MultiSensorMAPServerMatrixBuilder(BaseMatrixBuilder):
         n, m = self.params.max_customers, self.params.sensor_count
         μ, ν = self.params.mu_rate, self.params.nu_rate
 
-        d_0_t = map_d_0_matrix_generator(self.params.p_rate, self.params.lambda_rate).T
-        d_1_t = map_d_1_matrix_generator(self.params.q_rate, self.params.lambda_rate).T
+        d_0_t = self._d_0_matrix_generator().T
+        d_1_t = self._d_1_matrix_generator().T
 
         if d_0_t.shape != d_1_t.shape or d_0_t.shape[0] != d_0_t.shape[1]:
             logger.error(

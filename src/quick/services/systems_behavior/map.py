@@ -5,11 +5,6 @@
 типа MAP. Класс отвечает за вычисление интенсивности поступления заявок и
 среднего числа заявок в системе на основе матриц переходов MAP-процесса и
 вектора вероятностей состояний.
-
-Основная сущность:
-    MultiSensorMAPSystemBehavior - класс поведения многосенсорной СМО
-    с Марковскими входными потоками, использующий матричное представление процесса
-    поступления заявок.
 """
 
 from typing import cast
@@ -20,10 +15,7 @@ from numpy.typing import NDArray
 
 from quick.domain.models.base_params import SystemParams
 from quick.domain.models.system_params import MAPSystemParams
-from quick.services.matrix_builders.utils import (
-    map_d_0_matrix_generator,
-    map_d_1_matrix_generator,
-)
+from quick.services.matrix_builders.map import MultiSensorMAPServerMatrixBuilder
 from quick.services.systems_behavior.base import BaseSystemBehavior
 
 
@@ -59,12 +51,11 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
             raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
-        self.D0 = map_d_0_matrix_generator(
-            self.base_params.p_rate, self.base_params.lambda_rate
+        self.transition_matrix = MultiSensorMAPServerMatrixBuilder(
+            cast(MAPSystemParams, self.params.base_params)
         )
-        self.D1 = map_d_1_matrix_generator(
-            self.base_params.q_rate, self.base_params.lambda_rate
-        )
+        self.D0 = self.transition_matrix._d_0_matrix_generator()
+        self.D1 = self.transition_matrix._d_1_matrix_generator()
         self.DDD = self.D0 + self.D1
 
     def _calculate_teta(self) -> None:

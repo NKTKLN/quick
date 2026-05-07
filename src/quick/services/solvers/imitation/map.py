@@ -22,7 +22,7 @@ class MAPImitationProbabilitySolver(BaseImitationProbabilitySolver):
         """Создаёт решатель Монте-Карло для MAP-СМО.
 
         Args:
-            system_params (SystemParams): Объединённые параметры системы.
+            system_params (ImitationSystemParams): Объединённые параметры системы.
 
         Raises:
             TypeError: Если параметры системы не являются MAPSystemParams.
@@ -34,7 +34,8 @@ class MAPImitationProbabilitySolver(BaseImitationProbabilitySolver):
             raise TypeError("Параметры должны быть экземпляром MAPSystemParams")
 
         self.rate_provider = TimeSeriesMAPRateProvider(
-            self.base_params, self.system_params.time_series_params
+            self.base_params,
+            self.system_params.time_series_params,
         )
 
         self.k_max = self.base_params.max_customers
@@ -95,7 +96,7 @@ class MAPImitationProbabilitySolver(BaseImitationProbabilitySolver):
             time_point (float): Текущий момент времени.
 
         Returns:
-            list[tuple[float, int]]: Список возможных переходов, где каждый элемент —
+            list[tuple[float, int]]: Список возможных переходов, где каждый элемент -
                 это кортеж вида (rate, next_state):
                     - rate (float): интенсивность перехода,
                     - next_state (int): состояние, в которое осуществляется переход.
@@ -108,7 +109,9 @@ class MAPImitationProbabilitySolver(BaseImitationProbabilitySolver):
         for next_state in range(self.num_states):
             if next_state == state_id:
                 continue
+
             rate = float(q_row[state_id, next_state])
+
             if rate > 0:
                 transitions.append((rate, next_state))
 
