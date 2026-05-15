@@ -263,7 +263,7 @@ def get_time_series_parameters() -> TimeSeriesBaseSystemParams:
     time_series_params = TimeSeriesBaseSystemParams()
 
     use_timeseries = st.checkbox(
-        "Использовать параметры, зависимые от времени", value=True
+        "Использовать параметры, зависимые от времени", value=False
     )
     if not use_timeseries:
         return time_series_params
