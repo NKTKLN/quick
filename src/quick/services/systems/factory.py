@@ -20,7 +20,7 @@ from quick.services.systems_behavior import (
 )
 from quick.services.systems_behavior.base import BaseSystemBehavior
 
-from .steady_state import MultiServerSteadyStateSystem
+from .steady_state import MAPSteadyStateSystem, MultiServerSteadyStateSystem
 from .transient_state import (
     TransientMAPServerStateSystem,
     TransientMultiServerStateSystem,
@@ -83,6 +83,6 @@ def system_factory(
                 return MultiServerSteadyStateSystem(
                     **kwargs, system_behavior=system_behavior
                 )
-
-    logger.error(f"Неподдерживаемый режим функционирования: {system_mode}")
-    raise ValueError(f"Неподдерживаемый режим функционирования: {system_mode}")
+            case SystemType.MAP:
+                logger.info("Создан MAPSteadyStateSystem")
+                return MAPSteadyStateSystem(**kwargs, system_behavior=system_behavior)
