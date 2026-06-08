@@ -129,7 +129,7 @@ class BaseMAPServerSystem(BaseServerSystem):
         """
         logger.info("Вычисление вероятности обслуживания P_s(t)")
 
-        p_s = 1.0 - self.calculate_quit_probability()
+        p_s = 1.0 - self.calculate_loss_probability()
 
         logger.success("Вероятность обслуживания успешно вычислена")
         return p_s
