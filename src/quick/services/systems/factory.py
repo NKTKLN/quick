@@ -14,6 +14,7 @@ from loguru import logger
 from quick.domain import SystemMode, SystemType
 from quick.services.systems.base import BaseServerSystem
 from quick.services.systems_behavior import (
+    MultiSensorMAPSensorBehavior,
     MultiSensorMAPSystemBehavior,
     MultiSystemBehavior,
 )
@@ -27,13 +28,18 @@ from .transient_state import (
 
 
 def system_factory(
-    system_type: SystemType, system_mode: SystemMode, **kwargs: Any
+    system_type: SystemType,
+    system_mode: SystemMode,
+    per_sensor: bool = False,
+    **kwargs: Any,
 ) -> BaseServerSystem:
     """Фабрика для создания объекта системы массового обслуживания.
 
     Args:
         system_type (SystemType): Тип системы.
         system_mode (SystemMode): Режим работы системы.
+        per_sensor (bool): Выполнять расчёт отдельно для каждого сенсора.
+            Поддерживается только для систем типа MAP.
         **kwargs (Any): Дополнительные параметры, передаваемые в конструктор системы
             (например: params, config).
 
@@ -51,7 +57,11 @@ def system_factory(
         case SystemType.MULTI:
             system_behavior = MultiSystemBehavior
         case SystemType.MAP:
-            system_behavior = MultiSensorMAPSystemBehavior
+            system_behavior = (
+                MultiSensorMAPSensorBehavior
+                if per_sensor
+                else MultiSensorMAPSystemBehavior
+            )
 
     if system_mode == SystemMode.TRANSIENT:
         match system_type:

@@ -43,7 +43,7 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
         self.sim_config = system_params.simulation_params
 
         if self.transient_params is None:
-            logger.error("Параметр transient_params обязательн в переходном режиме")
+            logger.error("Параметр transient_params обязателен в переходном режиме")
             raise ValueError("transient_params обязательны в переходном режиме")
 
         self.time_array: NDArray[np.float64] = self.transient_params.time_array
@@ -66,9 +66,6 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
 
         Returns:
             int: Начальное состояние системы.
-
-        Raises:
-            ValueError: Если количество состояний не задано.
         """
         logger.debug("Сэмплирование начального состояния...")
 
@@ -93,7 +90,7 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
             time_point (float): Текущий момент времени.
 
         Returns:
-            list[tuple[float, int]]: Список возможных переходов, где каждый элемент —
+            list[tuple[float, int]]: Список возможных переходов, где каждый элемент -
                 это кортеж вида (rate, next_state):
                     - rate (float): интенсивность перехода,
                     - next_state (int): состояние, в которое осуществляется переход.
@@ -133,9 +130,11 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
                     "Нет доступных переходов (total_rate=0), "
                     "заполняем остаток траектории"
                 )
+
                 while t_index < t_count:
                     states_over_time[t_index] = current_state
                     t_index += 1
+
                 break
 
             dt = self._rng.expovariate(total_rate)
@@ -159,11 +158,6 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
                     next_state = candidate_state
                     break
 
-            logger.debug(
-                f"Шаг {step}: состояние {current_state} -> {next_state} "
-                f"в момент времени {next_time:.4f}"
-            )
-
             current_state = next_state
             current_time = next_time
             step += 1
@@ -173,6 +167,7 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
             t_index += 1
 
         logger.debug("Моделирование одной траектории завершено")
+
         return states_over_time
 
     def calculate(self) -> NDArray[np.float64]:
@@ -199,7 +194,8 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
         logger.debug("Начинаем генерацию траекторий...")
 
         for run in Progress.wrap(
-            range(self.sim_config.trajectories), description="Вычисление траекторий"
+            range(self.sim_config.trajectories),
+            description="Вычисление траекторий",
         ):
             states_over_time = self._simulate_single_trajectory()
 
@@ -218,6 +214,6 @@ class BaseImitationProbabilitySolver(BasicProbabilitySolver, ABC):
 
         probability = counts / float(self.sim_config.trajectories)
 
-        logger.info("Имитация завершена.")
+        logger.info("Имитация завершена")
 
         return probability.T

@@ -42,7 +42,7 @@ from quick.domain.params.imitation import ImitationSystemParams
 from quick.domain.params.timeseries import TimeSeriesBaseSystemParams
 
 
-def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
+def get_user_inputs() -> tuple[ComputationConfig, SystemParams, bool]:
     """Собирает все входные параметры от пользователя через UI.
 
     Returns:
@@ -58,6 +58,12 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
     st.markdown("---")
 
     system_type, system_mode = get_system_mode_type()
+
+    per_sensor = False
+
+    if system_type == SystemType.MAP:
+        per_sensor = st.checkbox("Расчитать для каждого датчика отдельно", value=False)
+
     st.subheader("⚙️ Параметры системы")
 
     lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
@@ -110,7 +116,7 @@ def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:
             calculation_params=settings,
         )
 
-    return config, params
+    return config, params, per_sensor
 
 
 def _get_capacity_and_map_params(

@@ -21,13 +21,13 @@ def main() -> None:
     st.markdown("---")
 
     try:
-        config, params = get_user_inputs()
+        config, params, per_sensor = get_user_inputs()
     except ValueError as e:
         st.error(f"❌ Ошибка в вводных данных: {e}")
         st.stop()
 
     if st.button("🚀 Применить параметры"):
-        system = prepare_system(config, params)
+        system = prepare_system(config, params, per_sensor)
 
         st.markdown("---")
         if params.calculation_params.system_mode == SystemMode.TRANSIENT:

@@ -38,14 +38,15 @@ from .serializers import results_to_json
 
 
 def prepare_system(
-    config: ComputationConfig,
-    params: SystemParams,
+    config: ComputationConfig, params: SystemParams, per_sensor: bool = False
 ):
     """Проверяет параметры, создаёт систему и запускает предварительный расчёт.
 
     Args:
         config (ComputationConfig): Конфигурация вычислений.
         params (SystemParams): Параметры системы.
+        per_sensor (bool): Выполнять расчёт отдельно для каждого сенсора.
+            Поддерживается только для систем типа MAP.
 
     Returns:
         Any | None: Экземпляр переходной системы, если выбран режим TRANSIENT.
@@ -63,6 +64,7 @@ def prepare_system(
         system = system_factory(
             system_mode=SystemMode.TRANSIENT,
             system_type=params.calculation_params.system_type,
+            per_sensor=per_sensor,
             params=params,
             config=config,
         )
@@ -109,7 +111,7 @@ def render_transient_results(system: BaseServerSystem, params: SystemParams) -> 
 
     for key, value in results.items():
         try:
-            if key == "probability":
+            if key in ["probability", "avg_buffer_length_by_sensor"]:
                 continue
 
             st.plotly_chart(

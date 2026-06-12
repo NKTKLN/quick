@@ -129,8 +129,16 @@ def plot_metric(
     fig = go.Figure()
     default_colors = px.colors.qualitative.D3
 
-    if not isinstance(metric_data, list):
-        metric_data = [metric_data]
+    metric_arr = (
+        np.asarray(metric_data) if not isinstance(metric_data, list) else metric_data
+    )
+
+    if isinstance(metric_arr, list):
+        metric_data = metric_arr
+    elif metric_arr.ndim == 1:
+        metric_data = [metric_arr]
+    elif metric_arr.ndim == 2:
+        metric_data = [metric_arr[:, i] for i in range(metric_arr.shape[1])]
 
     if series_labels is None:
         series_labels = [f"State {i}" for i in range(len(metric_data))]
@@ -148,6 +156,18 @@ def plot_metric(
                 mode="lines",
                 name=label,
                 line=dict(width=2, color=color),
+            )
+        )
+
+    if len(metric_data) > 1:
+        total_series = np.sum(metric_data, axis=0)
+        fig.add_trace(
+            go.Scatter(
+                x=time_array,
+                y=total_series,
+                mode="lines",
+                name="Total",
+                line=dict(width=2, dash="dash", color="black"),
             )
         )
 
