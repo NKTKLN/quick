@@ -36,6 +36,11 @@ web = [
   "pandas>=2.3.3",
 ]
 
+api = [
+  "fastapi>=0.115.0,<1.0.0",
+  "uvicorn>=0.34.0,<1.0.0",
+]
+
 [build-system]
 requires = ["hatchling>=1.26.0"]
 build-backend = "hatchling.build"
@@ -102,12 +107,12 @@ disallow_untyped_calls = true
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp", "web"]
 
 [tool.deptry]
-non_dev_dependency_groups = ["web"]
+non_dev_dependency_groups = ["web", "api"]
 experimental_namespace_package = true
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["pages", "progress"]
-DEP002 = ["watchdog"]
+DEP002 = ["watchdog", "uvicorn"]
 DEP003 = ["quick"]
 
 [tool.commitizen]

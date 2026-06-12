@@ -5,7 +5,7 @@ tasks:
   sync:
     desc: Sync dependencies using uv
     cmds:
-      - uv sync --group dev --group web
+      - uv sync --group dev --group web --group api
 
   precommit:
     desc: Install git hooks
@@ -79,6 +79,11 @@ tasks:
     desc: Run the application
     cmds:
       - uv run streamlit run web/app.py
+
+  run-api:
+    desc: Run the FastAPI backend
+    cmds:
+      - uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
 
   # ======== Docker ========
   docker-build:
