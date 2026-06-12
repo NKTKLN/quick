@@ -30,18 +30,16 @@ from pages.components import (
 
 from quick.domain import ComputationConfig, SystemMode, SystemType
 from quick.domain.enums import CalculationMethod
-from quick.domain.models import (
+from quick.domain.params import (
+    BaseSystemParams,
     CalculationParams,
+    MAPSystemParams,
+    MultiSystemParams,
     SystemParams,
     TransientSystemParams,
 )
-from quick.domain.models.imitation_params import ImitationSystemParams
-from quick.domain.models.system_params import (
-    BaseSystemParams,
-    MAPSystemParams,
-    MultiSystemParams,
-)
-from quick.domain.models.timeseries import TimeSeriesBaseSystemParams
+from quick.domain.params.imitation import ImitationSystemParams
+from quick.domain.params.timeseries import TimeSeriesBaseSystemParams
 
 
 def get_user_inputs() -> tuple[ComputationConfig, SystemParams]:

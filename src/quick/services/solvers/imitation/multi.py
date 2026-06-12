@@ -6,8 +6,7 @@
 
 from loguru import logger
 
-from quick.domain.models import ImitationSystemParams
-from quick.domain.models.system_params import MultiSystemParams
+from quick.domain.params import ImitationSystemParams, MultiSystemParams
 from quick.services.solvers.imitation.base import BaseImitationProbabilitySolver
 from quick.services.solvers.imitation.utils import TimeSeriesRateProvider
 

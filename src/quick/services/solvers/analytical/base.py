@@ -16,7 +16,7 @@ from quick.db import duckdb_cache
 from quick.domain import (
     ComputationConfig,
 )
-from quick.domain.models import TransientSystemParams
+from quick.domain.params import TransientSystemParams
 from quick.services.solvers.base import BasicProbabilitySolver
 
 

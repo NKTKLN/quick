@@ -18,8 +18,8 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models.base_params import SystemParams
-from quick.domain.models.system_params import MAPSystemParams
+from quick.domain.params import MAPSystemParams
+from quick.domain.params.system import SystemParams
 from quick.services.matrix_builders.utils import (
     map_d_0_matrix_generator,
     map_d_1_matrix_generator,

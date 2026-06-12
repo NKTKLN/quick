@@ -11,8 +11,11 @@ from typing import TypeVar, cast
 import numpy as np
 from numpy.typing import NDArray
 
-from quick.domain.models import TimeSeriesBaseSystemParams
-from quick.domain.models.system_params import BaseSystemParams, MAPSystemParams
+from quick.domain.params import (
+    BaseSystemParams,
+    MAPSystemParams,
+    TimeSeriesBaseSystemParams,
+)
 
 LambdaRateT = TypeVar("LambdaRateT", float, NDArray[np.float64])
 

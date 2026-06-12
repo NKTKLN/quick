@@ -3,7 +3,7 @@
 from loguru import logger
 
 from quick.domain import SystemType
-from quick.domain.models import ImitationSystemParams
+from quick.domain.params import ImitationSystemParams
 from quick.services.solvers.base import BasicProbabilitySolver
 
 from .map import MAPImitationProbabilitySolver

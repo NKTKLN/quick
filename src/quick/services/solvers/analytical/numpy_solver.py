@@ -14,7 +14,7 @@ from scipy.linalg import eig as scipy_eig
 
 from quick.db import duckdb_cache
 from quick.domain import ComputationConfig
-from quick.domain.models import TransientSystemParams
+from quick.domain.params import TransientSystemParams
 from quick.services.solvers.analytical.base import AnalyticalBasicProbabilitySolver
 from quick.utils import Progress
 

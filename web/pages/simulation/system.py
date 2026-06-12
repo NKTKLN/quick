@@ -28,7 +28,7 @@ from pages.components import (
 )
 
 from quick.domain import ComputationConfig, SystemMode
-from quick.domain.models import SystemParams
+from quick.domain.params import SystemParams
 from quick.services.systems import system_factory
 from quick.services.systems.base import BaseServerSystem
 from quick.services.systems.steady_state import MultiServerSteadyStateSystem

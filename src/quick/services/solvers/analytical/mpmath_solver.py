@@ -19,7 +19,7 @@ from quick.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from quick.domain.models import TransientSystemParams
+from quick.domain.params import TransientSystemParams
 from quick.utils import Progress
 
 from .base import AnalyticalBasicProbabilitySolver

@@ -7,7 +7,7 @@
 
 from dataclasses import dataclass, field
 
-from .base_params import SystemParams
+from .system import SystemParams
 from .timeseries import TimeSeriesBaseSystemParams
 
 

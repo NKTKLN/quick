@@ -11,7 +11,7 @@ from quick.domain.computation_config import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from quick.domain.models import TransientSystemParams
+from quick.domain.params import TransientSystemParams
 from quick.services.solvers.base import BasicProbabilitySolver
 
 from .merged_solver import AnalyticalMergedProbabilitySolver

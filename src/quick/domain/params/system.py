@@ -12,7 +12,9 @@ from numpy.typing import NDArray
 
 from quick.domain.enums import SystemMode, SystemType
 
-from .system_params import BaseSystemParams, MAPSystemParams, MultiSystemParams
+from .base import BaseSystemParams
+from .map import MAPSystemParams
+from .multi import MultiSystemParams
 
 
 @dataclass

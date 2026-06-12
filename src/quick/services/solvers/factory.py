@@ -13,7 +13,7 @@ from quick.domain import (
     CalculationMethod,
     ComputationConfig,
 )
-from quick.domain.models import ImitationSystemParams, SystemParams
+from quick.domain.params import ImitationSystemParams, SystemParams
 
 from .analytical import analytical_solvers_factory
 from .base import BasicProbabilitySolver

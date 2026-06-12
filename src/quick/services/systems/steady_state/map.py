@@ -11,7 +11,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models.system_params import MAPSystemParams
+from quick.domain.params import MAPSystemParams
 from quick.services.matrix_builders.map import MultiSensorMAPServerMatrixBuilder
 from quick.services.systems.base.map import BaseMAPServerSystem
 

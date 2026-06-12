@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 
 from quick.db import duckdb_cache
 from quick.domain import ComputationConfig, MergedComputationConfig
-from quick.domain.models import TransientSystemParams
+from quick.domain.params import TransientSystemParams
 from quick.services.solvers.analytical.mpmath_solver import (
     AnalyticalMpmathProbabilitySolver,
 )

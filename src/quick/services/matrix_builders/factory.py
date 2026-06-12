@@ -8,7 +8,7 @@
 from loguru import logger
 
 from quick.domain import SystemType
-from quick.domain.models import SystemParams
+from quick.domain.params import SystemParams
 from quick.services.matrix_builders.base import BaseMatrixBuilder
 from quick.services.matrix_builders.map import MultiSensorMAPServerMatrixBuilder
 from quick.services.matrix_builders.multi import MultiServerMatrixBuilder

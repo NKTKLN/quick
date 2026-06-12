@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import NDArray
 
-from quick.domain.models.system_params import BaseSystemParams
+from quick.domain.params import BaseSystemParams
 
 
 class BaseMatrixBuilder(ABC):

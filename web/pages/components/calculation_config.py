@@ -9,7 +9,7 @@ from quick.domain import (
     MergedComputationConfig,
     MpmathComputationConfig,
 )
-from quick.domain.models import SimulationParams
+from quick.domain.params import SimulationParams
 from quick.settings import ConfigLoader
 
 

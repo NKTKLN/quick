@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 from quick.domain import (
     ComputationConfig,
 )
-from quick.domain.models import SystemParams
+from quick.domain.params import SystemParams
 from quick.services.systems_behavior import BaseSystemBehavior
 
 

@@ -5,7 +5,7 @@ from loguru import logger
 from numpy.typing import NDArray
 
 from quick.domain import ComputationConfig
-from quick.domain.models import TransientSystemParams
+from quick.domain.params import TransientSystemParams
 from quick.services.solvers.base import BasicProbabilitySolver
 
 from .solver import NumericalProbabilitySolver

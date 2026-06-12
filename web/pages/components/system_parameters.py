@@ -13,7 +13,7 @@ import streamlit as st
 from numpy.typing import NDArray
 
 from quick.domain import SystemMode, SystemType
-from quick.domain.models import TimeSeries, TimeSeriesBaseSystemParams
+from quick.domain.params import TimeSeries, TimeSeriesBaseSystemParams
 from quick.utils import map_intensity_matrix_generator
 
 

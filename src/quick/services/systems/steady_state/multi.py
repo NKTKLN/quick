@@ -11,7 +11,7 @@ from loguru import logger
 from numpy.typing import NDArray
 from scipy.special import factorial
 
-from quick.domain.models.system_params import MultiSystemParams
+from quick.domain.params import MultiSystemParams
 from quick.services.systems.base import BaseMultiServerSystem
 
 

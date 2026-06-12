@@ -17,8 +17,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models import SystemParams
-from quick.domain.models.system_params import MultiSystemParams
+from quick.domain.params import MultiSystemParams, SystemParams
 from quick.services.systems_behavior.base import BaseSystemBehavior
 
 

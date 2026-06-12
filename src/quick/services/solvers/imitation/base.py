@@ -13,7 +13,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models import ImitationSystemParams
+from quick.domain.params import ImitationSystemParams
 from quick.services.solvers.base import BasicProbabilitySolver
 from quick.utils.progress import Progress
 

@@ -8,8 +8,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models import ImitationSystemParams
-from quick.domain.models.system_params import MAPSystemParams
+from quick.domain.params import ImitationSystemParams, MAPSystemParams
 from quick.services.matrix_builders import MultiSensorMAPServerMatrixBuilder
 from quick.services.solvers.imitation.base import BaseImitationProbabilitySolver
 from quick.services.solvers.imitation.utils import TimeSeriesMAPRateProvider

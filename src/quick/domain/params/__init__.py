@@ -1,14 +1,20 @@
 """Пакет с параметрами моделей систем массового обслуживания (СМО)."""
 
-from .base_params import (
+from .base import BaseSystemParams
+from .imitation import ImitationSystemParams, SimulationParams
+from .map import MAPSystemParams
+from .multi import MultiSystemParams
+from .system import (
     CalculationParams,
     SystemParams,
     TransientSystemParams,
 )
-from .imitation_params import ImitationSystemParams, SimulationParams
 from .timeseries import TimeSeries, TimeSeriesBaseSystemParams
 
 __all__ = [
+    "BaseSystemParams",
+    "MAPSystemParams",
+    "MultiSystemParams",
     "TransientSystemParams",
     "CalculationParams",
     "SystemParams",
