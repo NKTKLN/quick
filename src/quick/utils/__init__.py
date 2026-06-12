@@ -5,7 +5,6 @@ from .progress import (
     AbstractProgress,
     NoProgressStrategy,
     Progress,
-    StreamlitProgressStrategy,
 )
 from .rate_generator import map_intensity_matrix_generator
 from .serialization import PickleSerializer

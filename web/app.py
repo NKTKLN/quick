@@ -13,10 +13,11 @@
 """
 
 import streamlit as st
+from progress import StreamlitProgressStrategy
 
 from quick.db import DuckDBClient
 from quick.utils import setup_logger
-from quick.utils.progress import Progress, StreamlitProgressStrategy
+from quick.utils.progress import Progress
 
 
 def render_description() -> None:

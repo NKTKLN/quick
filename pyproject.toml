@@ -106,7 +106,7 @@ non_dev_dependency_groups = ["web"]
 experimental_namespace_package = true
 
 [tool.deptry.per_rule_ignores]
-DEP001 = ["pages"]
+DEP001 = ["pages", "progress"]
 DEP002 = ["watchdog"]
 DEP003 = ["quick"]
 
