@@ -29,7 +29,7 @@ from pages.components import (
 )
 
 from quick.domain import ComputationConfig, SystemMode, SystemType
-from quick.domain.enums import CalculationMethod
+from quick.domain.enums import CalculationEngine, CalculationMethod
 from quick.domain.params import (
     BaseSystemParams,
     CalculationParams,
@@ -42,22 +42,31 @@ from quick.domain.params.imitation import ImitationSystemParams
 from quick.domain.params.timeseries import TimeSeriesBaseSystemParams
 
 
-def get_user_inputs() -> tuple[ComputationConfig, SystemParams, bool]:
+def get_user_inputs(
+    system_modes: list[SystemMode] | None = None,
+    default_engine: CalculationEngine = CalculationEngine.MERGED,
+) -> tuple[ComputationConfig, SystemParams, bool]:
     """Собирает все входные параметры от пользователя через UI.
+
+    Args:
+        system_modes (list[SystemMode] | None): Режимы работы, доступные для
+            выбора. Если не заданы, доступны все режимы.
+        default_engine (CalculationEngine): Движок вычислений, выбранный
+            в поле по умолчанию.
 
     Returns:
         tuple[ComputationConfig, SystemParams]:
             - config (ComputationConfig): Конфигурация выполнения вычислений.
             - params (SystemParams): Параметры выбранной СМО.
     """
-    config = render_calculation_config()
+    config = render_calculation_config(default_engine)
 
     if config.calculation_method == CalculationMethod.IMITATION:
         simulation_params = render_imitation_config()
 
     st.markdown("---")
 
-    system_type, system_mode = get_system_mode_type()
+    system_type, system_mode = get_system_mode_type(system_modes)
 
     per_sensor = False
 

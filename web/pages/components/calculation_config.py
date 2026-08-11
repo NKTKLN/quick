@@ -13,11 +13,17 @@ from quick.domain.params import SimulationParams
 from quick.settings import ConfigLoader
 
 
-def render_calculation_config() -> ComputationConfig:
+def render_calculation_config(
+    default_engine: CalculationEngine = CalculationEngine.MERGED,
+) -> ComputationConfig:
     """Отображает UI-компонент для конфигурации вычислений.
 
     В зависимости от выбранного типа вычислений, позволяет настраивать точность
     и погрешность. Также предоставляет возможность включать или выключать кэш.
+
+    Args:
+        default_engine (CalculationEngine): Движок вычислений, выбранный
+            в поле по умолчанию.
 
     Returns:
         ComputationConfig: Объект конфигурации.
@@ -35,11 +41,12 @@ def render_calculation_config() -> ComputationConfig:
             calculation_method=calculation_method,
         )
 
+    engines = [engine.value for engine in CalculationEngine]
     calculation_type = CalculationEngine(
         st.selectbox(
             "Выберите тип вычисления:",
-            [engine.value for engine in CalculationEngine],
-            index=2,
+            engines,
+            index=engines.index(default_engine.value),
         )
     )
 

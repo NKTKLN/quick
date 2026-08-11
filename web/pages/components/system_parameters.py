@@ -17,8 +17,14 @@ from quick.domain.params import TimeSeries, TimeSeriesBaseSystemParams
 from quick.utils import map_intensity_matrix_generator
 
 
-def get_system_mode_type() -> tuple[SystemType, SystemMode]:
+def get_system_mode_type(
+    system_modes: list[SystemMode] | None = None,
+) -> tuple[SystemType, SystemMode]:
     """Отображает UI-компонент с двумя полями выбора (тип системы и режим вычисления).
+
+    Args:
+        system_modes (list[SystemMode] | None): Режимы работы, доступные для
+            выбора. Если не заданы, доступны все режимы.
 
     Returns:
         tuple[SystemType, SystemMode]: Значения типа системы и режима системы.
@@ -37,8 +43,9 @@ def get_system_mode_type() -> tuple[SystemType, SystemMode]:
         key="system_type",
         on_change=reset_state,
     )
+    available_modes = system_modes if system_modes else list(SystemMode)
     system_mode = st.selectbox(
-        "Выберите режим системы:", [mode.value for mode in SystemMode]
+        "Выберите режим системы:", [mode.value for mode in available_modes]
     )
     return (
         SystemType(system_type),
