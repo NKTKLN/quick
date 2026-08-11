@@ -32,40 +32,86 @@ class MultiSensorMAPSensorBehavior(MultiSensorMAPSystemBehavior):
         DDD (np.ndarray): Суммарная матрица переходов MAP-процесса.
     """
 
-    def calculate_avg_system_length(
+    def calculate_unweighted_buffer_occupancy(
         self, probabilities: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        """Вычисляет среднее число заявок в буфере для каждого датчика в каждый момент времени.
+        r"""Вычисляет невзвешенное заполнение буфера по каждому датчику.
+
+        Для расчёта ``P_uns(t)`` используется выражение
+
+        .. math::
+
+            N_{b,i}^{(uns)}(t)=\sum_{k=1}^{N}P(k+1,i,t),
+
+        то есть без домножения вероятностей уровней на ``k``.
 
         Returns:
-            NDArray[np.float64]:
-                Массив формы [time_count, sensor_count], где result[t, i] -
-                среднее число заявок в буфере i-го датчика в момент времени t.
+            NDArray[np.float64]: Массив формы ``[time_count, sensor_count]``.
 
         Raises:
             TypeError: Если параметры системы не являются MAPSystemParams.
         """
-        logger.info("Вычисление среднего числа заявок в буфере для каждого датчика")
+        logger.info("Вычисление невзвешенного N_b(t) по датчикам для P_uns(t)")
 
         if not isinstance(self.params.base_params, MAPSystemParams):
             logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
             raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
 
-        n = self.params.base_params.max_customers
-        m = self.params.base_params.sensor_count
+        phase_count = self.params.base_params.sensor_count
+        probabilities_by_level = probabilities.reshape(
+            probabilities.shape[0] // phase_count,
+            phase_count,
+            probabilities.shape[1],
+        )
+        buffer_probabilities = probabilities_by_level[2:]
+        unweighted_by_sensor = np.sum(buffer_probabilities, axis=0).T
 
-        buffer_sizes = np.maximum(np.arange(n) - 1, 0)
+        logger.success("Невзвешенное N_b(t) по датчикам для P_uns(t) успешно вычислено")
+        return cast(NDArray[np.float64], unweighted_by_sensor)
+
+    def calculate_avg_system_length(
+        self, probabilities: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        r"""Вычисляет ``N_b(t)`` отдельно для каждой MAP-фазы (датчика).
+
+        Для каждого датчика применяется выражение
+
+        .. math::
+
+            N_{b,i}(t)=\sum_{k=1}^{N}kP(k+1,i,t).
+
+        Returns:
+            NDArray[np.float64]:
+                Массив формы ``[time_count, sensor_count]``, где
+                ``result[t, i]`` — вклад i-го датчика в ``N_b(t)``.
+
+        Raises:
+            TypeError: Если параметры системы не являются MAPSystemParams.
+        """
+        logger.info("Вычисление N_b(t) по датчикам с множителем k")
+
+        if not isinstance(self.params.base_params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
+
+        phase_count = self.params.base_params.sensor_count
+        probabilities_by_level = probabilities.reshape(
+            probabilities.shape[0] // phase_count,
+            phase_count,
+            probabilities.shape[1],
+        )
+        buffer_probabilities = probabilities_by_level[2:]
+        buffer_weights = np.arange(
+            1,
+            buffer_probabilities.shape[0] + 1,
+            dtype=np.float64,
+        )[:, np.newaxis, np.newaxis]
 
         avg_buffer_by_sensor = np.sum(
-            probabilities.reshape(
-                probabilities.shape[0] // m, m, probabilities.shape[1]
-            )
-            * buffer_sizes[:, np.newaxis, np.newaxis],
+            buffer_weights * buffer_probabilities,
             axis=0,
         ).T
 
-        logger.success(
-            "Среднее число заявок в буфере для каждого датчика успешно вычислено"
-        )
+        logger.success("N_b(t) по датчикам с множителем k успешно вычислено")
 
         return cast(NDArray[np.float64], avg_buffer_by_sensor)

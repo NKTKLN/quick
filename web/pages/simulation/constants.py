@@ -109,4 +109,48 @@ PLOT_SETTINGS = {
             "#ebebeb",
         ],
     },
+    "input_intensity": {
+        "title_text": "Интенсивность входного потока λ(t)",
+        "yaxis_title": "Заявки/ед. времени",
+        "line_colors": [
+            "#1f77b4",
+            "#4fa3d9",
+            "#6baed6",
+            "#9ecae1",
+            "#c6dbef",
+        ],
+    },
+    "service_flow_intensity": {
+        "title_text": "Интенсивность потока обслуживания v_serv(t)",
+        "yaxis_title": "Заявки/ед. времени",
+        "line_colors": [
+            "#2ca02c",
+            "#4cc04c",
+            "#74d674",
+            "#a1e3a1",
+            "#c7f0c7",
+        ],
+    },
+    "loss_flow_intensity": {
+        "title_text": "Интенсивность потока ухода v_loss(t)",
+        "yaxis_title": "Заявки/ед. времени",
+        "line_colors": [
+            "#d62728",
+            "#e25555",
+            "#ec7d7d",
+            "#f3a7a7",
+            "#f9d0d0",
+        ],
+    },
+    "phase_distribution": {
+        "title_text": "Распределение MAP-фаз α(t) (вклад датчиков)",
+        "yaxis_title": "Вероятность",
+        "line_colors": [
+            "#9467bd",
+            "#ff7f0e",
+            "#17becf",
+            "#8c564b",
+            "#e377c2",
+        ],
+    },
 }
