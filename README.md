@@ -10,7 +10,6 @@
 [![uv](https://img.shields.io/badge/uv-зависимости-DE5FE9?logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
 [![Ruff](https://img.shields.io/badge/Ruff-линтер%20и%20формат-D7FF64?logo=ruff&logoColor=black)](https://docs.astral.sh/ruff/)
 [![Conventional Commits](https://img.shields.io/badge/Commits-Conventional-FE5196?logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org/)
-[![Made with Claude Code](https://img.shields.io/badge/Made%20with-Claude%20Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
 
 **QUICK** (Queue with Impatient Customers) — это программный комплекс для моделирования систем массового обслуживания с ограниченной очередью и нетерпеливыми заявками, то есть заявками, которые покидают очередь, не дождавшись обслуживания. Комплекс рассчитан на исследователей и инженеров, которым нужно не одно число на выходе, а поведение системы во времени: как меняются вероятности состояний, потери и пропускная способность при заданных интенсивностях. Поддерживаются многолинейные СМО с пуассоновским входным потоком и системы с марковским входным потоком (MAP) от нескольких датчиков разного типа.
 
