@@ -125,9 +125,6 @@ def plot_surface(
             z=values,
             colorscale=colorscale,
             colorbar=dict(title=dict(text=zaxis_title, font=dict(color="black"))),
-            contours=dict(
-                z=dict(show=True, usecolormap=True, project=dict(z=True), width=1)
-            ),
         )
     )
 
