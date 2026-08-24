@@ -8,6 +8,7 @@ from .initial_conditions import (
 )
 from .plot import plot_metric, plot_probabilities
 from .plot3d import plot_phase_portrait, plot_sensor_surface, plot_surface
+from .sensor_mode import render_sensor_mode, sensor_label
 from .system_parameters import (
     get_intensity_parameters,
     get_system_mode_type,
@@ -26,6 +27,8 @@ __all__ = [
     "plot_surface",
     "plot_sensor_surface",
     "plot_phase_portrait",
+    "render_sensor_mode",
+    "sensor_label",
     "render_state_variables",
     "render_initial_probabilities",
     "render_initial_conditions",

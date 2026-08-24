@@ -58,6 +58,40 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
         self.D1 = self.transition_matrix._d_1_matrix_generator()
         self.DDD = self.D0 + self.D1
 
+    @property
+    def sensor_index(self) -> int | None:
+        """Номер датчика, по состояниям которого ведётся расчёт.
+
+        Returns:
+            int | None: Номер MAP-фазы в индивидуальном режиме или ``None``
+                в агрегированном.
+        """
+        return self.params.calculation_params.sensor_index
+
+    def select_phases(
+        self, probabilities_by_level: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        r"""Оставляет в массиве вероятностей только состояния выбранного датчика.
+
+        В агрегированном режиме массив возвращается без изменений и
+        последующее суммирование по оси фаз даёт
+        :math:`\sum_{i=0}^{M-1}P(k,i,t)`. В индивидуальном режиме остаётся
+        единственный столбец, поэтому то же суммирование вырождается в
+        :math:`P(k,j,t)` — формулы характеристик при этом не меняются.
+
+        Args:
+            probabilities_by_level (NDArray[np.float64]): Вероятности формы
+                ``[level, phase, time]``.
+
+        Returns:
+            NDArray[np.float64]: Вероятности формы ``[level, phase, time]``,
+                где ось фаз содержит либо все датчики, либо один выбранный.
+        """
+        if self.sensor_index is None:
+            return probabilities_by_level
+
+        return probabilities_by_level[:, self.sensor_index : self.sensor_index + 1, :]
+
     def _calculate_teta(self) -> None:
         """Вычисляет стационарный вектор вероятностей состояний MAP-процесса.
 
@@ -128,10 +162,12 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
         phase_count = self.params.base_params.sensor_count
         time_count = probabilities.shape[-1]
 
-        buffer_probabilities = probabilities[phase_count * 2 :].reshape(
-            level_count - 2,
-            phase_count,
-            time_count,
+        buffer_probabilities = self.select_phases(
+            probabilities[phase_count * 2 :].reshape(
+                level_count - 2,
+                phase_count,
+                time_count,
+            )
         )
         unweighted_occupancy = cast(
             NDArray[np.float64],
@@ -171,10 +207,12 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
         # Уровни 0 и 1 соответствуют пустой системе и одной заявке на
         # обслуживании. Уровень k + 1, k = 1, ..., N, означает наличие k
         # заявок в буфере, поэтому вероятность этого уровня умножается на k.
-        buffer_probabilities = probabilities[phase_count * 2 :].reshape(
-            level_count - 2,
-            phase_count,
-            time_count,
+        buffer_probabilities = self.select_phases(
+            probabilities[phase_count * 2 :].reshape(
+                level_count - 2,
+                phase_count,
+                time_count,
+            )
         )
         buffer_weights = np.arange(
             1,

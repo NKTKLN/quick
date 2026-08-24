@@ -66,10 +66,16 @@ class CalculationParams:
     Attributes:
         system_type (SystemType): Тип системы.
         system_mode (SystemMode): Режим системы.
+        sensor_index (int | None): Номер MAP-фазы (датчика), по состояниям
+            которой ведётся расчёт. ``None`` — агрегированный режим, в котором
+            характеристики суммируются по всем датчикам. При заданном ``j``
+            во всех формулах суммирование ``sum_i P(k, i, t)`` заменяется
+            единственным слагаемым ``P(k, j, t)``.
     """
 
     system_type: SystemType
     system_mode: SystemMode
+    sensor_index: int | None = None
 
 
 @dataclass
@@ -96,6 +102,7 @@ class SystemParams:
             ValueError: При некорректных параметрах.
         """
         self.base_params.validate()
+        self._validate_sensor_index()
 
         if self.calculation_params.system_mode == SystemMode.TRANSIENT:
             if self.transient_params is None:
@@ -133,3 +140,31 @@ class SystemParams:
                         "Размер начальных вероятностей должен совпадать с максимальным "
                         "числом заявок в системе возведенных в квадрат."
                     )
+
+    def _validate_sensor_index(self) -> None:
+        """Проверяет корректность номера выбранного датчика.
+
+        Индивидуальный режим определён только для MAP-систем: у остальных
+        типов состояние не раскладывается по датчикам.
+
+        Raises:
+            ValueError: Если номер датчика задан для не-MAP системы или
+                выходит за границы диапазона.
+        """
+        sensor_index = self.calculation_params.sensor_index
+
+        if sensor_index is None:
+            return
+
+        if self.calculation_params.system_type != SystemType.MAP or not isinstance(
+            self.base_params, MAPSystemParams
+        ):
+            raise ValueError(
+                "Расчёт по отдельному датчику доступен только для MAP-систем."
+            )
+
+        if not 0 <= sensor_index < self.base_params.sensor_count:
+            raise ValueError(
+                "Номер датчика должен лежать в диапазоне "
+                f"[0, {self.base_params.sensor_count - 1}]."
+            )

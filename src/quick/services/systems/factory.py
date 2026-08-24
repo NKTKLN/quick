@@ -38,8 +38,10 @@ def system_factory(
     Args:
         system_type (SystemType): Тип системы.
         system_mode (SystemMode): Режим работы системы.
-        per_sensor (bool): Выполнять расчёт отдельно для каждого сенсора.
-            Поддерживается только для систем типа MAP.
+        per_sensor (bool): Выполнять расчёт отдельно для каждого сенсора,
+            возвращая массивы формы ``[время, датчик]``. Поддерживается
+            только для систем типа MAP и игнорируется, если в
+            ``params.calculation_params`` задан ``sensor_index``.
         **kwargs (Any): Дополнительные параметры, передаваемые в конструктор системы
             (например: params, config).
 
@@ -57,9 +59,16 @@ def system_factory(
         case SystemType.MULTI:
             system_behavior = MultiSystemBehavior
         case SystemType.MAP:
+            # Индивидуальный режим (расчёт по одному датчику) реализован
+            # сужением оси MAP-фаз внутри агрегированного поведения, поэтому
+            # он несовместим с покомпонентным разложением сразу по всем
+            # датчикам и имеет над ним приоритет.
+            individual_mode = (
+                kwargs["params"].calculation_params.sensor_index is not None
+            )
             system_behavior = (
                 MultiSensorMAPSensorBehavior
-                if per_sensor
+                if per_sensor and not individual_mode
                 else MultiSensorMAPSystemBehavior
             )
 

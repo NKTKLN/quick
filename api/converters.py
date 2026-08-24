@@ -222,6 +222,7 @@ def build_system_params(request: SimulateRequest) -> SystemParams:
     calculation_params = CalculationParams(
         system_type=SYSTEM_TYPE_MAP[request.system_type],
         system_mode=SYSTEM_MODE_MAP[request.system_mode],
+        sensor_index=request.sensor_index,
     )
 
     if request.config.calculation_method == CalculationMethodName.IMITATION:

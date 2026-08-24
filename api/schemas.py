@@ -145,6 +145,8 @@ class SimulateRequest(BaseModel):
         time_series_params (TimeSeriesParamsSchema | None): Параметры,
             зависящие от времени (для имитационного метода).
         per_sensor (bool): Выполнять расчёт отдельно для каждого сенсора (для MAP).
+        sensor_index (int | None): Номер датчика (с нуля), по состояниям
+            которого ведётся расчёт. None — агрегированный режим.
     """
 
     system_type: SystemTypeName
@@ -160,6 +162,7 @@ class SimulateRequest(BaseModel):
     simulation_params: SimulationParamsSchema | None = None
     time_series_params: TimeSeriesParamsSchema | None = None
     per_sensor: bool = False
+    sensor_index: int | None = Field(default=None, ge=0)
 
 
 class SimulateResponse(BaseModel):

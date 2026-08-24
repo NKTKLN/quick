@@ -25,6 +25,7 @@ from pages.components import (
     render_calculation_config,
     render_imitation_config,
     render_initial_conditions,
+    render_sensor_mode,
     render_time_settings,
 )
 
@@ -68,11 +69,6 @@ def get_user_inputs(
 
     system_type, system_mode = get_system_mode_type(system_modes)
 
-    per_sensor = False
-
-    if system_type == SystemType.MAP:
-        per_sensor = st.checkbox("Расчитать для каждого датчика отдельно", value=False)
-
     st.subheader("⚙️ Параметры системы")
 
     lambda_rate, mu_rate, nu_rate = get_intensity_parameters(system_type)
@@ -80,6 +76,13 @@ def get_user_inputs(
     max_customers, processor_count, p_rate, q_rate, sensor_count, time_series_params = (
         _get_capacity_and_map_params(system_type, config.calculation_method)
     )
+
+    per_sensor = False
+    sensor_index = None
+
+    if system_type == SystemType.MAP and sensor_count is not None:
+        st.markdown("---")
+        per_sensor, sensor_index = render_sensor_mode(int(sensor_count))
 
     state_count = _calculate_state_count(
         system_type=system_type,
@@ -108,6 +111,7 @@ def get_user_inputs(
     settings = CalculationParams(
         system_mode=system_mode,
         system_type=system_type,
+        sensor_index=sensor_index,
     )
 
     if config.calculation_method == CalculationMethod.IMITATION:

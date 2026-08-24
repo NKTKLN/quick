@@ -20,14 +20,59 @@ from .base import BaseServerSystem
 
 
 class BaseMAPServerSystem(BaseServerSystem):
-    """Абстрактный базовый класс серверной СМО с MAP-входным потоком."""
+    r"""Абстрактный базовый класс серверной СМО с MAP-входным потоком.
+
+    Класс поддерживает два режима расчёта характеристик:
+
+    * агрегированный — суммирование по всем датчикам,
+      :math:`\sum_{i=0}^{M-1}P(k,i,t)`;
+    * индивидуальный — расчёт только по состояниям выбранного датчика
+      ``j``, то есть :math:`P(k,j,t)`.
+
+    Режим задаётся полем ``calculation_params.sensor_index``: ``None``
+    соответствует агрегированному расчёту. Формулы характеристик при этом
+    не дублируются: индивидуальный режим сужает ось MAP-фаз до одного
+    столбца, и то же самое суммирование по этой оси даёт нужное слагаемое.
+    """
+
+    @property
+    def sensor_index(self) -> int | None:
+        """Номер датчика, по состояниям которого ведётся расчёт.
+
+        Returns:
+            int | None: Номер MAP-фазы в индивидуальном режиме или ``None``
+                в агрегированном.
+        """
+        return self.params.calculation_params.sensor_index
+
+    def _selected_phase_indices(self) -> NDArray[np.intp]:
+        """Возвращает номера MAP-фаз, участвующих в расчёте.
+
+        Returns:
+            NDArray[np.intp]: Все номера фаз в агрегированном режиме либо
+                единственный выбранный номер в индивидуальном.
+
+        Raises:
+            TypeError: Если параметры системы не являются MAPSystemParams.
+        """
+        if not isinstance(self.params.base_params, MAPSystemParams):
+            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
+
+        if self.sensor_index is None:
+            return np.arange(self.params.base_params.sensor_count, dtype=np.intp)
+
+        return np.array([self.sensor_index], dtype=np.intp)
 
     def _reshape_map_probabilities(self) -> NDArray[np.float64]:
         """Преобразует вероятности к форме ``[уровень, фаза, время]``.
 
+        В индивидуальном режиме ось фаз сужается до выбранного датчика,
+        поэтому последующее суммирование по ней возвращает ``P(k, j, t)``.
+
         Returns:
             NDArray[np.float64]: Массив вероятностей формы
-                ``[num_macro_states, sensor_count, time_count]``.
+                ``[num_macro_states, len(selected_phases), time_count]``.
 
         Raises:
             TypeError: Если параметры системы не являются MAPSystemParams.
@@ -55,14 +100,13 @@ class BaseMAPServerSystem(BaseServerSystem):
                 f"{probabilities.shape[0]} % {phase_count} != 0"
             )
 
-        return cast(
-            NDArray[np.float64],
-            probabilities.reshape(
-                probabilities.shape[0] // phase_count,
-                phase_count,
-                probabilities.shape[1],
-            ),
+        probabilities_by_level = probabilities.reshape(
+            probabilities.shape[0] // phase_count,
+            phase_count,
+            probabilities.shape[1],
         )
+
+        return probabilities_by_level[:, self._selected_phase_indices(), :]
 
     def calculate_input_intensity(self) -> NDArray[np.float64]:
         r"""Вычисляет нестационарную интенсивность входного потока ``lambda(t)``.
@@ -97,7 +141,7 @@ class BaseMAPServerSystem(BaseServerSystem):
 
         # Для каждой исходной фазы i величина [D1 * e]_i равна интенсивности
         # поступлений, генерируемых из этой фазы.
-        arrival_rate_by_phase = d1_matrix @ ones
+        arrival_rate_by_phase = (d1_matrix @ ones)[self._selected_phase_indices()]
         input_intensity = np.einsum(
             "it,i->t",
             phase_probabilities,
@@ -139,12 +183,16 @@ class BaseMAPServerSystem(BaseServerSystem):
 
         .. math::
 
-            v_{serv}(t)=\mu\left(1-\sum_{i=0}^{M-1}P(0,i,t)\right).
+            v_{serv}(t)=\mu\sum_{k=1}^{N+1}\sum_{i=0}^{M-1}P(k,i,t).
 
         Прибор занят во всех состояниях, кроме пустой системы, поэтому
         фактический поток обслуживания равен ``mu``, взвешенной на
         вероятность занятости прибора. В отличие от параметра ``mu``,
         эта величина меняется во времени.
+
+        Суммирование по уровням записано явно, а не как дополнение до
+        единицы: в индивидуальном режиме вероятности выбранного датчика
+        в сумме дают не единицу, а его долю во входном потоке.
 
         Returns:
             NDArray[np.float64]: Значения ``v_serv(t)``.
@@ -152,7 +200,7 @@ class BaseMAPServerSystem(BaseServerSystem):
         logger.info("Вычисление интенсивности потока обслуживания v_serv(t)")
 
         probabilities = self._reshape_map_probabilities()
-        busy_probability = 1.0 - np.sum(probabilities[0], axis=0)
+        busy_probability = np.sum(probabilities[1:], axis=(0, 1))
         service_flow_intensity = self.params.base_params.mu_rate * busy_probability
 
         logger.success("Интенсивность потока обслуживания успешно вычислена")
