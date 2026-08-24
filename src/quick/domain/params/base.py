@@ -18,7 +18,10 @@ class BaseSystemParams:
 
     Attributes:
         mu_rate (float): Интенсивность обслуживания заявок (μ > 0).
-        nu_rate (float): Интенсивность дополнительных процессов (ν > 0).
+        nu_rate (float): Интенсивность ухода нетерпеливых заявок (ν >= 0).
+            Значение ν = 0 допустимо и означает отсутствие ухода: заявка,
+            попавшая в буфер, дожидается обслуживания. Этот случай нужен
+            как нижняя граница развёртки по отношению ν/μ.
         lambda_rate (float | NDArray[np.float64]): Интенсивность поступления
             заявок (λ > 0). Может быть скаляром или массивом.
         max_customers (int): Максимальное количество заявок в системе (n > 0).
@@ -37,8 +40,8 @@ class BaseSystemParams:
         """
         if self.mu_rate <= 0:
             raise ValueError("Интенсивность μ должна быть положительна.")
-        if self.nu_rate <= 0:
-            raise ValueError("Интенсивность ν должна быть положительна.")
+        if self.nu_rate < 0:
+            raise ValueError("Интенсивность ν не может быть отрицательной.")
         if isinstance(self.lambda_rate, np.ndarray):
             if np.any(self.lambda_rate <= 0) or self.lambda_rate.shape[0] == 0:
                 raise ValueError("Интенсивность λ должна быть положительна.")
