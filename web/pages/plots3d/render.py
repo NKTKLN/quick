@@ -6,7 +6,8 @@
     - выбор вида третьей оси отдельно для каждого графика;
     - отрисовку поверхностей и фазовых портретов.
 
-Поддерживаются три вида третьей оси:
+Поддерживаются четыре вида третьей оси:
+    - отношение ν/μ на отрезке [0, 1] — влияние нетерпеливости заявок;
     - развёртка по параметру (μ, ν, λ) — требует пересчёта системы
       в каждой точке сетки;
     - вторая метрика — фазовый портрет по одному расчёту;
@@ -27,12 +28,13 @@ from pages.simulation import PLOT_SETTINGS, get_user_inputs, prepare_system
 from quick.domain import CalculationEngine, SystemMode, SystemType
 from quick.domain.params import SystemParams
 
-from .sweep import get_sweep, render_parameter_controls
+from .sweep import get_sweep, render_nu_mu_ratio_controls, render_parameter_controls
 
 RESULTS_KEY = "plots3d_results"
 SENSOR_RESULTS_KEY = "plots3d_sensor_results"
 SWEEP_CACHE_KEY = "plots3d_sweep_cache"
 
+AXIS_NU_MU = "Отношение ν/μ"
 AXIS_PARAMETER = "Развёртка по параметру"
 AXIS_METRIC = "Вторая метрика"
 AXIS_SENSOR = "Номер датчика"
@@ -40,12 +42,32 @@ AXIS_SENSOR = "Номер датчика"
 DEFAULT_METRIC = "loss_probability"
 EXCLUDED_METRICS = ("probability",)
 
+# Основные характеристики, для которых строятся графики по умолчанию:
+# они полностью описывают качество обслуживания и загрузку системы.
+MAIN_METRICS = (
+    "loss_probability",
+    "rejection_probability",
+    "quit_probability",
+    "service_probability",
+    "throughput",
+    "avg_system_length",
+    "stability_coefficient",
+)
+
 PAGE_GUIDE = """
 ### 📖 Как читать графики
 
 По оси **X всегда отложено время**, поэтому страница работает только в
 переходном режиме. По оси **Z** — значение выбранной характеристики. Смысл
 третьей оси (**Y**) задаётся для каждого графика отдельно.
+
+**Отношение ν/μ.** Основной вид третьей оси. Интенсивность обслуживания μ
+остаётся неизменной, а интенсивность ухода нетерпеливых заявок задаётся как
+ν = (ν/μ)·μ для каждого значения отрезка [0, 1]. Крайние точки отрезка имеют
+прямой смысл: **ν/μ = 0** — ухода нет, заявка дожидается обслуживания;
+**ν/μ = 1** — заявка покидает очередь в среднем за то же время, за которое
+обслуживается. Поверхность показывает, как нетерпеливость заявок меняет
+характеристику во времени.
 
 **Развёртка по параметру.** Система полностью пересчитывается для каждого
 значения из заданной сетки (например, 12 значений ν от 50 до 150), и
@@ -61,9 +83,11 @@ PAGE_GUIDE = """
 область означает выход системы на установившийся режим.
 
 **Номер датчика.** Ось Y дискретна: данные существуют только при целых
-значениях 0, 1, 2, … Поверхность между ними — интерполяция для наглядности,
+значениях 1, 2, 3, … Поверхность между ними — интерполяция для наглядности,
 физического смысла она не несёт, поэтому сравнивать датчики нужно по
-отдельным линиям сечений.
+отдельным линиям сечений. Этот вид оси показывает вклад всех датчиков
+сразу; чтобы считать характеристики только по состояниям одного датчика,
+выберите его в блоке «Режим расчёта по датчикам» и пересчитайте систему.
 
 ### 🔤 Обозначения характеристик потоков
 
@@ -181,7 +205,7 @@ def _axis_options(params: SystemParams) -> list[str]:
     Returns:
         list[str]: Названия видов третьей оси.
     """
-    options = [AXIS_METRIC, AXIS_PARAMETER]
+    options = [AXIS_NU_MU, AXIS_PARAMETER, AXIS_METRIC]
 
     if params.calculation_params.system_type == SystemType.MAP:
         options.append(AXIS_SENSOR)
@@ -189,31 +213,22 @@ def _axis_options(params: SystemParams) -> list[str]:
     return options
 
 
-def _render_parameter_axis(state: dict, metric_key: str) -> Any:
-    """Строит поверхность «время × параметр × метрика».
+def _sweep_surface(state: dict, metric_key: str, parameter: Any) -> Any:
+    """Строит поверхность «время × параметр × метрика» по готовой развёртке.
 
     Args:
         state (dict): Сохранённое состояние страницы.
         metric_key (str): Ключ отображаемой метрики.
+        parameter (SweepParameter): Описание развёртки и сетки её значений.
 
     Returns:
-        go.Figure | None: График или None, если метрика не поддерживается.
+        go.Figure: Поверхность Plotly.
     """
-    params: SystemParams = state["params"]
-    time_array = params.transient_params.time_array
-
-    if metric_key not in _time_series_metrics(state["results"], len(time_array)):
-        st.info(
-            "ℹ️ Развёртка по параметру доступна только для метрик, "
-            "представленных одной кривой во времени."
-        )
-        return None
-
-    parameter = render_parameter_controls(params, key_prefix=f"{metric_key}_sweep")
+    time_array = state["params"].transient_params.time_array
 
     surfaces = get_sweep(
         config=state["config"],
-        params=params,
+        params=state["params"],
         parameter=parameter,
         metric_keys=[metric_key],
         time_count=len(time_array),
@@ -228,6 +243,72 @@ def _render_parameter_axis(state: dict, metric_key: str) -> Any:
         yaxis_title=parameter.axis_title,
         zaxis_title=_metric_units(metric_key),
     )
+
+
+def _supports_sweep(state: dict, metric_key: str) -> bool:
+    """Проверяет, можно ли развернуть метрику по параметру.
+
+    Args:
+        state (dict): Сохранённое состояние страницы.
+        metric_key (str): Ключ метрики.
+
+    Returns:
+        bool: True, если метрика представлена одной кривой во времени.
+    """
+    time_count = len(state["params"].transient_params.time_array)
+
+    if metric_key in _time_series_metrics(state["results"], time_count):
+        return True
+
+    st.info(
+        "ℹ️ Развёртка доступна только для метрик, представленных "
+        "одной кривой во времени. Для метрик, уже разложенных по датчикам, "
+        "выберите третью ось «Номер датчика»."
+    )
+    return False
+
+
+def _render_nu_mu_axis(state: dict, metric_key: str) -> Any:
+    """Строит поверхность «время × ν/μ × метрика».
+
+    Отношение ν/μ пробегает отрезок [0, 1]: от полного отсутствия ухода
+    нетерпеливых заявок до случая ν = μ. Интенсивность обслуживания при
+    этом не меняется, поэтому поверхность показывает вклад именно
+    нетерпеливости заявок.
+
+    Args:
+        state (dict): Сохранённое состояние страницы.
+        metric_key (str): Ключ отображаемой метрики.
+
+    Returns:
+        go.Figure | None: График или None, если метрика не поддерживается.
+    """
+    if not _supports_sweep(state, metric_key):
+        return None
+
+    parameter = render_nu_mu_ratio_controls(key_prefix=f"{metric_key}_nu_mu")
+
+    return _sweep_surface(state, metric_key, parameter)
+
+
+def _render_parameter_axis(state: dict, metric_key: str) -> Any:
+    """Строит поверхность «время × параметр × метрика».
+
+    Args:
+        state (dict): Сохранённое состояние страницы.
+        metric_key (str): Ключ отображаемой метрики.
+
+    Returns:
+        go.Figure | None: График или None, если метрика не поддерживается.
+    """
+    if not _supports_sweep(state, metric_key):
+        return None
+
+    parameter = render_parameter_controls(
+        state["params"], key_prefix=f"{metric_key}_sweep"
+    )
+
+    return _sweep_surface(state, metric_key, parameter)
 
 
 def _render_metric_axis(state: dict, metric_key: str) -> Any:
@@ -331,6 +412,7 @@ def _render_metric_block(state: dict, metric_key: str) -> None:
         )
 
         renderers = {
+            AXIS_NU_MU: _render_nu_mu_axis,
             AXIS_PARAMETER: _render_parameter_axis,
             AXIS_METRIC: _render_metric_axis,
             AXIS_SENSOR: _render_sensor_axis,
@@ -353,13 +435,16 @@ def _render_results(state: dict) -> None:
         state (dict): Сохранённое состояние страницы.
     """
     metrics = _available_metrics(state["results"])
-    default_metrics = [DEFAULT_METRIC] if DEFAULT_METRIC in metrics else metrics[:1]
+    default_metrics = [key for key in MAIN_METRICS if key in metrics]
+
+    if not default_metrics:
+        default_metrics = [DEFAULT_METRIC] if DEFAULT_METRIC in metrics else metrics[:1]
 
     st.subheader("🧊 Трёхмерная визуализация характеристик")
     st.caption(
         "Для каждой метрики третья ось выбирается отдельно. Развёртка по "
-        "параметру требует полного пересчёта системы в каждой точке сетки; "
-        "одинаковые развёртки разных графиков считаются один раз."
+        "ν/μ и по параметру требует полного пересчёта системы в каждой точке "
+        "сетки; одинаковые развёртки разных графиков считаются один раз."
     )
 
     selected_metrics = st.multiselect(

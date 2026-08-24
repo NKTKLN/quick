@@ -22,6 +22,7 @@ from quick.domain.params import SystemParams
 from quick.services.systems import system_factory
 from quick.utils.progress import Progress
 
+PARAMETER_NU_MU_RATIO = "Отношение ν/μ"
 PARAMETER_MU = "Интенсивность обслуживания (μ)"
 PARAMETER_NU = "Интенсивность ухода нетерпеливых заявок (ν)"
 PARAMETER_LAMBDA = "Интенсивность поступления заявок (λ)"
@@ -32,6 +33,11 @@ MIN_GRID_POINTS = 3
 MAX_GRID_POINTS = 40
 DEFAULT_GRID_POINTS = 12
 
+# Границы отношения nu/mu: 0 — уход нетерпеливых заявок отсутствует,
+# 1 — заявка покидает очередь так же быстро, как обслуживается (nu = mu).
+NU_MU_RATIO_MIN = 0.0
+NU_MU_RATIO_MAX = 1.0
+
 
 @dataclass(frozen=True)
 class SweepParameter:
@@ -39,8 +45,8 @@ class SweepParameter:
 
     Attributes:
         name (str): Отображаемое имя параметра.
-        kind (str): Тип параметра: "mu", "nu", "lambda", "lambda_sensor"
-            или "lambda_scale".
+        kind (str): Тип параметра: "nu_mu_ratio", "mu", "nu", "lambda",
+            "lambda_sensor" или "lambda_scale".
         grid (NDArray[np.float64]): Значения параметра, для которых
             выполняется расчёт.
         sensor_index (int | None): Номер датчика для типа "lambda_sensor".
@@ -59,10 +65,10 @@ class SweepParameter:
             str: Название параметра для оси Y.
         """
         if self.kind == "lambda_sensor":
-            return f"λ датчика {self.sensor_index}"
+            return f"λ датчика {self.sensor_index + 1}"
         if self.kind == "lambda_scale":
             return "Масштаб λ"
-        return {"mu": "μ", "nu": "ν"}.get(self.kind, "λ")
+        return {"mu": "μ", "nu": "ν", "nu_mu_ratio": "ν/μ"}.get(self.kind, "λ")
 
     @property
     def cache_key(self) -> tuple:
@@ -83,7 +89,7 @@ def _available_parameters(params: SystemParams) -> list[str]:
     Returns:
         list[str]: Названия параметров.
     """
-    options = [PARAMETER_NU, PARAMETER_MU]
+    options = [PARAMETER_NU_MU_RATIO, PARAMETER_NU, PARAMETER_MU]
 
     if params.calculation_params.system_type == SystemType.MAP:
         options += [PARAMETER_LAMBDA_SENSOR, PARAMETER_LAMBDA_SCALE]
@@ -106,6 +112,8 @@ def _default_value(params: SystemParams, name: str, sensor_index: int) -> float:
     """
     base_params = params.base_params
 
+    if name == PARAMETER_NU_MU_RATIO:
+        return float(base_params.nu_rate) / float(base_params.mu_rate)
     if name == PARAMETER_MU:
         return float(base_params.mu_rate)
     if name == PARAMETER_NU:
@@ -138,24 +146,38 @@ def render_parameter_controls(params: SystemParams, key_prefix: str) -> SweepPar
     sensor_index = 0
     if parameter_name == PARAMETER_LAMBDA_SENSOR:
         sensor_count = int(np.asarray(params.base_params.lambda_rate).shape[0])
-        sensor_index = int(
-            st.number_input(
-                "Номер датчика",
-                min_value=0,
-                max_value=sensor_count - 1,
-                value=0,
-                key=f"{key_prefix}_sensor",
+        # В интерфейсе датчики нумеруются с единицы, внутри — с нуля.
+        sensor_index = (
+            int(
+                st.number_input(
+                    "Номер датчика",
+                    min_value=1,
+                    max_value=sensor_count,
+                    value=1,
+                    key=f"{key_prefix}_sensor",
+                )
             )
+            - 1
         )
 
     current_value = _default_value(params, parameter_name, sensor_index)
+    is_ratio = parameter_name == PARAMETER_NU_MU_RATIO
+
+    # Отношение ν/μ безразмерно и исследуется на фиксированном отрезке
+    # [0, 1]: ν/μ = 0 — ухода нет, ν/μ = 1 — ν совпадает с μ.
+    bound_limit = NU_MU_RATIO_MAX if is_ratio else None
+    default_min = NU_MU_RATIO_MIN if is_ratio else max(current_value * 0.5, 1e-9)
+    default_max = (
+        NU_MU_RATIO_MAX if is_ratio else max(current_value * 1.5, current_value + 1.0)
+    )
 
     col1, col2, col3 = st.columns(3)
     with col1:
         min_value = st.number_input(
             "Минимум",
             min_value=0.0,
-            value=max(current_value * 0.5, 1e-9),
+            max_value=bound_limit,
+            value=default_min,
             format="%.6f",
             key=f"{key_prefix}_min",
         )
@@ -163,7 +185,8 @@ def render_parameter_controls(params: SystemParams, key_prefix: str) -> SweepPar
         max_value = st.number_input(
             "Максимум",
             min_value=0.0,
-            value=max(current_value * 1.5, current_value + 1.0),
+            max_value=bound_limit,
+            value=default_max,
             format="%.6f",
             key=f"{key_prefix}_max",
         )
@@ -179,6 +202,7 @@ def render_parameter_controls(params: SystemParams, key_prefix: str) -> SweepPar
         )
 
     kinds = {
+        PARAMETER_NU_MU_RATIO: "nu_mu_ratio",
         PARAMETER_MU: "mu",
         PARAMETER_NU: "nu",
         PARAMETER_LAMBDA: "lambda",
@@ -215,6 +239,10 @@ def apply_parameter(
     base_params = params.base_params
 
     match parameter.kind:
+        case "nu_mu_ratio":
+            # Развёртка ведётся по безразмерному отношению: μ остаётся
+            # неизменной, а ν восстанавливается как ν = (ν/μ) * μ.
+            new_base_params = replace(base_params, nu_rate=value * base_params.mu_rate)
         case "mu":
             new_base_params = replace(base_params, mu_rate=value)
         case "nu":
@@ -359,3 +387,56 @@ def get_sweep(
 
     cache[parameter.cache_key] = surfaces
     return surfaces
+
+
+def nu_mu_ratio_parameter(point_count: int) -> SweepParameter:
+    """Создаёт развёртку по отношению ν/μ на отрезке [0, 1].
+
+    Отношение ν/μ безразмерно и позволяет сравнивать системы с разными
+    абсолютными интенсивностями. Крайние точки отрезка имеют прямой
+    физический смысл: ν/μ = 0 — нетерпеливых заявок нет, очередь
+    дожидается обслуживания целиком; ν/μ = 1 — заявка покидает очередь
+    в среднем за то же время, за которое обслуживается.
+
+    Args:
+        point_count (int): Число точек сетки отношения.
+
+    Returns:
+        SweepParameter: Описание развёртки по ν/μ.
+    """
+    return SweepParameter(
+        name=PARAMETER_NU_MU_RATIO,
+        kind="nu_mu_ratio",
+        grid=np.linspace(
+            NU_MU_RATIO_MIN,
+            NU_MU_RATIO_MAX,
+            point_count,
+            dtype=np.float64,
+        ),
+    )
+
+
+def render_nu_mu_ratio_controls(key_prefix: str) -> SweepParameter:
+    """Отображает UI развёртки по отношению ν/μ.
+
+    Границы отрезка зафиксированы, поэтому настраивается только частота
+    сетки: каждая её точка стоит одного полного расчёта системы.
+
+    Args:
+        key_prefix (str): Префикс ключей Streamlit-виджетов, уникальный
+            для каждого графика.
+
+    Returns:
+        SweepParameter: Описание развёртки по ν/μ.
+    """
+    point_count = int(
+        st.number_input(
+            "Число точек ν/μ на отрезке [0, 1]",
+            min_value=MIN_GRID_POINTS,
+            max_value=MAX_GRID_POINTS,
+            value=DEFAULT_GRID_POINTS,
+            key=f"{key_prefix}_ratio_points",
+        )
+    )
+
+    return nu_mu_ratio_parameter(point_count)
