@@ -26,6 +26,7 @@ from pages.components import (
     render_imitation_config,
     render_initial_conditions,
     render_sensor_mode,
+    render_stability_params,
     render_time_settings,
 )
 
@@ -84,6 +85,9 @@ def get_user_inputs(
         st.markdown("---")
         per_sensor, sensor_index = render_sensor_mode(int(sensor_count))
 
+    st.markdown("---")
+    stability_params = render_stability_params()
+
     state_count = _calculate_state_count(
         system_type=system_type,
         max_customers=max_customers,
@@ -119,6 +123,7 @@ def get_user_inputs(
             base_params=base_params,
             transient_params=transient_params,
             calculation_params=settings,
+            stability_params=stability_params,
             simulation_params=simulation_params,
             time_series_params=time_series_params,
         )
@@ -127,6 +132,7 @@ def get_user_inputs(
             base_params=base_params,
             transient_params=transient_params,
             calculation_params=settings,
+            stability_params=stability_params,
         )
 
     return config, params, per_sensor

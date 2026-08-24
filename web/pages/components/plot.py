@@ -111,6 +111,7 @@ def plot_metric(
     yaxis_title: str = "Value",
     series_labels: list[str] | None = None,
     line_colors: list[str] | None = None,
+    reference_lines: list[dict[str, Any]] | None = None,
 ) -> Any:
     """Универсальная функция построения графика для различных метрик системы.
 
@@ -122,6 +123,9 @@ def plot_metric(
         yaxis_title (str): Подпись оси Y (по умолчанию "Value").
         series_labels (list[str] | None): Пользовательские подписи для каждой серии.
         line_colors (list[str] | None): Цвета линий (по умолчанию из Plotly D3 палитры).
+        reference_lines (list[dict[str, Any]] | None): Опорные линии вида
+            ``{"x": [...], "y": [...], "name": str}``, наносимые поверх
+            метрики: например, критический уровень характеристики.
 
     Returns:
         go.Figure: Объект графика Plotly.
@@ -156,6 +160,18 @@ def plot_metric(
                 mode="lines",
                 name=label,
                 line=dict(width=2, color=color),
+            )
+        )
+
+    for line in reference_lines or []:
+        fig.add_trace(
+            go.Scatter(
+                x=line["x"],
+                y=line["y"],
+                mode="lines",
+                name=line.get("name", "Опорный уровень"),
+                line=dict(width=2, dash="dash", color=line.get("color", "#d62728")),
+                hoverinfo="name+y",
             )
         )
 

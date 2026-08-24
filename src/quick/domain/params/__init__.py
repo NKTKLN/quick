@@ -4,6 +4,7 @@ from .base import BaseSystemParams
 from .imitation import ImitationSystemParams, SimulationParams
 from .map import MAPSystemParams
 from .multi import MultiSystemParams
+from .stability import StabilityParams
 from .system import (
     CalculationParams,
     SystemParams,
@@ -15,6 +16,7 @@ __all__ = [
     "BaseSystemParams",
     "MAPSystemParams",
     "MultiSystemParams",
+    "StabilityParams",
     "TransientSystemParams",
     "CalculationParams",
     "SystemParams",

@@ -15,6 +15,7 @@ from quick.domain import (
     ComputationConfig,
     MergedComputationConfig,
     MpmathComputationConfig,
+    StabilityMetric,
     SystemMode,
     SystemType,
 )
@@ -25,6 +26,7 @@ from quick.domain.params import (
     MAPSystemParams,
     MultiSystemParams,
     SimulationParams,
+    StabilityParams,
     SystemParams,
     TimeSeries,
     TimeSeriesBaseSystemParams,
@@ -36,6 +38,7 @@ from .schemas import (
     CalculationMethodName,
     ComputationConfigSchema,
     SimulateRequest,
+    StabilityMetricName,
     SystemModeName,
     SystemTypeName,
 )
@@ -54,6 +57,11 @@ CALCULATION_METHOD_MAP = {
     CalculationMethodName.ANALYTICAL: CalculationMethod.ANALYTICAL,
     CalculationMethodName.NUMERICAL: CalculationMethod.NUMERICAL,
     CalculationMethodName.IMITATION: CalculationMethod.IMITATION,
+}
+
+STABILITY_METRIC_MAP = {
+    StabilityMetricName.SERVICE_PROBABILITY: StabilityMetric.SERVICE_PROBABILITY,
+    StabilityMetricName.THROUGHPUT: StabilityMetric.THROUGHPUT,
 }
 
 CALCULATION_ENGINE_MAP = {
@@ -207,6 +215,29 @@ def _build_time_series_params(
     )
 
 
+def _build_stability_params(request: SimulateRequest) -> StabilityParams:
+    """Создаёт параметры оценки устойчивости из запроса.
+
+    Args:
+        request (SimulateRequest): Запрос на моделирование.
+
+    Returns:
+        StabilityParams: Параметры оценки устойчивости; при отсутствии
+            блока в запросе — значения по умолчанию.
+    """
+    schema = request.stability
+
+    if schema is None:
+        return StabilityParams()
+
+    return StabilityParams(
+        metric=STABILITY_METRIC_MAP[schema.metric],
+        critical_level=schema.critical_level,
+        settling_tolerance=schema.settling_tolerance,
+        stable_threshold=schema.stable_threshold,
+    )
+
+
 def build_system_params(request: SimulateRequest) -> SystemParams:
     """Создаёт полные параметры системы из запроса.
 
@@ -224,6 +255,7 @@ def build_system_params(request: SimulateRequest) -> SystemParams:
         system_mode=SYSTEM_MODE_MAP[request.system_mode],
         sensor_index=request.sensor_index,
     )
+    stability_params = _build_stability_params(request)
 
     if request.config.calculation_method == CalculationMethodName.IMITATION:
         simulation_schema = request.simulation_params
@@ -237,6 +269,7 @@ def build_system_params(request: SimulateRequest) -> SystemParams:
             base_params=base_params,
             transient_params=transient_params,
             calculation_params=calculation_params,
+            stability_params=stability_params,
             simulation_params=simulation_params,
             time_series_params=_build_time_series_params(request),
         )
@@ -245,6 +278,7 @@ def build_system_params(request: SimulateRequest) -> SystemParams:
         base_params=base_params,
         transient_params=transient_params,
         calculation_params=calculation_params,
+        stability_params=stability_params,
     )
 
 

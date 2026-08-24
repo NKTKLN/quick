@@ -5,7 +5,7 @@
 в зависимости от режима расчёта и типа системы.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
@@ -15,6 +15,7 @@ from quick.domain.enums import SystemMode, SystemType
 from .base import BaseSystemParams
 from .map import MAPSystemParams
 from .multi import MultiSystemParams
+from .stability import StabilityParams
 
 
 @dataclass
@@ -89,11 +90,15 @@ class SystemParams:
         transient_params (TransientSystemParams | None): Параметры переходного режима.
             Обязательны, если расчёт выполняется в переходном режиме.
         calculation_settings (CalculationSettings): Настройки типа и режима системы.
+        stability_params (StabilityParams): Параметры оценки устойчивости:
+            критический уровень характеристики и границы областей
+            устойчивости.
     """
 
     base_params: BaseSystemParams
     calculation_params: CalculationParams
     transient_params: TransientSystemParams | None = None
+    stability_params: StabilityParams = field(default_factory=StabilityParams)
 
     def validate(self) -> None:
         """Проверяет корректность параметров.
@@ -102,6 +107,7 @@ class SystemParams:
             ValueError: При некорректных параметрах.
         """
         self.base_params.validate()
+        self.stability_params.validate()
         self._validate_sensor_index()
 
         if self.calculation_params.system_mode == SystemMode.TRANSIENT:

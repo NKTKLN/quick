@@ -15,6 +15,7 @@ from quick.domain.enums import SystemType as DomainSystemType
 from quick.services.systems import system_factory
 
 from .converters import (
+    STABILITY_METRIC_MAP,
     SYSTEM_MODE_MAP,
     SYSTEM_TYPE_MAP,
     build_computation_config,
@@ -56,6 +57,10 @@ def get_meta() -> MetaResponse:
             "numpy": CalculationEngine.NUMPY.value,
             "mpmath": CalculationEngine.MPMATH.value,
             "merged": CalculationEngine.MERGED.value,
+        },
+        stability_metrics={
+            name.value: STABILITY_METRIC_MAP[name].value
+            for name in STABILITY_METRIC_MAP
         },
     )
 

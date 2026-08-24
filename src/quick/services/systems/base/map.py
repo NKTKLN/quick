@@ -13,6 +13,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
+from quick.domain.enums import StabilityMetric
 from quick.domain.params import MAPSystemParams
 from quick.services.systems_behavior import MultiSensorMAPSystemBehavior
 
@@ -401,6 +402,21 @@ class BaseMAPServerSystem(BaseServerSystem):
         logger.success("Пропускная способность через lambda(t) успешно вычислена")
         return throughput
 
+    def calculate_stability_base_metric(self) -> NDArray[np.float64]:
+        r"""Возвращает характеристику ``a(t)`` для оценки устойчивости.
+
+        Для MAP-системы это либо вероятность обслуживания
+        :math:`a(t)=1-P_{loss}(t)`, либо пропускная способность
+        :math:`A(t)` — в зависимости от ``stability_params.metric``.
+
+        Returns:
+            NDArray[np.float64]: Значения ``a(t)``.
+        """
+        if self.stability_params.metric == StabilityMetric.THROUGHPUT:
+            return self.calculate_throughput()
+
+        return self.calculate_service_probability()
+
     def calculate(self) -> dict[str, NDArray[np.float64]]:
         """Вычисляет вероятности состояний и производные характеристики.
 
@@ -419,6 +435,7 @@ class BaseMAPServerSystem(BaseServerSystem):
             "service_flow_intensity": self.calculate_service_flow_intensity,
             "loss_flow_intensity": self.calculate_loss_flow_intensity,
             "phase_distribution": self.calculate_phase_distribution,
+            "stability_coefficient": self.calculate_stability_coefficient,
         }
 
         logger.info("Запуск расчёта характеристик СМО")

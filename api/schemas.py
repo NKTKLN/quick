@@ -39,6 +39,13 @@ class CalculationEngineName(StrEnum):
     MERGED = "merged"
 
 
+class StabilityMetricName(StrEnum):
+    """Характеристика, по которой оценивается устойчивость."""
+
+    SERVICE_PROBABILITY = "service_probability"
+    THROUGHPUT = "throughput"
+
+
 class ComputationConfigSchema(BaseModel):
     """Конфигурация вычислений.
 
@@ -126,6 +133,24 @@ class SimulationParamsSchema(BaseModel):
     seed: int | None = None
 
 
+class StabilitySchema(BaseModel):
+    """Параметры оценки устойчивости системы.
+
+    Attributes:
+        metric (StabilityMetricName): Характеристика a(t), по которой
+            оценивается устойчивость.
+        critical_level (float): Критический уровень a_кр.
+        settling_tolerance (float): Допуск выхода на установившийся режим.
+        stable_threshold (float): Порог K_уст для признания системы
+            устойчивой с запасом.
+    """
+
+    metric: StabilityMetricName = StabilityMetricName.SERVICE_PROBABILITY
+    critical_level: float = Field(default=0.95, gt=0)
+    settling_tolerance: float = Field(default=0.05, gt=0, lt=1)
+    stable_threshold: float = Field(default=1.2, ge=1.0)
+
+
 class SimulateRequest(BaseModel):
     """Запрос на запуск моделирования СМО.
 
@@ -147,6 +172,7 @@ class SimulateRequest(BaseModel):
         per_sensor (bool): Выполнять расчёт отдельно для каждого сенсора (для MAP).
         sensor_index (int | None): Номер датчика (с нуля), по состояниям
             которого ведётся расчёт. None — агрегированный режим.
+        stability (StabilitySchema | None): Параметры оценки устойчивости.
     """
 
     system_type: SystemTypeName
@@ -163,6 +189,7 @@ class SimulateRequest(BaseModel):
     time_series_params: TimeSeriesParamsSchema | None = None
     per_sensor: bool = False
     sensor_index: int | None = Field(default=None, ge=0)
+    stability: StabilitySchema | None = None
 
 
 class SimulateResponse(BaseModel):
@@ -195,9 +222,12 @@ class MetaResponse(BaseModel):
         system_modes (dict[str, str]): Режимы функционирования и их описания.
         calculation_methods (dict[str, str]): Методы расчёта и их описания.
         calculation_engines (dict[str, str]): Движки вычислений и их описания.
+        stability_metrics (dict[str, str]): Характеристики оценки
+            устойчивости и их описания.
     """
 
     system_types: dict[str, str]
     system_modes: dict[str, str]
     calculation_methods: dict[str, str]
     calculation_engines: dict[str, str]
+    stability_metrics: dict[str, str]

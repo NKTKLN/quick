@@ -25,6 +25,9 @@ import streamlit as st
 from pages.components import (
     plot_metric,
     plot_probabilities,
+    render_stability_summary,
+    sensor_label,
+    stability_reference_lines,
 )
 
 from quick.domain import ComputationConfig, SystemMode
@@ -100,6 +103,8 @@ def render_transient_results(system: BaseServerSystem, params: SystemParams) -> 
     st.subheader("📈 Визуализация динамики состояний системы")
     results = system.calculate()
 
+    _render_stability(system, params)
+
     st.plotly_chart(
         plot_probabilities(
             system.probabilities,
@@ -114,10 +119,19 @@ def render_transient_results(system: BaseServerSystem, params: SystemParams) -> 
             if key in ["probability", "avg_buffer_length_by_sensor"]:
                 continue
 
+            # У коэффициента устойчивости единица — граница допустимого,
+            # поэтому она наносится на график как опорная линия.
+            reference_lines = (
+                stability_reference_lines(params.transient_params.time_array)
+                if key == "stability_coefficient"
+                else None
+            )
+
             st.plotly_chart(
                 plot_metric(
                     value,
                     params.transient_params.time_array,
+                    reference_lines=reference_lines,
                     **PLOT_SETTINGS[key],
                 ),
                 width="stretch",
@@ -142,6 +156,32 @@ def render_transient_results(system: BaseServerSystem, params: SystemParams) -> 
         st.info(
             "Попробуйте экспортировать данные в другом формате или обратитесь к разработчику."
         )
+
+
+def _render_stability(system: BaseServerSystem, params: SystemParams) -> None:
+    """Отображает итоговую оценку устойчивости системы.
+
+    Args:
+        system (BaseServerSystem): Объект системы.
+        params (SystemParams): Параметры системы.
+    """
+    st.markdown("### 🛡️ Оценка устойчивости")
+
+    try:
+        results = system.evaluate_stability_components()
+    except (ValueError, TypeError) as e:
+        st.warning(f"⚠️ Не удалось оценить устойчивость: {e}")
+        return
+
+    # При покомпонентном расчёте критический уровень предъявляется к
+    # каждому датчику отдельно, поэтому и оценка выводится по каждому.
+    if len(results) == 1:
+        render_stability_summary(results[0], params.stability_params)
+        return
+
+    for index, result in enumerate(results):
+        st.markdown(f"**{sensor_label(index)}**")
+        render_stability_summary(result, params.stability_params)
 
 
 def render_steady_table(system: MultiServerSteadyStateSystem) -> None:

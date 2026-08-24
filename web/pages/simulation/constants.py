@@ -142,6 +142,17 @@ PLOT_SETTINGS = {
             "#f9d0d0",
         ],
     },
+    "stability_coefficient": {
+        "title_text": "Коэффициент устойчивости K_уст(t)",
+        "yaxis_title": "Доля от критического уровня",
+        "line_colors": [
+            "#2ca02c",
+            "#7fbf3f",
+            "#bfbf3f",
+            "#e2933f",
+            "#d62728",
+        ],
+    },
     "phase_distribution": {
         "title_text": "Распределение MAP-фаз α(t) (вклад датчиков)",
         "yaxis_title": "Вероятность",

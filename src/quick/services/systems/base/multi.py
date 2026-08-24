@@ -12,6 +12,8 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
+from quick.domain.enums import StabilityMetric
+
 from .base import BaseServerSystem
 
 
@@ -124,6 +126,22 @@ class BaseMultiServerSystem(BaseServerSystem):
         logger.success("Вероятность ухода из очереди успешно вычислена")
         return p_reject
 
+    def calculate_stability_base_metric(self) -> NDArray[np.float64]:
+        r"""Возвращает характеристику ``a(t)`` для оценки устойчивости.
+
+        Для многолинейной системы роль вероятности обслуживания играет
+        относительная пропускная способность :math:`P_s(t)` — доля
+        входного потока, которая доходит до обслуживания. Второй вариант
+        — абсолютная пропускная способность :math:`A(t)`.
+
+        Returns:
+            NDArray[np.float64]: Значения ``a(t)``.
+        """
+        if self.stability_params.metric == StabilityMetric.THROUGHPUT:
+            return self.calculate_throughput()
+
+        return self.calculate_relative_throughput()
+
     def calculate(self) -> dict[str, NDArray[np.float64]]:
         """Универсальный метод вычислений.
 
@@ -137,6 +155,7 @@ class BaseMultiServerSystem(BaseServerSystem):
             "relative_throughput": self.calculate_relative_throughput,
             "avg_system_length": self.calculate_avg_system_length,
             "rejection_probability": self.calculate_rejection_probability,
+            "stability_coefficient": self.calculate_stability_coefficient,
         }
 
         logger.info("Запуск расчёта характеристик СМО")
