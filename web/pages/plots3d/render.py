@@ -41,6 +41,7 @@ AXIS_SENSOR = "Номер датчика"
 
 DEFAULT_METRIC = "loss_probability"
 EXCLUDED_METRICS = ("probability",)
+CONTOURS_KEY = "plots3d_show_contours"
 
 # Основные характеристики, для которых строятся графики по умолчанию:
 # они полностью описывают качество обслуживания и загрузку системы.
@@ -213,6 +214,15 @@ def _axis_options(params: SystemParams) -> list[str]:
     return options
 
 
+def _show_contours() -> bool:
+    """Возвращает, наносить ли линии уровня на поверхности.
+
+    Returns:
+        bool: Значение переключателя контуров.
+    """
+    return bool(st.session_state.get(CONTOURS_KEY, True))
+
+
 def _sweep_surface(state: dict, metric_key: str, parameter: Any) -> Any:
     """Строит поверхность «время × параметр × метрика» по готовой развёртке.
 
@@ -242,6 +252,7 @@ def _sweep_surface(state: dict, metric_key: str, parameter: Any) -> Any:
         title_text=f"{_metric_title(metric_key)}: развёртка по {parameter.axis_title}",
         yaxis_title=parameter.axis_title,
         zaxis_title=_metric_units(metric_key),
+        show_contours=_show_contours(),
     )
 
 
@@ -381,6 +392,7 @@ def _render_sensor_axis(state: dict, metric_key: str) -> Any:
         time_array=time_array,
         title_text=f"{_metric_title(metric_key)} по датчикам",
         zaxis_title=_metric_units(metric_key),
+        show_contours=_show_contours(),
     )
 
 
@@ -453,6 +465,16 @@ def _render_results(state: dict) -> None:
         default=default_metrics,
         format_func=_metric_title,
         key="plots3d_selected_metrics",
+    )
+
+    st.checkbox(
+        "Контурные линии на поверхности",
+        value=True,
+        key=CONTOURS_KEY,
+        help=(
+            "Линии уровня показывают области локальных максимумов, минимумов "
+            "и резких изменений характеристики."
+        ),
     )
 
     if not selected_metrics:
