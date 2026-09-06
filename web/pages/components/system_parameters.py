@@ -109,8 +109,13 @@ def map_intensity_parameters() -> tuple[NDArray[np.float64], float, float]:
         nu_rate = st.number_input(
             "Интенсивность ухода нетерпеливых заявок (ν)",
             min_value=0.0,
-            value=100.0,
+            max_value=float(mu_rate),
+            value=min(100.0, float(mu_rate)),
             format="%.10f",
+            help=(
+                "Для модели MAP/M/1/N используется ν ≤ μ; в статье условие "
+                "записано как ν < μ."
+            ),
         )
 
     lambda_rate_str = st.text_input(
@@ -195,8 +200,8 @@ def map_intensity_matrix(
     Returns:
         tuple[NDArray[np.float64], NDArray[np.float64]]: Две матрицы
             интенсивностей размера max_customers x max_customers:
-            - Матрица интенсивностей обслуживания (p_rate);
-            - Матрица интенсивностей поступления (q_rate).
+            - Матрица вероятностей p^(0) переходов без генерации заявки;
+            - Матрица вероятностей p^(1) переходов с генерацией заявки.
     """
     if st.button("🔄 Сгенерировать матрицы интенсивностей случайно"):
         try:
@@ -207,10 +212,14 @@ def map_intensity_matrix(
             st.error("❌ Ошибка при генерации матриц")
 
     p_rate = _generate_matrix(
-        max_customers, "Матрица интенсивностей обслуживания", "p_rate"
+        max_customers,
+        "Матрица вероятностей p⁽⁰⁾ (переход без генерации заявки)",
+        "p_rate",
     )
     q_rate = _generate_matrix(
-        max_customers, "Матрица интенсивностей поступления", "q_rate"
+        max_customers,
+        "Матрица вероятностей p⁽¹⁾ (переход с генерацией заявки)",
+        "q_rate",
     )
 
     return p_rate, q_rate
