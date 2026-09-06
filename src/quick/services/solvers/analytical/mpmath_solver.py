@@ -77,7 +77,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
         logger.info("Собственные значения и векторы успешно вычислены")
         return eigenvalues, xsi_matrix
 
-    @duckdb_cache("_precision", "params.time_array")
+    @duckdb_cache("_precision", "params.time_array", "cache_revision")
     def _generate_exp_matrix(self, eigenvalues: Any) -> NDArray[Any]:
         """Генерирует матрицу экспонент exp(λ_k * t).
 
@@ -93,7 +93,8 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
         """
         logger.debug("Начинаем генерацию матрицы экспонент...")
         with mp.workdps(self._precision):
-            time_array = mp.matrix(self.params.time_array)
+            elapsed = self.params.time_array - self.params.time_array[0]
+            time_array = mp.matrix(elapsed)
             outer = [[eig * t for t in time_array] for eig in eigenvalues]
             exp_g_t = np.array(
                 [[mp.exp(val) for val in row] for row in outer], dtype=mp.mpf
@@ -101,7 +102,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
         logger.info("Матрица экспонент успешно сгенерирована")
         return exp_g_t
 
-    @duckdb_cache("params.time_array")
+    @duckdb_cache("params.time_array", "cache_revision")
     def _generate_m_matrix_for_last_state(
         self,
         xsi_matrix: Any,
@@ -150,7 +151,7 @@ class AnalyticalMpmathProbabilitySolver(AnalyticalBasicProbabilitySolver):
             logger.debug("Вычисление матрицы M(t) завершено")
             return m_matrix
 
-    @duckdb_cache("params.time_array")
+    @duckdb_cache("params.time_array", "cache_revision")
     def _generate_full_m_matrix(
         self,
         xsi_matrix: Any,

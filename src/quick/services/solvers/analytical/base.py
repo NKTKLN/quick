@@ -27,6 +27,11 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
     характеристик переходного режима системы массового обслуживания.
     """
 
+    # Версия математической реализации включается в ключи DuckDB-кэша.
+    # Она защищает от возврата результатов, рассчитанных до перехода на
+    # формулы статьи (ориентация P(t)=L(t)P(t0) и время t-t0).
+    cache_revision = "map_pdf_formulas_2026_08_30_v1"
+
     def __init__(
         self,
         params: TransientSystemParams,
@@ -75,14 +80,19 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
         """
         raise NotImplementedError
 
-    @duckdb_cache("params.initial_probabilities")
+    @duckdb_cache("params.initial_probabilities", "cache_revision")
     def generate_p_matrix(
         self, m_matrix: NDArray[np.float64 | Any]
     ) -> NDArray[np.float64]:
         """Вычисляет финальную матрицу вероятностей P(t).
 
-        Выполняет умножение начальных вероятностей на матрицу M(t),
-        получая вероятности состояний системы в каждый момент времени.
+        Для принятой в проекте записи уравнений Колмогорова
+
+        ``dP/dt = Q @ P``
+
+        вектор вероятностей является столбцом, поэтому решение имеет вид
+        ``P(t) = M(t) @ P(t0)``, где ``M(t) = exp(Q t)``. Это соответствует
+        формуле (10) статьи ``P(t) = L(t) P(t0)``.
 
         Args:
             m_matrix (NDArray[np.float64 | Any]): Матрица M размером (n x n x t).
@@ -91,8 +101,12 @@ class AnalyticalBasicProbabilitySolver(BasicProbabilitySolver, ABC):
             NDArray[np.float64]: Матрица вероятностей P размером (n x t).
         """
         logger.debug("Вычисляем итоговую матрицу вероятностей P(t)...")
-        p_matrix = np.dot(self.params.initial_probabilities, m_matrix).astype(
-            np.float64
+        p_matrix = np.tensordot(
+            m_matrix,
+            self.params.initial_probabilities,
+            axes=([1], [0]),
+        ).astype(
+            np.float64,
         )
         logger.info("Вычисление матрицы P(t) завершено успешно")
         return cast(NDArray[np.float64], p_matrix)

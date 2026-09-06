@@ -42,40 +42,31 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         super().__init__(params, coefficients_matrix, config)
 
     @duckdb_cache("coefficients_matrix")
-    def _compute_eigenvalues(
-        self,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        """Вычисляет собственные значения и собственные векторы матрицы переходов.
+    def _compute_eigenvalues(self) -> tuple[NDArray[Any], NDArray[Any]]:
+        """Вычисляет собственные значения и собственные векторы матрицы Q.
+
+        Для MAP-генератора комплексно-сопряжённые собственные значения являются
+        штатным случаем. Формулы (8)--(11) статьи допускают такие спектральные
+        компоненты: мнимые части взаимно сокращаются в итоговой фундаментальной
+        матрице. Поэтому NumPy-решатель больше не отвергает комплексный спектр.
 
         Returns:
-            tuple[NDArray[np.float64], NDArray[np.float64]]:
-                Кортеж из массива собственных значений и матрицы собственных векторов.
-
-        Raises:
-            ValueError: Если собственные значения или собственные векторы имеют
-                существенную комплексную часть.
+            tuple[NDArray[Any], NDArray[Any]]: Собственные значения и матрица
+                собственных векторов в представлении SciPy (обычно complex128).
         """
         logger.debug("Начинаем вычисление собственных значений и векторов...")
         eigenvalues, xsi_matrix = scipy_eig(self.coefficients_matrix)
 
-        if not (
-            np.all(np.isclose(eigenvalues.imag, 0))
-            and np.all(np.isclose(xsi_matrix.imag, 0))
-        ):
-            logger.error(
-                "Обнаружены комплексные части в собственных значениях или векторах"
-            )
-            raise ValueError(
-                "Собственные значения или векторы имеют существенную комплексную часть"
+        if np.any(np.abs(eigenvalues.imag) > 1e-12):
+            logger.info(
+                "Матрица Q имеет комплексно-сопряжённые собственные значения; "
+                "они учитываются в спектральном решении согласно формулам статьи."
             )
 
         logger.info("Собственные значения и векторы успешно вычислены")
-        return (
-            np.asarray(eigenvalues.real, dtype=np.float64),
-            np.asarray(xsi_matrix.real, dtype=np.float64),
-        )
+        return np.asarray(eigenvalues), np.asarray(xsi_matrix)
 
-    @duckdb_cache("params.time_array")
+    @duckdb_cache("params.time_array", "cache_revision")
     def _generate_m_matrix_for_last_state(
         self,
         eigenvalues: NDArray[np.float64] | Any,
@@ -102,7 +93,8 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         time_steps = len(self.params.time_array)
 
         xsi_matrix_inv = np.linalg.inv(xsi_matrix)
-        exp_g_t = np.exp(np.outer(eigenvalues, self.params.time_array))
+        elapsed_time = self.params.time_array - self.params.time_array[0]
+        exp_g_t = np.exp(np.outer(eigenvalues, elapsed_time))
 
         m_matrix = np.zeros((matrix_size, matrix_size, time_steps), dtype=np.float64)
         for k in Progress.wrap(range(matrix_size), description="Вычисление слоёв M"):
@@ -113,7 +105,7 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         logger.info("Генерация матрицы M(t) завершена")
         return m_matrix
 
-    @duckdb_cache("params.time_array")
+    @duckdb_cache("params.time_array", "cache_revision")
     def _generate_full_m_matrix(
         self,
         eigenvalues: NDArray[np.float64] | Any,
@@ -140,7 +132,8 @@ class AnalyticalNumpyProbabilitySolver(AnalyticalBasicProbabilitySolver):
         time_steps = len(self.params.time_array)
 
         xsi_matrix_inv = np.linalg.inv(xsi_matrix)
-        exp_g_t = np.exp(np.outer(eigenvalues, self.params.time_array))
+        elapsed_time = self.params.time_array - self.params.time_array[0]
+        exp_g_t = np.exp(np.outer(eigenvalues, elapsed_time))
 
         m_matrix = np.zeros((matrix_size, matrix_size, time_steps), dtype=np.float64)
         for k in Progress.wrap(range(matrix_size), description="Вычисление слоёв M"):
