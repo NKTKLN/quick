@@ -15,17 +15,17 @@ import numpy as np
 import plotly.graph_objs as go  # type: ignore[import-untyped]
 from numpy.typing import NDArray
 
-PLOT_WIDTH = 1152
-PLOT_HEIGHT = 768
+PLOT_WIDTH = 1400
+PLOT_HEIGHT = 900
 TIME_AXIS_TITLE = "Время t"
 
 # Оформление осей сцены. Все три оси используют одни и те же размеры
 # подписей, одинаковые деления и одинаковую сетку, чтобы ни одна из них
 # не выглядела главной: график читается как зависимость от двух
 # равноправных параметров.
-AXIS_TITLE_SIZE = 14
-AXIS_TICK_SIZE = 11
-AXIS_TICK_COUNT = 6
+AXIS_TITLE_SIZE = 22
+AXIS_TICK_SIZE = 16
+AXIS_TICK_COUNT = 7
 GRID_COLOR = "#B8BFC7"
 GRID_WIDTH = 2
 AXIS_LINE_COLOR = "#5A6472"
@@ -33,14 +33,14 @@ AXIS_LINE_COLOR = "#5A6472"
 # Цветовая шкала намеренно узкая и короче области построения: на
 # трёхмерном графике она несёт вспомогательную роль, а полноразмерная
 # шкала отбирает у поверхности заметную долю ширины.
-COLORBAR_LENGTH = 0.55
-COLORBAR_THICKNESS = 12
-COLORBAR_TICK_SIZE = 9
-COLORBAR_TITLE_SIZE = 11
-COLORBAR_X = 0.94
-COLORBAR_Y = 0.5
-SCENE_RIGHT_EDGE = 0.92
-SCENE_BOTTOM_EDGE = 0.10
+COLORBAR_LENGTH = 0.62
+COLORBAR_THICKNESS = 20
+COLORBAR_TICK_SIZE = 14
+COLORBAR_TITLE_SIZE = 17
+COLORBAR_X = 0.91
+COLORBAR_Y = 0.50
+SCENE_RIGHT_EDGE = 0.86
+SCENE_BOTTOM_EDGE = 0.12
 
 # Контурные линии на поверхности показывают области локальных максимумов
 # и резких изменений характеристики. Цвет нейтральный и полупрозрачный,
@@ -137,16 +137,22 @@ def _apply_layout(
         go.Figure: Объект графика с применённым оформлением.
     """
     fig.update_layout(
-        title=dict(text=title_text, font=dict(size=20, color="black")),
+        title=dict(
+            text=title_text,
+            x=0.5,
+            xanchor="center",
+            font=dict(size=26, color="black"),
+        ),
         scene=dict(
             xaxis=_axis_settings(xaxis_title),
             yaxis=_axis_settings(yaxis_title, **(yaxis_extra or {})),
             zaxis=_axis_settings(zaxis_title),
             camera=dict(eye=dict(x=1.5, y=-1.5, z=0.8)),
-            # Куб уравнивает три оси и на графике: ни одна из них не
-            # выглядит растянутой относительно остальных, независимо от
-            # того, в каких единицах измерена характеристика.
-            aspectmode="cube",
+            # Для диссертационного экспорта сцена делается шире куба.
+            # Это позволяет поверхности занимать большую часть кадра, а
+            # подписям осей — оставаться крупными и читаемыми.
+            aspectmode="manual",
+            aspectratio=dict(x=1.55, y=1.15, z=1.0),
             # Сцена заканчивается левее цветовой шкалы, поэтому шкала
             # не накладывается на поверхность ни при каком повороте.
             # Нижний край приподнят: контейнер Streamlit ужимает график по
@@ -157,8 +163,8 @@ def _apply_layout(
         height=PLOT_HEIGHT,
         template="plotly_white",
         paper_bgcolor="white",
-        font=dict(family="Arial", size=14, color="black"),
-        margin=dict(l=10, r=10, t=60, b=40),
+        font=dict(family="Arial", size=16, color="black"),
+        margin=dict(l=70, r=110, t=90, b=70),
     )
     return fig
 

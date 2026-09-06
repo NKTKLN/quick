@@ -43,6 +43,20 @@ DEFAULT_METRIC = "loss_probability"
 EXCLUDED_METRICS = ("probability",)
 CONTOURS_KEY = "plots3d_show_contours"
 
+# Параметры экспорта 3D-графиков для вставки в диссертацию.
+# Кнопка с фотоаппаратом в панели Plotly сохраняет изображение 5400x3600 px
+# (1800x1200 при scale=3), поэтому подписи осей и деления не теряют
+# читаемость после уменьшения рисунка в LaTeX/Word.
+PLOTLY_EXPORT_CONFIG = {
+    "displaylogo": False,
+    "toImageButtonOptions": {
+        "format": "png",
+        "width": 1800,
+        "height": 1200,
+        "scale": 3,
+    },
+}
+
 # Основные характеристики, для которых строятся графики по умолчанию:
 # они полностью описывают качество обслуживания и загрузку системы.
 MAIN_METRICS = (
@@ -96,7 +110,7 @@ PAGE_GUIDE = """
 | --- | --- |
 | λ(t) | Текущая интенсивность входного потока. Меняется во времени, потому что меняется распределение фаз MAP-процесса |
 | v_serv(t) | Фактический поток обслуженных заявок: μ, взвешенная на вероятность занятости прибора |
-| v_loss(t) | Фактический поток ушедших нетерпеливых заявок: ν, взвешенная на заполнение буфера |
+| v_loss(t) | Интенсивность ухода по формуле (14): v_loss(t)=νN_b(t), где N_b(t) содержит множитель k |
 | α(t) | Распределение фаз MAP: вклад каждого датчика во входной поток в данный момент |
 """
 
@@ -437,7 +451,18 @@ def _render_metric_block(state: dict, metric_key: str) -> None:
             return
 
         if figure is not None:
-            st.plotly_chart(figure, width="stretch")
+            export_config = {
+                **PLOTLY_EXPORT_CONFIG,
+                "toImageButtonOptions": {
+                    **PLOTLY_EXPORT_CONFIG["toImageButtonOptions"],
+                    "filename": f"{metric_key}_3d_dissertation",
+                },
+            }
+            st.plotly_chart(
+                figure,
+                width="stretch",
+                config=export_config,
+            )
 
 
 def _render_results(state: dict) -> None:
