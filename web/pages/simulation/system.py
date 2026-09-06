@@ -25,12 +25,13 @@ import streamlit as st
 from pages.components import (
     plot_metric,
     plot_probabilities,
+    plot_stability_margin,
     render_stability_summary,
     sensor_label,
     stability_reference_lines,
 )
 
-from quick.domain import ComputationConfig, SystemMode
+from quick.domain import ComputationConfig, StabilityMetric, SystemMode
 from quick.domain.params import SystemParams
 from quick.services.systems import system_factory
 from quick.services.systems.base import BaseServerSystem
@@ -169,19 +170,58 @@ def _render_stability(system: BaseServerSystem, params: SystemParams) -> None:
 
     try:
         results = system.evaluate_stability_components()
+        base_metric = np.asarray(
+            system.calculate_stability_base_metric(),
+            dtype=np.float64,
+        )
     except (ValueError, TypeError) as e:
         st.warning(f"⚠️ Не удалось оценить устойчивость: {e}")
         return
+
+    if base_metric.ndim == 1:
+        base_metric = base_metric[:, np.newaxis]
+
+    if params.stability_params.metric == StabilityMetric.THROUGHPUT:
+        yaxis_title = "A(t), заявки/ед. времени"
+        base_label = "A(t)"
+    else:
+        yaxis_title = "a(t) = 1 - P_loss(t)"
+        base_label = "a(t)"
+
+    colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#9467bd", "#d62728"]
+
+    def render_margin_plot(index: int, label: str) -> None:
+        """Отображает график запаса и подпись площади под ним."""
+        result = results[index]
+        st.plotly_chart(
+            plot_stability_margin(
+                values=base_metric[:, index],
+                time_array=params.transient_params.time_array,
+                result=result,
+                yaxis_title=yaxis_title,
+                series_label=label,
+                line_color=colors[index % len(colors)],
+            ),
+            width="stretch",
+        )
+        st.caption(
+            "Площадь закрашенного участка над критическим уровнем: "
+            f"S₊ = {result.area_above_critical:.6g}. "
+            "Расчёт: S₊ = ∫ max(a(t) − a_кр, 0) dt на переходном интервале."
+        )
 
     # При покомпонентном расчёте критический уровень предъявляется к
     # каждому датчику отдельно, поэтому и оценка выводится по каждому.
     if len(results) == 1:
         render_stability_summary(results[0], params.stability_params)
+        render_margin_plot(0, base_label)
         return
 
     for index, result in enumerate(results):
-        st.markdown(f"**{sensor_label(index)}**")
+        label = sensor_label(index)
+        st.markdown(f"**{label}**")
         render_stability_summary(result, params.stability_params)
+        render_margin_plot(index, f"{base_label} — {label}")
 
 
 def render_steady_table(system: MultiServerSteadyStateSystem) -> None:

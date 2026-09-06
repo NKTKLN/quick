@@ -10,6 +10,7 @@ from .plot import plot_metric, plot_probabilities
 from .plot3d import plot_phase_portrait, plot_sensor_surface, plot_surface
 from .sensor_mode import render_sensor_mode, sensor_label
 from .stability import (
+    plot_stability_margin,
     render_stability_params,
     render_stability_summary,
     stability_reference_lines,
@@ -34,6 +35,7 @@ __all__ = [
     "plot_phase_portrait",
     "render_sensor_mode",
     "sensor_label",
+    "plot_stability_margin",
     "render_stability_params",
     "render_stability_summary",
     "stability_reference_lines",

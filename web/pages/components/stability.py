@@ -9,6 +9,7 @@
 from typing import Any
 
 import numpy as np
+import plotly.graph_objs as go  # type: ignore[import-untyped]
 import streamlit as st
 from numpy.typing import NDArray
 
@@ -42,6 +43,167 @@ STABILITY_GUIDE = """
 тогда `R` выходит за 100%: сравнивать варианты системы между собой в этом
 случае нужно по `K_уст`.
 """
+
+
+def _rgba(hex_color: str, alpha: float) -> str:
+    """Преобразует HEX-цвет в строку ``rgba(...)`` для Plotly."""
+    value = hex_color.lstrip("#")
+    if len(value) != 6:
+        return f"rgba(31, 119, 180, {alpha})"
+
+    red, green, blue = (int(value[index : index + 2], 16) for index in (0, 2, 4))
+    return f"rgba({red}, {green}, {blue}, {alpha})"
+
+
+def plot_stability_margin(
+    values: NDArray[np.float64],
+    time_array: NDArray[np.float64],
+    result: StabilityResult,
+    yaxis_title: str,
+    series_label: str = "a(t)",
+    line_color: str = "#1f77b4",
+) -> go.Figure:
+    r"""Строит 2D-график показателя запаса устойчивости с заливкой.
+
+    Визуализация повторяет принцип рисунков из Приложения А: отображается
+    базовая характеристика ``a(t)``, критическая горизонталь ``a_кр`` и
+    полупрозрачная площадь положительного избытка над критическим уровнем.
+    В легенде показываются ``R`` и ненормированная площадь ``S_+``.
+
+    Args:
+        values (NDArray[np.float64]): Значения базовой характеристики.
+        time_array (NDArray[np.float64]): Временная ось.
+        result (StabilityResult): Интегральная оценка устойчивости.
+        yaxis_title (str): Подпись оси Y.
+        series_label (str): Подпись линии характеристики.
+        line_color (str): Цвет линии и заливки.
+
+    Returns:
+        go.Figure: Готовый график Plotly.
+    """
+    values = np.asarray(values, dtype=np.float64).reshape(-1)
+    time_array = np.asarray(time_array, dtype=np.float64).reshape(-1)
+
+    if values.shape != time_array.shape:
+        raise ValueError(
+            "Для графика устойчивости длины values и time_array должны совпадать."
+        )
+
+    finite = np.isfinite(values) & np.isfinite(time_array)
+    if np.count_nonzero(finite) < 2:
+        raise ValueError(
+            "Для графика устойчивости требуется минимум две конечные точки."
+        )
+
+    values = values[finite]
+    time_array = time_array[finite]
+
+    if result.settling_time > 0:
+        upper_bound = time_array[0] + result.settling_time
+        transient_mask = time_array <= upper_bound
+        if np.count_nonzero(transient_mask) < 2:
+            transient_mask = np.ones_like(time_array, dtype=bool)
+    else:
+        transient_mask = np.ones_like(time_array, dtype=bool)
+
+    critical = float(result.critical_level)
+    shaded_x = np.where(transient_mask, time_array, np.nan)
+    shaded_bottom = np.where(transient_mask, critical, np.nan)
+    shaded_top = np.where(
+        transient_mask,
+        critical + np.maximum(values - critical, 0.0),
+        np.nan,
+    )
+
+    fig = go.Figure()
+
+    # Невидимая нижняя граница нужна Plotly для заливки ``tonexty``.
+    fig.add_trace(
+        go.Scatter(
+            x=shaded_x,
+            y=shaded_bottom,
+            mode="lines",
+            line=dict(width=0),
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=shaded_x,
+            y=shaded_top,
+            mode="lines",
+            line=dict(width=0),
+            fill="tonexty",
+            fillcolor=_rgba(line_color, 0.22),
+            name=(
+                f"Площадь: R = {result.margin:.2f} %, "
+                f"S₊ = {result.area_above_critical:.6g}"
+            ),
+            hovertemplate=(
+                "t=%{x}<br>a(t)=%{y:.6g}<br>"
+                f"S₊={result.area_above_critical:.6g}<extra></extra>"
+            ),
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=time_array,
+            y=values,
+            mode="lines",
+            name=series_label,
+            line=dict(width=2.4, color=line_color),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[float(time_array[0]), float(time_array[-1])],
+            y=[critical, critical],
+            mode="lines",
+            name=f"a_кр = {critical:.6g}",
+            line=dict(width=2, dash="dash", color="#e69f00"),
+        )
+    )
+
+    fig.update_layout(
+        title=dict(
+            text="Показатель запаса устойчивости R",
+            font=dict(size=20, color="black"),
+        ),
+        xaxis=dict(
+            title="Время t",
+            title_font=dict(color="black", size=16),
+            tickfont=dict(color="black"),
+            automargin=True,
+            range=[float(time_array[0]), float(time_array[-1])],
+            constrain="domain",
+        ),
+        yaxis=dict(
+            title=yaxis_title,
+            title_font=dict(color="black", size=16),
+            tickfont=dict(color="black"),
+            automargin=True,
+            constrain="domain",
+        ),
+        width=1152,
+        height=680,
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        template="plotly_white",
+        font=dict(family="Arial", size=14, color="black"),
+        legend=dict(
+            bordercolor="LightGray",
+            borderwidth=1,
+            font=dict(color="black"),
+        ),
+        margin=dict(l=60, r=40, t=80, b=60),
+    )
+
+    fig.update_xaxes(showgrid=True, gridcolor="LightGray", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="LightGray", zeroline=False)
+
+    return fig
 
 
 def render_stability_params(key_prefix: str = "stability") -> StabilityParams:

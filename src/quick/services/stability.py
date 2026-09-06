@@ -92,6 +92,8 @@ class StabilityResult:
             ``t_пер``.
         minimum (float): Минимальное значение ``a(t)`` на интервале.
         critical_level (float): Критический уровень ``a_кр``.
+        area_above_critical (float): Площадь закрашиваемого участка
+            ``integral max(a(t) - a_кр, 0) dt`` на переходном интервале.
         verdict (StabilityVerdict): Качественная оценка устойчивости.
         skipped_points (int): Число временных точек, в которых
             характеристика не определена и которые исключены из оценки.
@@ -102,6 +104,7 @@ class StabilityResult:
     settling_time: float
     minimum: float
     critical_level: float
+    area_above_critical: float
     verdict: StabilityVerdict
     skipped_points: int = 0
 
@@ -331,6 +334,11 @@ def evaluate_stability(
     margin = _calculate_margin(
         transient_values, transient_time, critical_level, duration
     )
+    area_above_critical = _calculate_area_above_critical(
+        transient_values,
+        transient_time,
+        critical_level,
+    )
     verdict = classify_stability(
         coefficient=coefficient,
         minimum=minimum,
@@ -339,7 +347,8 @@ def evaluate_stability(
 
     logger.success(
         f"Устойчивость оценена: K_уст={coefficient:.4f}, R={margin:.2f}%, "
-        f"t_пер={settling_time:.6g}, вердикт — {verdict.value.lower()}"
+        f"S_+={area_above_critical:.6g}, t_пер={settling_time:.6g}, "
+        f"вердикт — {verdict.value.lower()}"
     )
 
     return StabilityResult(
@@ -348,9 +357,42 @@ def evaluate_stability(
         settling_time=settling_time,
         minimum=minimum,
         critical_level=critical_level,
+        area_above_critical=area_above_critical,
         verdict=verdict,
         skipped_points=skipped_points,
     )
+
+
+def _calculate_area_above_critical(
+    values: NDArray[np.float64],
+    time_array: NDArray[np.float64],
+    critical_level: float,
+) -> float:
+    r"""Вычисляет площадь участка выше критического уровня.
+
+    Эта величина соответствует закрашенной области на графике показателя
+    запаса устойчивости из Приложения А:
+
+    .. math::
+
+        S_+=\int_{t_0}^{t_{пер}}\max(a(t)-a_{кр},0)\,dt.
+
+    В отличие от ``R`` это ненормированная площадь. Она остаётся
+    положительной даже если кривая позже пересекает критический уровень,
+    что позволяет буквально показывать площадь закрашенного участка, не
+    меняя принятого в QUICK правила ``R = 0`` при нарушении порога.
+
+    Args:
+        values (NDArray[np.float64]): Значения характеристики на переходном
+            интервале.
+        time_array (NDArray[np.float64]): Временные точки интервала.
+        critical_level (float): Критический уровень ``a_кр``.
+
+    Returns:
+        float: Площадь положительного избытка над критическим уровнем.
+    """
+    excess = np.maximum(values - critical_level, 0.0)
+    return _integrate(excess, time_array)
 
 
 def _calculate_margin(
