@@ -33,7 +33,7 @@ PLOT_SETTINGS = {
         ],
     },
     "avg_system_length": {
-        "title_text": "Среднее число заявок в системе",
+        "title_text": "Среднее число заявок в буфере N_b(t)",
         "yaxis_title": "Заявки",
         "line_colors": [
             "#9467bd",
@@ -77,7 +77,7 @@ PLOT_SETTINGS = {
         ],
     },
     "loss_probability": {
-        "title_text": "Вероятность потери пакетов в момент времени",
+        "title_text": "Вероятность потерь P_loss(t)",
         "yaxis_title": "Вероятность",
         "line_colors": [
             "#17becf",
@@ -99,7 +99,7 @@ PLOT_SETTINGS = {
         ],
     },
     "quit_probability": {
-        "title_text": "Вероятность ухода заявки из системы",
+        "title_text": "Вероятность ухода нетерпеливых заявок P_uns(t)",
         "yaxis_title": "Вероятность",
         "line_colors": [
             "#7f7f7f",
@@ -132,7 +132,7 @@ PLOT_SETTINGS = {
         ],
     },
     "loss_flow_intensity": {
-        "title_text": "Интенсивность потока ухода v_loss(t)",
+        "title_text": "Интенсивность потока ухода v_loss(t) = νN_b(t)",
         "yaxis_title": "Заявки/ед. времени",
         "line_colors": [
             "#d62728",
