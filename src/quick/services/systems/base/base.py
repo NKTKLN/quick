@@ -203,6 +203,40 @@ class BaseServerSystem(ABC):
             self._lambda_rate = self.system_behavior.lambda_rate
         return self._lambda_rate
 
+    def log_average_lambda(self) -> float:
+        """Вычисляет и выводит в лог среднюю интенсивность входного потока.
+
+        Для MAP-систем свойство ``lambda_rate`` уже содержит стационарную
+        среднюю интенсивность ``lambda_bar = theta D1 e``. Для
+        многолинейной СМО входная интенсивность скалярна, поэтому её среднее
+        совпадает с заданным значением. Метод унифицирует диагностический
+        вывод для обоих типов систем.
+
+        Returns:
+            float: Средняя интенсивность входного потока ``lambda_bar``.
+        """
+        lambda_value = np.asarray(self.lambda_rate, dtype=np.float64)
+        average_lambda = float(np.mean(lambda_value))
+
+        source_lambda = np.asarray(self.params.base_params.lambda_rate)
+        if source_lambda.ndim > 0 and source_lambda.size > 1:
+            logger.info(
+                "Средняя интенсивность MAP-потока "
+                f"lambda_bar = {average_lambda:.12g} заявок/ед. времени "
+                "(lambda_bar = theta * D1 * e; это не арифметическое "
+                "среднее lambda_i)"
+            )
+            logger.info(
+                "Фазовые интенсивности входного потока lambda_i = "
+                f"{np.array2string(source_lambda.astype(float), precision=12)}"
+            )
+        else:
+            logger.info(
+                "Средняя интенсивность входного потока "
+                f"lambda_bar = {average_lambda:.12g} заявок/ед. времени"
+            )
+        return average_lambda
+
     @property
     def probabilities(self) -> NDArray[np.float64]:
         """Ленивая загрузка: возвращает вероятности состояний или инициирует их расчёт.

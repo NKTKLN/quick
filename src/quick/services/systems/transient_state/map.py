@@ -4,6 +4,7 @@
 вероятностей состояний СМО во времени для систем с MAP-входным потоком.
 """
 
+import numpy as np
 from loguru import logger
 
 from quick.services.matrix_builders import matrix_builder_factory
@@ -39,6 +40,13 @@ class TransientMAPServerStateSystem(BaseMAPServerSystem):
             raise TypeError("config должен быть не None")
 
         logger.info("Начат расчёт вероятностей состояний СМО")
+        try:
+            self.log_average_lambda()
+        except (TypeError, ValueError, np.linalg.LinAlgError) as exc:
+            logger.warning(
+                "Не удалось вычислить lambda_bar для диагностического вывода; "
+                f"основной расчёт будет продолжен: {exc}"
+            )
         transition_matrix = matrix_builder_factory(self.params).build()
         prob_solver = solvers_factory(
             params=self.params,

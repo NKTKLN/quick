@@ -30,6 +30,13 @@ class TransientMultiServerStateSystem(BaseMultiServerSystem):
             raise TypeError("config должен быть не None")
 
         logger.info("Начат расчёт вероятностей состояний СМО")
+        try:
+            self.log_average_lambda()
+        except (TypeError, ValueError) as exc:
+            logger.warning(
+                "Не удалось вычислить lambda_bar для диагностического вывода; "
+                f"основной расчёт будет продолжен: {exc}"
+            )
         transition_matrix = matrix_builder_factory(self.params).build()
         prob_solver = solvers_factory(
             params=self.params,
