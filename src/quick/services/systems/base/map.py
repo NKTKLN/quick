@@ -12,6 +12,7 @@ from typing import cast
 import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
+from scipy.integrate import cumulative_trapezoid
 
 from quick.domain.enums import StabilityMetric
 from quick.domain.params import MAPSystemParams
@@ -109,6 +110,78 @@ class BaseMAPServerSystem(BaseServerSystem):
 
         return probabilities_by_level[:, self._selected_phase_indices(), :]
 
+    def _calculate_initial_expected_customers(self) -> float:
+        r"""Вычисляет :math:`\mathbb{E}N(t_0)` по начальному распределению.
+
+        Для модели из статьи уровень ``k`` двумерной цепи Маркова означает,
+        что в системе находится ``k`` заявок: одна может обслуживаться, а
+        остальные находятся в буфере. Поэтому
+
+        .. math::
+
+            \mathbb{E}N(t_0)=
+            \sum_{k=1}^{N+1} k\sum_{i=0}^{M-1}P(k,i,t_0).
+
+        В стационарном режиме начальное распределение не используется, и
+        метод возвращает ``0``.
+
+        Returns:
+            float: Ожидаемое число заявок в системе в начальный момент.
+        """
+        transient_params = self.params.transient_params
+        if transient_params is None:
+            return 0.0
+
+        if not isinstance(self.params.base_params, MAPSystemParams):
+            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
+
+        phase_count = self.params.base_params.sensor_count
+        initial = np.asarray(
+            transient_params.initial_probabilities,
+            dtype=np.float64,
+        ).reshape(-1, phase_count)
+        initial = initial[:, self._selected_phase_indices()]
+        level_weights = np.arange(initial.shape[0], dtype=np.float64)[:, np.newaxis]
+        return float(np.sum(level_weights * initial))
+
+    def _cumulative_integral(
+        self,
+        values: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
+        """Численно вычисляет интеграл от начального момента до каждой точки.
+
+        Интегрирование выполняется методом трапеций по временному массиву,
+        заданному для переходного режима. Первая точка интеграла равна нулю.
+
+        Args:
+            values (NDArray[np.float64]): Значения интегрируемой функции.
+                Первая ось должна соответствовать времени.
+
+        Returns:
+            NDArray[np.float64]: Накопленный интеграл той же формы.
+
+        Raises:
+            ValueError: Если переходные параметры отсутствуют или размерность
+                временной оси не совпадает с первой осью ``values``.
+        """
+        transient_params = self.params.transient_params
+        if transient_params is None:
+            raise ValueError("Интеграл по времени определён только в переходном режиме")
+
+        time_array = np.asarray(transient_params.time_array, dtype=np.float64)
+        values = np.asarray(values, dtype=np.float64)
+
+        if values.shape[0] != time_array.shape[0]:
+            raise ValueError(
+                "Первая ось интегрируемого массива должна совпадать с временной: "
+                f"{values.shape[0]} != {time_array.shape[0]}."
+            )
+
+        return np.asarray(
+            cumulative_trapezoid(values, time_array, axis=0, initial=0),
+            dtype=np.float64,
+        )
+
     def calculate_input_intensity(self) -> NDArray[np.float64]:
         r"""Вычисляет нестационарную интенсивность входного потока ``lambda(t)``.
 
@@ -152,7 +225,8 @@ class BaseMAPServerSystem(BaseServerSystem):
         if np.any(input_intensity <= 0.0):
             logger.warning(
                 "Для некоторых временных точек lambda(t) <= 0; "
-                "P_uns(t) в этих точках не определена."
+                "накопленный знаменатель P_uns(t) может быть нулевым "
+                "в начальной точке."
             )
 
         logger.success("Нестационарная интенсивность lambda(t) успешно вычислена")
@@ -212,10 +286,12 @@ class BaseMAPServerSystem(BaseServerSystem):
 
         .. math::
 
-            v_{loss}(t)=\upsilon N_b^{(uns)}(t).
+            v_{loss}(t)=\upsilon N_b(t)
+            =\upsilon\sum_{k=1}^{N}k\sum_{i=0}^{M-1}P(k+1,i,t).
 
-        Это числитель выражения для ``P_uns(t)``: фактический поток ухода
-        нетерпеливых заявок, в отличие от постоянного параметра ``nu``.
+        Это формула (14) статьи. В актуальной редакции множитель ``k``
+        обязателен: каждая из ``k`` заявок, находящихся в буфере, может уйти
+        с интенсивностью ``nu``.
 
         Returns:
             NDArray[np.float64]: Значения ``v_loss(t)``. При покомпонентном
@@ -230,9 +306,7 @@ class BaseMAPServerSystem(BaseServerSystem):
             raise TypeError("Для расчёта v_loss(t) требуется поведение MAP-системы")
 
         buffer_occupancy = np.asarray(
-            self.system_behavior.calculate_unweighted_buffer_occupancy(
-                self.probabilities
-            ),
+            self.system_behavior.calculate_avg_system_length(self.probabilities),
             dtype=np.float64,
         )
         loss_flow_intensity = self.params.base_params.nu_rate * buffer_occupancy
@@ -275,19 +349,30 @@ class BaseMAPServerSystem(BaseServerSystem):
     def calculate_quit_probability(self) -> NDArray[np.float64]:
         r"""Вычисляет вероятность ухода нетерпеливых заявок ``P_uns(t)``.
 
-        Для этой характеристики используется невзвешенная сумма вероятностей
-        состояний с непустым буфером:
+        В переходном режиме реализована формула (16) статьи:
 
         .. math::
 
-            N_b^{(uns)}(t)=\sum_{k=1}^{N}\sum_{i=0}^{M-1}P(k+1,i,t).
+            P_{uns}(t)=
+            \frac{\int_{t_0}^{t}v_{loss}(u)\,du}
+            {\mathbb{E}N(t_0)+\int_{t_0}^{t}\lambda(u)\,du},
 
-        В отличие от отображаемого среднего числа заявок в буфере, здесь
-        отсутствует множитель ``k``. Вероятность ухода определяется как
+        где
 
         .. math::
 
-            P_{uns}(t)=\frac{\upsilon N_b^{(uns)}(t)}{\lambda(t)}.
+            v_{loss}(t)=\upsilon
+            \sum_{k=1}^{N}k\sum_{i=0}^{M-1}P(k+1,i,t),
+
+        а ``lambda(t)`` вычисляется по формуле (15). Если временная сетка
+        начинается не с нуля, её первая точка трактуется как ``t_0``.
+
+        В стационарном режиме используется предельное значение отношения
+        интегралов:
+
+        .. math::
+
+            P_{uns}=\frac{v_{loss}}{\lambda}.
 
         Returns:
             NDArray[np.float64]: Вероятность ухода заявки из системы.
@@ -297,32 +382,48 @@ class BaseMAPServerSystem(BaseServerSystem):
         """
         logger.info("Вычисление вероятности ухода P_uns(t)")
 
-        # Для P_uns(t) используется сумма вероятностей уровней с непустым
-        # буфером без весового множителя k. Отображаемое N_b(t) при этом
-        # остаётся средним числом заявок и рассчитывается с множителем k.
         loss_flow_intensity = self.calculate_loss_flow_intensity()
         input_intensity = self.calculate_input_intensity()
 
-        # При расчёте по каждому датчику невзвешенное N_b имеет форму
-        # [time, sensor]. Общая lambda(t) используется как знаменатель для
-        # каждого столбца.
-        denominator: NDArray[np.float64]
-        if loss_flow_intensity.ndim == 2:
-            denominator = input_intensity[:, np.newaxis]
+        if self.params.transient_params is not None:
+            numerator = self._cumulative_integral(loss_flow_intensity)
+            denominator_base = (
+                self._calculate_initial_expected_customers()
+                + self._cumulative_integral(input_intensity)
+            )
         else:
-            denominator = input_intensity
+            # Для стационарного распределения отношение накопленных потоков
+            # стремится к отношению их постоянных интенсивностей.
+            numerator = loss_flow_intensity
+            denominator_base = input_intensity
+
+        # В режиме «все датчики по отдельности» числитель раскладывается по
+        # датчикам, а знаменатель остаётся общим. Поэтому сумма компонент
+        # P_uns,i(t) совпадает с агрегированной вероятностью ухода.
+        denominator: NDArray[np.float64]
+        if numerator.ndim == 2:
+            denominator = denominator_base[:, np.newaxis]
+        else:
+            denominator = denominator_base
 
         quit_probability = np.full_like(
-            loss_flow_intensity,
+            numerator,
             np.nan,
             dtype=np.float64,
         )
         np.divide(
-            loss_flow_intensity,
+            numerator,
             denominator,
             out=quit_probability,
             where=~np.isclose(denominator, 0.0),
         )
+
+        # При пустой системе в t=t0 формула даёт 0/0. Физически к этому
+        # моменту ещё ни одна заявка не ушла, поэтому принимается правый
+        # предел P_uns(t0)=0. Если знаменатель нулевой, а числитель нет,
+        # значение остаётся NaN как признак некорректной декомпозиции.
+        zero_over_zero = np.isclose(denominator, 0.0) & np.isclose(numerator, 0.0)
+        quit_probability[zero_over_zero] = 0.0
 
         logger.success("Вероятность ухода успешно вычислена")
         return quit_probability
@@ -389,8 +490,8 @@ class BaseMAPServerSystem(BaseServerSystem):
         input_intensity = self.calculate_input_intensity()
 
         # При покомпонентном расчёте вероятность обслуживания имеет форму
-        # [time, sensor]. Одна и та же суммарная lambda(t) применяется к
-        # каждому столбцу, поэтому добавляется ось датчиков.
+        # [time, sensor]. Суммарная lambda(t) применяется к каждому вкладу;
+        # такая декомпозиция используется только для визуального анализа.
         intensity_multiplier: NDArray[np.float64]
         if service_probability.ndim == 2:
             intensity_multiplier = input_intensity[:, np.newaxis]

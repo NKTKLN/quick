@@ -134,48 +134,28 @@ class MultiSensorMAPSystemBehavior(BaseSystemBehavior):
     def calculate_unweighted_buffer_occupancy(
         self, probabilities: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        r"""Вычисляет сумму вероятностей непустого буфера без веса ``k``.
+        r"""Возвращает заполнение буфера для обратной совместимости API.
 
-        Эта величина используется только при расчёте ``P_uns(t)``:
+        Исторически этот метод действительно возвращал невзвешенную сумму
+        вероятностей уровней. В актуальной математической модели формула (14)
+        требует множитель ``k``. Поэтому теперь метод делегирует вычисление
+        корректному :meth:`calculate_avg_system_length` и возвращает
 
         .. math::
 
-            N_b^{(uns)}(t)=\sum_{k=1}^{N}\sum_{i=0}^{M-1}P(k+1,i,t).
+            N_b(t)=\sum_{k=1}^{N}k\sum_{i=0}^{M-1}P(k+1,i,t).
 
-        В отличие от отображаемого среднего числа заявок в буфере
-        ``N_b(t)``, вероятности уровней здесь не умножаются на ``k``.
+        Новому коду следует использовать ``calculate_avg_system_length``
+        напрямую; имя сохранено, чтобы не ломать внешние вызовы.
 
         Returns:
-            NDArray[np.float64]: Невзвешенная сумма вероятностей уровней
-                с непустым буфером.
-
-        Raises:
-            TypeError: Если параметры системы не являются MAPSystemParams.
+            NDArray[np.float64]: Среднее число заявок в буфере.
         """
-        logger.info("Вычисление невзвешенного N_b(t) для P_uns(t) без множителя k")
-
-        if not isinstance(self.params.base_params, MAPSystemParams):
-            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
-
-        level_count = self.params.base_params.max_customers
-        phase_count = self.params.base_params.sensor_count
-        time_count = probabilities.shape[-1]
-
-        buffer_probabilities = self.select_phases(
-            probabilities[phase_count * 2 :].reshape(
-                level_count - 2,
-                phase_count,
-                time_count,
-            )
+        logger.warning(
+            "calculate_unweighted_buffer_occupancy устарел: "
+            "используется взвешенное N_b(t) согласно формуле (14)."
         )
-        unweighted_occupancy = cast(
-            NDArray[np.float64],
-            np.sum(buffer_probabilities, axis=(0, 1)),
-        )
-
-        logger.success("Невзвешенное N_b(t) для P_uns(t) успешно вычислено")
-        return unweighted_occupancy
+        return self.calculate_avg_system_length(probabilities)
 
     def calculate_avg_system_length(
         self, probabilities: NDArray[np.float64]

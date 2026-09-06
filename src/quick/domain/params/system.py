@@ -43,6 +43,13 @@ class TransientSystemParams:
         """
         if self.time_array is None or self.time_array.shape[0] == 0:
             raise ValueError("Временной массив не задан.")
+        if self.time_array.ndim != 1:
+            raise ValueError("Временной массив должен быть одномерным.")
+        if self.time_array.shape[0] > 1 and np.any(np.diff(self.time_array) <= 0):
+            raise ValueError(
+                "Временные точки должны быть строго возрастающими для "
+                "корректного интегрирования характеристик переходного режима."
+            )
         if np.any(self.state_variables < 0):
             raise ValueError("Переменные состояния не могут быть отрицательными.")
         if self.state_variables.shape != self.initial_probabilities.shape:

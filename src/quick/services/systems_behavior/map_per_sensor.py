@@ -13,7 +13,7 @@ import numpy as np
 from loguru import logger
 from numpy.typing import NDArray
 
-from quick.domain.models.system_params import MAPSystemParams
+from quick.domain.params import MAPSystemParams
 from quick.services.systems_behavior.map import MultiSensorMAPSystemBehavior
 
 
@@ -35,15 +35,16 @@ class MultiSensorMAPSensorBehavior(MultiSensorMAPSystemBehavior):
     def calculate_unweighted_buffer_occupancy(
         self, probabilities: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        r"""Вычисляет невзвешенное заполнение буфера по каждому датчику.
+        r"""Совместимый метод заполнения буфера по каждому датчику.
 
-        Для расчёта ``P_uns(t)`` используется выражение
+        В актуальной модели уход определяется формулой (14), поэтому вклад
+        каждого датчика вычисляется со множителем ``k``:
 
         .. math::
 
-            N_{b,i}^{(uns)}(t)=\sum_{k=1}^{N}P(k+1,i,t),
+            N_{b,i}(t)=\sum_{k=1}^{N}kP(k+1,i,t).
 
-        то есть без домножения вероятностей уровней на ``k``.
+        Имя метода сохранено только для обратной совместимости.
 
         Returns:
             NDArray[np.float64]: Массив формы ``[time_count, sensor_count]``.
@@ -51,23 +52,11 @@ class MultiSensorMAPSensorBehavior(MultiSensorMAPSystemBehavior):
         Raises:
             TypeError: Если параметры системы не являются MAPSystemParams.
         """
-        logger.info("Вычисление невзвешенного N_b(t) по датчикам для P_uns(t)")
-
-        if not isinstance(self.params.base_params, MAPSystemParams):
-            logger.error("Базовые параметры не являются экземпляром MAPSystemParams")
-            raise TypeError("Базовые параметры должны быть экземпляром MAPSystemParams")
-
-        phase_count = self.params.base_params.sensor_count
-        probabilities_by_level = probabilities.reshape(
-            probabilities.shape[0] // phase_count,
-            phase_count,
-            probabilities.shape[1],
+        logger.warning(
+            "calculate_unweighted_buffer_occupancy устарел: "
+            "используется взвешенное N_b,i(t) согласно формуле (14)."
         )
-        buffer_probabilities = probabilities_by_level[2:]
-        unweighted_by_sensor = np.sum(buffer_probabilities, axis=0).T
-
-        logger.success("Невзвешенное N_b(t) по датчикам для P_uns(t) успешно вычислено")
-        return cast(NDArray[np.float64], unweighted_by_sensor)
+        return self.calculate_avg_system_length(probabilities)
 
     def calculate_avg_system_length(
         self, probabilities: NDArray[np.float64]
