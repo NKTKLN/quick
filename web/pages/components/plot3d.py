@@ -43,11 +43,42 @@ SCENE_RIGHT_EDGE = 0.86
 SCENE_BOTTOM_EDGE = 0.12
 
 # Контурные линии на поверхности показывают области локальных максимумов
-# и резких изменений характеристики. Цвет нейтральный и полупрозрачный,
-# чтобы линии читались, но не спорили с самой поверхностью.
-CONTOUR_COLOR = "rgba(25, 28, 35, 0.6)"
-CONTOUR_WIDTH = 3
+# и резких изменений характеристики. Цвет почти непрозрачный: на
+# насыщенной поверхности полупрозрачные линии сливаются с заливкой.
+CONTOUR_COLOR = "rgba(12, 14, 18, 0.95)"
+CONTOUR_WIDTH = 4
 CONTOUR_COUNT = 12
+
+# Поперечные линии — сечения поверхности плоскостями постоянного времени
+# и постоянного значения третьей оси. Вместе с линиями уровня они
+# образуют сетку, по которой видно наклон поверхности там, где линии
+# уровня расходятся далеко друг от друга. Линии тоньше уровневых и
+# чуть светлее: сетка читается, но не перебивает основной рельеф.
+CROSS_CONTOUR_COLOR = "rgba(18, 21, 27, 0.85)"
+CROSS_CONTOUR_WIDTH = 3
+CROSS_CONTOUR_COUNT = 18
+
+# Цветовые шкалы — усечённые Viridis и Turbo: у обеих исходных шкал
+# нижний конец почти чёрный, и низкие значения на поверхности
+# сливаются между собой и с контурными линиями. Начало шкал поднято до
+# средней светлоты, поэтому весь диапазон метрики различим на глаз.
+SURFACE_COLORSCALE = [
+    [0.00, "#4a90c4"],
+    [0.22, "#35a8b5"],
+    [0.44, "#2fb98a"],
+    [0.62, "#5ecb63"],
+    [0.80, "#a8dd3f"],
+    [1.00, "#fde725"],
+]
+SENSOR_COLORSCALE = [
+    [0.00, "#5b8ff0"],
+    [0.18, "#3fb0f6"],
+    [0.36, "#1bd0cf"],
+    [0.54, "#3ded92"],
+    [0.72, "#9bfb46"],
+    [0.86, "#dfdc38"],
+    [1.00, "#f9820f"],
+]
 
 
 def _axis_settings(title: str, **extra: Any) -> dict[str, Any]:
@@ -169,44 +200,117 @@ def _apply_layout(
     return fig
 
 
-def _contour_settings(
-    values: NDArray[np.float64], show_contours: bool
+def _line_settings(
+    values: NDArray[np.float64],
+    show: bool,
+    color: str,
+    width: int,
+    count: int,
+    snap_to_grid: bool = False,
 ) -> dict[str, Any]:
-    """Формирует настройки линий уровня на поверхности.
+    """Формирует настройки одного семейства линий на поверхности.
 
     Шаг линий задаётся явно от размаха значений: автоматический подбор
     Plotly на пологих поверхностях оставляет одну-две линии, по которым
     рельеф не читается.
 
     Args:
-        values (NDArray[np.float64]): Значения метрики.
-        show_contours (bool): Наносить ли линии уровня.
+        values (NDArray[np.float64]): Значения вдоль оси, по которой
+            строятся линии.
+        show (bool): Наносить ли линии.
+        color (str): Цвет линий.
+        width (int): Толщина линий.
+        count (int): Желаемое число линий на весь размах значений.
+        snap_to_grid (bool): Округлять ли шаг до кратного шагу сетки,
+            чтобы линии проходили ровно по узлам расчёта.
 
     Returns:
-        dict[str, Any]: Словарь настроек contours для go.Surface.
+        dict[str, Any]: Словарь настроек одного семейства линий.
     """
     settings: dict[str, Any] = dict(
-        show=show_contours,
-        color=CONTOUR_COLOR,
-        width=CONTOUR_WIDTH,
+        show=show,
+        color=color,
+        width=width,
         highlight=False,
     )
 
     finite_values = values[np.isfinite(values)]
 
-    if show_contours and finite_values.size:
-        minimum = float(np.min(finite_values))
-        maximum = float(np.max(finite_values))
-        span = maximum - minimum
+    if not show or not finite_values.size:
+        return settings
 
-        if span > 0:
-            settings |= dict(
-                start=minimum,
-                end=maximum,
-                size=span / CONTOUR_COUNT,
-            )
+    minimum = float(np.min(finite_values))
+    maximum = float(np.max(finite_values))
+    span = maximum - minimum
 
-    return dict(z=settings)
+    if span <= 0:
+        return settings
+
+    step = span / count
+
+    if snap_to_grid:
+        unique_values = np.unique(finite_values)
+
+        if unique_values.size > 1:
+            # Шаг сетки расчёта. Кратный ему шаг линий ставит сечения
+            # ровно на посчитанные узлы: на разреженной третьей оси
+            # (например, при пяти датчиках) линии иначе проходят между
+            # рядами данных и рельеф выглядит смазанным.
+            spacing = float(np.min(np.diff(unique_values)))
+            step = spacing * max(1, round(step / spacing))
+
+    settings |= dict(start=minimum, end=maximum, size=step)
+
+    return settings
+
+
+def _contour_settings(
+    values: NDArray[np.float64],
+    time_array: NDArray[np.float64],
+    axis_values: NDArray[np.float64],
+    show_contours: bool,
+) -> dict[str, Any]:
+    """Формирует настройки линий на поверхности по всем трём осям.
+
+    Линии уровня (по Z) показывают области локальных максимумов, минимумов
+    и резких изменений. Поперечные линии по X и Y образуют вместе с ними
+    сетку: на пологих участках, где линии уровня редки, наклон поверхности
+    читается именно по ней.
+
+    Args:
+        values (NDArray[np.float64]): Значения метрики.
+        time_array (NDArray[np.float64]): Значения оси X.
+        axis_values (NDArray[np.float64]): Значения оси Y.
+        show_contours (bool): Наносить ли линии.
+
+    Returns:
+        dict[str, Any]: Словарь настроек contours для go.Surface.
+    """
+    return dict(
+        x=_line_settings(
+            np.asarray(time_array, dtype=np.float64),
+            show=show_contours,
+            color=CROSS_CONTOUR_COLOR,
+            width=CROSS_CONTOUR_WIDTH,
+            count=CROSS_CONTOUR_COUNT,
+            snap_to_grid=True,
+        ),
+        y=_line_settings(
+            np.asarray(axis_values, dtype=np.float64),
+            show=show_contours,
+            color=CROSS_CONTOUR_COLOR,
+            width=CROSS_CONTOUR_WIDTH,
+            count=CROSS_CONTOUR_COUNT,
+            snap_to_grid=True,
+        ),
+        z=_line_settings(
+            values,
+            show=show_contours,
+            color=CONTOUR_COLOR,
+            width=CONTOUR_WIDTH,
+            count=CONTOUR_COUNT,
+        ),
+    )
 
 
 def plot_surface(
@@ -216,7 +320,7 @@ def plot_surface(
     title_text: str,
     yaxis_title: str,
     zaxis_title: str = "Value",
-    colorscale: str = "Viridis",
+    colorscale: Any = None,
     yaxis_extra: dict[str, Any] | None = None,
     show_contours: bool = True,
 ) -> Any:
@@ -230,7 +334,8 @@ def plot_surface(
         title_text (str): Заголовок графика.
         yaxis_title (str): Подпись третьей оси.
         zaxis_title (str): Подпись оси значений метрики.
-        colorscale (str): Цветовая шкала поверхности.
+        colorscale (Any): Цветовая шкала поверхности. По умолчанию —
+            SURFACE_COLORSCALE.
         yaxis_extra (dict[str, Any] | None): Дополнительные настройки оси Y.
         show_contours (bool): Наносить ли линии уровня на поверхность.
 
@@ -254,9 +359,14 @@ def plot_surface(
             x=time_array,
             y=axis_values,
             z=values,
-            colorscale=colorscale,
+            colorscale=colorscale or SURFACE_COLORSCALE,
             colorbar=_colorbar_settings(zaxis_title),
-            contours=_contour_settings(values, show_contours),
+            contours=_contour_settings(
+                values=values,
+                time_array=time_array,
+                axis_values=axis_values,
+                show_contours=show_contours,
+            ),
         )
     )
 
@@ -302,7 +412,7 @@ def plot_sensor_surface(
         title_text=title_text,
         yaxis_title="Номер датчика",
         zaxis_title=zaxis_title,
-        colorscale="Turbo",
+        colorscale=SENSOR_COLORSCALE,
         yaxis_extra=dict(tickmode="array", tickvals=sensor_numbers),
         show_contours=show_contours,
     )
@@ -341,7 +451,7 @@ def plot_phase_portrait(
             line=dict(
                 width=6,
                 color=time_array,
-                colorscale="Viridis",
+                colorscale=SURFACE_COLORSCALE,
                 showscale=True,
                 colorbar=_colorbar_settings(TIME_AXIS_TITLE),
             ),
