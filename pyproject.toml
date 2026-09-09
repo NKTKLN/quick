@@ -19,6 +19,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "coverage>=7.13.4",
+  "hypothesis>=6.138.0",
+  "pytest>=9.0.2",
+  "pytest-cov>=7.0.0",
   "ruff>=0.15.1",
   "mypy>=1.19.1",
   "pre-commit>=4.5.1",
@@ -88,8 +92,8 @@ convention = "google"
 "**/*.ipynb" = ["T201"]                   # print
 
 [tool.mypy]
-mypy_path = ["src/quick"]
-files = ["src"]
+mypy_path = ["src"]
+files = ["src", "tests"]
 python_version = "3.13"
 warn_return_any = true
 warn_unused_ignores = true
@@ -106,7 +110,27 @@ strict_optional = true
 disallow_untyped_calls = true
 exclude = [".git", "__pycache__", "build", "dist", ".venv", "tmp", "web"]
 
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+  "monte_carlo: статистическая сверка с детерминированными решениями",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["quick.services"]
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+exclude_also = ['if __name__ == "__main__":']
+
 [tool.deptry]
+known_first_party = ["quick"]
 non_dev_dependency_groups = ["web", "api"]
 experimental_namespace_package = true
 
