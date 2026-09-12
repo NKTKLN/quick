@@ -3,14 +3,24 @@ version: '3'
 tasks:
   # ======== Environment ========
   sync:
-    desc: Sync dependencies using uv
+    desc: Sync all dependency groups using uv
     cmds:
-      - uv sync --group dev --group web --group api
+      - uv sync --all-groups
+
+  sync-frozen:
+    desc: Sync all dependency groups from the lockfile
+    cmds:
+      - uv sync --frozen --all-groups
 
   precommit:
     desc: Install git hooks
     cmds:
-      - uv run pre-commit install
+      - uv run pre-commit install --install-hooks
+
+  precommit-run:
+    desc: Run pre-commit on all files
+    cmds:
+      - uv run pre-commit run --all-files
 
   init:
     desc: Full project setup
@@ -45,15 +55,64 @@ tasks:
     desc: Auto-fix lint issues and format code
     cmds:
       - uv run ruff format .
+      - uv run ruff check . --fix
+
+  fmt-unsafe:
+    desc: Auto-fix lint issues using unsafe fixes and format code
+    cmds:
+      - uv run ruff format .
       - uv run ruff check . --fix --unsafe-fixes
 
   # ======== Static analysis ========
   lint:
-    desc: Run Ruff and MyPy
+    desc: Run all static checks
+    cmds:
+      - task: ruff
+      - task: fmt-check
+      - task: typecheck
+
+  ruff:
+    desc: Run Ruff lint
     cmds:
       - uv run ruff check .
+
+  fmt-check:
+    desc: Check formatting
+    cmds:
       - uv run ruff format --check .
+
+  typecheck:
+    desc: Run MyPy
+    cmds:
       - uv run mypy .
+
+  test:
+    desc: Run unit and scientific validation tests
+    cmds:
+      - uv run pytest
+
+  test-cov:
+    desc: Run tests with branch coverage
+    cmds:
+      - uv run pytest --cov --cov-report=term-missing --cov-report=xml
+
+  build:
+    desc: Build wheel and source distribution
+    cmds:
+      - uv build
+
+  ci:
+    desc: Run the local CI quality gate
+    cmds:
+      - task: lint
+      - task: test-cov
+      - task: build
+
+  ci-frozen:
+    desc: Run CI using locked dependencies
+    cmds:
+      - task: sync-frozen
+      - task: ci
 
   # ======== Dependency hygiene ========
   audit:
@@ -69,8 +128,10 @@ tasks:
   # ======== Full quality gate ========
   check:
     desc: Run full quality checks
-    cmds: 
+    cmds:
       - task: lint
+      - task: test-cov
+      - task: build
       - task: audit
       - task: unused-libs
 

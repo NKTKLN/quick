@@ -90,7 +90,6 @@ __nbqa_cache__/
 # Custom ignore rules
 # ========================
 Todo.md
-.github/
 
 # ========================
 # Exceptions (keep files)
